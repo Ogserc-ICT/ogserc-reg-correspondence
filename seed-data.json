@@ -1,0 +1,617 @@
+{
+  "_note": "Extracted from OGSERC_Registry_Correspondence_Workbook.xlsm (Lists + Settings sheets). Seed reference tables from this file; never hard-code these values in components. 'closesInwardItem' on outgoing types is NEW (not in the Excel) - see docs/SPEC.md §9 R4.",
+  "settings": {
+    "ackPrefix": "OGSERC/ACK",
+    "outPrefix": "OGSERC/OUT",
+    "officeClosingTime": "17:00",
+    "timezone": "Africa/Lagos",
+    "registryForwardingTargetDays": 2,
+    "dispatchTargetDays": 2,
+    "chaseProofOfDeliveryAfterDays": 5,
+    "urgentResponseTargetDays": 1,
+    "defaultResponseTargetDays": 10,
+    "fileReturnTargetDays": 3,
+    "effectiveDate": "2026-11-02",
+    "effectiveDateIsPlaceholder": true,
+    "registrationDeadlineDays": 60,
+    "dashboardFirstMonth": "2026-11-01",
+    "registryAddress": "Registry · 5th & 6th Floors, OPIC Building, Oke-Ilewo, Abeokuta",
+    "afterHoursModes": [
+      "Email",
+      "Online portal"
+    ],
+    "noDeliveryConfirmationModes": [
+      "Publication / gazette",
+      "Internal mail"
+    ]
+  },
+  "incomingTypes": [
+    {
+      "name": "REG-01 Registration (new)",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "11; Sch. 1 Pt A",
+      "responseTargetDays": 20,
+      "para103SlipWording": true
+    },
+    {
+      "name": "OUN-01 Own-use notification",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "3(4); Sch. 1 Pt B",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Update - material change",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "16(1)",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Annual confirmation",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "16(2)",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Deficiency response",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "13(1)(b)",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Licence / permit application",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "18(1)",
+      "responseTargetDays": 20,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Multi-State ring-fencing plan",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "7(3)",
+      "responseTargetDays": 20,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Licence renewal application",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "8(5)",
+      "responseTargetDays": 20,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Fee payment evidence",
+      "category": "Regulatory filing",
+      "defaultUnit": "Finance",
+      "orderRef": "17",
+      "responseTargetDays": 5,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Confidentiality claim / representation",
+      "category": "Regulatory filing",
+      "defaultUnit": "Legal",
+      "orderRef": "15(3); 20",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Application for review",
+      "category": "Regulatory filing",
+      "defaultUnit": "Legal",
+      "orderRef": "21",
+      "responseTargetDays": 20,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Consumer complaint",
+      "category": "Consumer matters",
+      "defaultUnit": "Consumer Affairs",
+      "orderRef": "9",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Tariff application / review",
+      "category": "Regulatory filing",
+      "defaultUnit": "Tariffs & Economic Regulation",
+      "orderRef": null,
+      "responseTargetDays": 20,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Licensee returns / performance report",
+      "category": "Licensee returns & reports",
+      "defaultUnit": "Technical & Market Operations",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Incident / outage report",
+      "category": "Licensee returns & reports",
+      "defaultUnit": "Technical & Market Operations",
+      "orderRef": null,
+      "responseTargetDays": 5,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Consumer petition / public representation",
+      "category": "Consumer matters",
+      "defaultUnit": "Consumer Affairs",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Letter from Governor's Office",
+      "category": "Government & legislature",
+      "defaultUnit": "Office of the Chairman",
+      "orderRef": null,
+      "responseTargetDays": 5,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Letter from House of Assembly",
+      "category": "Government & legislature",
+      "defaultUnit": "Office of the Chairman",
+      "orderRef": null,
+      "responseTargetDays": 5,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Letter from State MDA / Local Government",
+      "category": "Government & legislature",
+      "defaultUnit": "Office of the Secretary",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Letter from NERC / Federal agency",
+      "category": "Federal & sector agencies",
+      "defaultUnit": "Office of the Secretary",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Letter from DisCo / GenCo / TCN",
+      "category": "Industry & investors",
+      "defaultUnit": "Technical & Market Operations",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Investor / developer enquiry",
+      "category": "Industry & investors",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Development partner correspondence",
+      "category": "Industry & investors",
+      "defaultUnit": "Office of the Chairman",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Court process / legal notice",
+      "category": "Legal & court",
+      "defaultUnit": "Legal",
+      "orderRef": null,
+      "responseTargetDays": 3,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Freedom of Information request",
+      "category": "Legal & court",
+      "defaultUnit": "Legal",
+      "orderRef": null,
+      "responseTargetDays": 7,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Invitation (meeting / event / hearing)",
+      "category": "Invitations & events",
+      "defaultUnit": "Office of the Secretary",
+      "orderRef": null,
+      "responseTargetDays": 3,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Invoice / vendor correspondence",
+      "category": "Finance & procurement",
+      "defaultUnit": "Finance",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Staff / personnel matter",
+      "category": "Administration & HR",
+      "defaultUnit": "Administration & HR",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Media / press enquiry",
+      "category": "Media & public",
+      "defaultUnit": "Corporate Communications",
+      "orderRef": null,
+      "responseTargetDays": 2,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Circular / publication (for information)",
+      "category": "Other",
+      "defaultUnit": "Office of the Secretary",
+      "orderRef": null,
+      "responseTargetDays": 0,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Other correspondence",
+      "category": "Other",
+      "defaultUnit": "Office of the Secretary",
+      "orderRef": "10(2)",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    }
+  ],
+  "outgoingTypes": [
+    {
+      "name": "Acknowledgement / holding reply",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": false
+    },
+    {
+      "name": "Reply to correspondence",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Letter (general)",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Deficiency notice",
+      "responseExpected": true,
+      "responseWindowDays": 10,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Information request to licensee",
+      "responseExpected": true,
+      "responseWindowDays": 10,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Registration certificate",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Licence / permit",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Decision / determination",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Regulatory order",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Regulation / guideline",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Public notice / consultation paper",
+      "responseExpected": true,
+      "responseWindowDays": 20,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Circular to licensees",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Compliance / enforcement notice",
+      "responseExpected": true,
+      "responseWindowDays": 10,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Fee demand / invoice",
+      "responseExpected": true,
+      "responseWindowDays": 10,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Response to consumer complaint",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Letter to Governor's Office / State MDA",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Letter to NERC / Federal agency",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Court filing / legal correspondence",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Press release / media statement",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Invitation / meeting notice",
+      "responseExpected": true,
+      "responseWindowDays": 5,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Internal memo",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Report submitted",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    },
+    {
+      "name": "Other",
+      "responseExpected": false,
+      "responseWindowDays": 0,
+      "closesInwardItem": true
+    }
+  ],
+  "receiptModes": [
+    "Hand delivery",
+    "Email",
+    "Online portal",
+    "Courier",
+    "Registered post",
+    "Internal mail",
+    "Publication / gazette"
+  ],
+  "units": [
+    "Office of the Chairman",
+    "Office of the Secretary",
+    "Registration & Licensing",
+    "Technical & Market Operations",
+    "Tariffs & Economic Regulation",
+    "Consumer Affairs",
+    "Legal",
+    "Finance",
+    "Administration & HR",
+    "Corporate Communications"
+  ],
+  "lgas": [
+    "Abeokuta North",
+    "Abeokuta South",
+    "Ado-Odo/Ota",
+    "Ewekoro",
+    "Ifo",
+    "Ijebu East",
+    "Ijebu North",
+    "Ijebu North East",
+    "Ijebu Ode",
+    "Ikenne",
+    "Imeko Afon",
+    "Ipokia",
+    "Obafemi Owode",
+    "Odeda",
+    "Odogbolu",
+    "Ogun Waterside",
+    "Remo North",
+    "Sagamu",
+    "Yewa North",
+    "Yewa South",
+    "Outside Ogun State"
+  ],
+  "acknowledgementVia": [
+    "Printed slip",
+    "Email",
+    "Portal",
+    "Not yet issued",
+    "Not required"
+  ],
+  "partyCategories": [
+    "Registrant / licensee",
+    "Prospective applicant",
+    "Consumer / member of public",
+    "Community / association",
+    "Governor's Office",
+    "State MDA",
+    "Ogun State House of Assembly",
+    "Local Government",
+    "NERC",
+    "Federal MDA (other)",
+    "DisCo / GenCo / TCN",
+    "Investor / developer",
+    "Development partner",
+    "Court / legal counsel",
+    "Media",
+    "Vendor / contractor",
+    "OGSERC internal",
+    "Other"
+  ],
+  "actionRequired": [
+    "Reply required",
+    "Action required",
+    "For information",
+    "File only"
+  ],
+  "priorities": [
+    "Urgent",
+    "High",
+    "Normal",
+    "Low"
+  ],
+  "fileClasses": [
+    "Registration & licensing",
+    "Licensee file",
+    "Tariffs & market",
+    "Technical & standards",
+    "Consumer affairs",
+    "Legal",
+    "Finance",
+    "Administration",
+    "Personnel (confidential)",
+    "Government & external relations",
+    "Policy & regulations",
+    "General correspondence"
+  ],
+  "fileSecurity": [
+    "Open",
+    "Restricted",
+    "Confidential"
+  ],
+  "fileStatuses": [
+    "Open",
+    "Closed",
+    "Archived"
+  ],
+  "registryStaffPlaceholders": [
+    "[Registry officer 1]",
+    "[Registry officer 2]",
+    "[Registry officer 3]",
+    "[Head of Registry]"
+  ],
+  "secretaryPlaceholders": [
+    "[Secretary's full name]",
+    "[Acting Secretary's full name]"
+  ],
+  "publicHolidays": [
+    {
+      "date": "2026-12-25",
+      "name": "Christmas Day",
+      "status": "Fixed"
+    },
+    {
+      "date": "2026-12-26",
+      "name": "Boxing Day (Saturday)",
+      "status": "Fixed"
+    },
+    {
+      "date": "2026-12-28",
+      "name": "Boxing Day holiday (substitute)",
+      "status": "Provisional — confirm FG declaration"
+    },
+    {
+      "date": "2027-01-01",
+      "name": "New Year's Day",
+      "status": "Fixed"
+    },
+    {
+      "date": "2027-03-10",
+      "name": "Eid al-Fitr",
+      "status": "Estimated — confirm FG declaration"
+    },
+    {
+      "date": "2027-03-11",
+      "name": "Eid al-Fitr holiday",
+      "status": "Estimated — confirm FG declaration"
+    },
+    {
+      "date": "2027-03-26",
+      "name": "Good Friday",
+      "status": "Fixed"
+    },
+    {
+      "date": "2027-03-29",
+      "name": "Easter Monday",
+      "status": "Fixed"
+    },
+    {
+      "date": "2027-05-03",
+      "name": "Workers' Day (substitute for Sat 1 May)",
+      "status": "Provisional — confirm FG declaration"
+    },
+    {
+      "date": "2027-05-17",
+      "name": "Eid al-Adha",
+      "status": "Estimated — confirm FG declaration"
+    },
+    {
+      "date": "2027-05-18",
+      "name": "Eid al-Adha holiday",
+      "status": "Estimated — confirm FG declaration"
+    },
+    {
+      "date": "2027-06-14",
+      "name": "Democracy Day (substitute for Sat 12 June)",
+      "status": "Provisional — confirm FG declaration"
+    },
+    {
+      "date": "2027-08-16",
+      "name": "Eid al-Mawlid",
+      "status": "Estimated — confirm FG declaration"
+    },
+    {
+      "date": "2027-10-01",
+      "name": "Independence Day",
+      "status": "Fixed"
+    },
+    {
+      "date": "2027-12-27",
+      "name": "Christmas Day holiday (substitute for Sat 25 Dec)",
+      "status": "Provisional — confirm FG declaration"
+    },
+    {
+      "date": "2027-12-28",
+      "name": "Boxing Day holiday (substitute for Sun 26 Dec)",
+      "status": "Provisional — confirm FG declaration"
+    }
+  ]
+}
