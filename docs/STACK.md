@@ -194,6 +194,39 @@ Stop for review after each. Full "done when" criteria are in `CLAUDE.md`.
 
 ## Exact versions
 
+Node.js 22.14 (minimum 22.12), PostgreSQL 18.4 (embedded, local). Output of `npm ls --depth=0` after Phase 0:
+
 ```
-(paste output of `npm ls --depth=0` here after Phase 0)
+@date-fns/tz@1.5.0
+@node-rs/argon2@2.2.2
+@playwright/test@1.64.1
+@prisma/adapter-pg@7.10.1
+@prisma/client@7.10.1
+@tailwindcss/turbopack@4.3.3
+@types/node@22.20.5
+@types/pg@8.23.1
+@types/react-dom@19.3.0
+@types/react@19.3.0
+@vitest/coverage-v8@5.0.5
+better-auth@1.7.13
+date-fns@4.4.0
+dotenv@18.0.9
+embedded-postgres@18.4.0-beta.17
+eslint-config-next@16.4.3
+eslint-config-prettier@10.1.8
+eslint@9.39.5
+next@16.4.3
+pdf-lib@1.17.1
+pg@8.23.1
+prettier-plugin-tailwindcss@0.8.1
+prettier@3.9.10
+prisma@7.10.1
+react-dom@19.3.0
+react@19.3.0
+recharts@3.10.1
+tailwindcss@4.3.3
+tsx@4.23.15
+typescript@5.9.3
+vitest@5.0.5
+zod@4.6.7
 ```
