@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/*
+ * OGSERC brand tokens. PLACEHOLDER values: replace with the official green and
+ * gold hex codes (STACK, Core stack > Styling) before Phase 4.
+ * Status colours follow the workbook's Guide: red = overdue, amber = awaiting
+ * action, green = closed, peach = flagged. Always show the status text as well.
+ */
+@theme {
+  --color-brand-green: #1f6b3a;
+  --color-brand-gold: #c9a227;
+
+  --color-status-overdue: #fde2e1;
+  --color-status-awaiting: #fdf0c7;
+  --color-status-closed: #dff3e4;
+  --color-status-flagged: #fde5d4;
+
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+}
+
+body {
+  background: #ffffff;
+  color: #171717;
+}
