@@ -1,0 +1,18 @@
+.next/
+node_modules/
+coverage/
+playwright-report/
+test-results/
+src/generated/
+prisma/migrations/
+.pgdata/
+reference/
+package-lock.json
+
+# Handoff documents and data: keep exactly as written
+CLAUDE.md
+AGENTS.md
+README.md
+docs/
+seed-data.json
+assets/
