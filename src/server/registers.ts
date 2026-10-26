@@ -198,7 +198,7 @@ export async function createInward(
   await refreshInward(tx, created.id, ctx);
   if (created.inResponseToOutwardId)
     await refreshOutward(tx, created.inResponseToOutwardId, ctx);
-  return created;
+  return tx.inwardItem.findUniqueOrThrow({ where: { id: created.id } });
 }
 
 /** Recomputes routedUnitId and statusCache from stored facts (§9 R6). */
@@ -327,7 +327,7 @@ export async function createOutward(
   await refreshOutward(tx, created.id, ctx);
   if (created.inReplyToInwardId)
     await refreshInward(tx, created.inReplyToInwardId, ctx);
-  return created;
+  return tx.outwardItem.findUniqueOrThrow({ where: { id: created.id } });
 }
 
 export async function refreshOutward(tx: Tx, id: string, ctx: RuleContext) {
@@ -435,7 +435,7 @@ export async function voidItem(
   }
 }
 
-async function refreshSameCac(tx: Tx, cacNo: string, ctx: RuleContext) {
+export async function refreshSameCac(tx: Tx, cacNo: string, ctx: RuleContext) {
   const same = await tx.inwardItem.findMany({
     where: {
       snapIsRegistration: true,
