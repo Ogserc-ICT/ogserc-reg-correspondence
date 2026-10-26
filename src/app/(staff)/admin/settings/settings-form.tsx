@@ -64,7 +64,11 @@ export function SettingsForm({ initial }: { initial: Values }) {
   );
 
   return (
-    <form key={retry ? "retry" : "saved"} action={action} className="space-y-6">
+    <form
+      key={retry ? (state.attempt ?? "retry") : "saved"}
+      action={action}
+      className="space-y-6"
+    >
       <Messages state={state} />
       <Section title="Numbering">
         {input(

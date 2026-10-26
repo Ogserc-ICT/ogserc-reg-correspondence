@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { E2E_APP_NOW, E2E_DATABASE_URL } from "./e2e/env";
+import { E2E_APP_NOW, E2E_CLOCK_FILE, E2E_DATABASE_URL } from "./e2e/env";
 
 const port = Number(process.env.E2E_PORT ?? 3100);
 
@@ -26,6 +26,7 @@ export default defineConfig({
     env: {
       DATABASE_URL: E2E_DATABASE_URL,
       APP_NOW: E2E_APP_NOW,
+      APP_NOW_FILE: E2E_CLOCK_FILE,
       NEXT_DIST_DIR: ".next-e2e",
     },
   },

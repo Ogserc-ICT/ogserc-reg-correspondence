@@ -27,7 +27,11 @@ export function EditUserForm({
   const shown = v ? { ...v, isSignatory: v.isSignatory === "on" } : values;
   const active = v ? v.active === "on" : values.active;
   return (
-    <form key={v ? "retry" : "initial"} action={action} className="space-y-4">
+    <form
+      key={v ? (state.attempt ?? "retry") : "initial"}
+      action={action}
+      className="space-y-4"
+    >
       <Messages state={state} />
       <UserFields units={units} values={shown} />
       <label className="flex items-center gap-2 text-sm">

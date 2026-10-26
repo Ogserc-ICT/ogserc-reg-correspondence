@@ -18,7 +18,7 @@ export function NewOutwardForm({
   );
   const [cleared, setCleared] = useState(0);
   const [dirty, setDirty] = useState(false);
-  const key = `${state.message ?? ""}-${state.errors?.length ?? 0}-${cleared}`;
+  const key = `${state.message ?? ""}-${state.attempt ?? ""}-${cleared}`;
   const values =
     cleared && !state.values ? defaults : (state.values ?? defaults);
 

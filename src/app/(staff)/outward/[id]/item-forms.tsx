@@ -98,7 +98,7 @@ export function UpdateOutwardForm({
   const val = (k: string) => v[k] ?? "";
   return (
     <form
-      key={state.ok ? state.message : "edit"}
+      key={state.ok ? state.message : (state.attempt ?? "edit")}
       action={action}
       className="space-y-4"
     >
@@ -179,7 +179,7 @@ export function EditOutwardForm({
   );
   return (
     <form
-      key={state.ok ? state.message : "full"}
+      key={state.ok ? state.message : (state.attempt ?? "full")}
       action={action}
       className="space-y-4"
     >

@@ -34,6 +34,7 @@ async function UserBar() {
   const links = [
     registers && { href: "/inward", label: "Inward" },
     registers && { href: "/outward", label: "Outward" },
+    can(user, "files.read") && { href: "/files", label: "Files" },
     can(user, "reports.print") && { href: "/pending", label: "Pending" },
     can(user, "reports.print") && { href: "/daily", label: "Daily Register" },
     can(user, "users.manage") && { href: "/admin/users", label: "Users" },

@@ -42,7 +42,17 @@ export async function formOptions(db: Db) {
     select: { id: true, name: true, designation: true },
   });
 
+  const staff = await db.user.findMany({
+    where: { active: true, role: { not: "ADMIN" } },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
+
   return {
+    fileClasses: list("FILE_CLASS"),
+    fileSecurity: list("FILE_SECURITY"),
+    fileStatuses: list("FILE_STATUS"),
+    staff: staff.map((u) => ({ id: u.id, label: u.name })),
     receiptModes: list("RECEIPT_MODE"),
     lgas: list("LGA"),
     ackVia: list("ACK_VIA"),

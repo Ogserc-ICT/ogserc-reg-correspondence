@@ -114,7 +114,14 @@ async function DeskContent() {
           href={`/outward${q("Response overdue")}`}
           tone="bg-status-overdue"
         />
-        <Tile label="Files out" value={s.files.outWithOfficers} />
+        <Tile
+          label="Files out"
+          value={s.files.outWithOfficers}
+          href={can(user, "files.read") ? "/files?out=1" : undefined}
+          tone={
+            s.files.overdue > 0 ? "bg-status-overdue" : "bg-status-awaiting"
+          }
+        />
       </div>
 
       {printing && (

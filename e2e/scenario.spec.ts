@@ -4,7 +4,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { HEADING_GENERAL, HEADING_PARA103 } from "../src/domain/slip";
 import { pdfPages } from "../tests/pdf-text";
-import { DEV_PASSWORD } from "./env";
+import { DEV_PASSWORD, setClock } from "./env";
 
 // Next keeps the previous page in the DOM as a hidden Activity, so every
 // locator is limited to visible elements.
@@ -294,6 +294,17 @@ test("a missing field lists every gap and keeps what was typed", async ({
     "Date & time received can't be in the future.",
   );
   await expect(field(page, "sender")).toHaveValue("Typed sender");
+
+  // A second error in a row keeps a dropdown changed in between.
+  await choose(page, { modeId: "Courier" });
+  await page.getByRole("button", { name: "Save to register" }).click();
+  await expect(alert).toContainText("Subject");
+  await expect(field(page, "modeId")).toHaveValue(
+    (await field(page, "modeId")
+      .locator("option", { hasText: "Courier" })
+      .getAttribute("value")) ?? "",
+  );
+  await expect(field(page, "sender")).toHaveValue("Typed sender");
 });
 
 // ---- Phase 5: slips and reports on the data entered above ------------------
@@ -392,4 +403,108 @@ test("unit officers can't print reports", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: "You can't open this page" }),
   ).toBeVisible();
+});
+
+// ---- Phase 6: File Desk — F1 and F2 through the UI -------------------------
+
+test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  try {
+    await signInAs(page, "registry.officer1@example.invalid");
+    const openFile = async (ref: string) => {
+      await page.goto("/files");
+      await page.getByRole("link", { name: ref }).click();
+      await page.waitForURL(/\/files\/[0-9a-f-]{36}$/);
+    };
+    const issue = async (to: string, unitLabel: string) => {
+      await fill(page, { issuedTo: to });
+      await choose(page, { unitId: unitLabel });
+      await page.getByRole("button", { name: "Issue file" }).click();
+    };
+
+    // M1: RL/001 out 20 Nov 14:00 to Reg. Officer, back 25 Nov.
+    setClock("2026-11-20T14:00");
+    await openFile("OGSERC/RL/001");
+    await issue("Reg. Officer", "Registration & Licensing");
+    await expect(status(page)).toContainText(
+      "OGSERC/RL/001 issued to Reg. Officer. Return due 25-Nov-2026.",
+    );
+
+    setClock("2026-11-25T10:00");
+    await page.reload();
+    await page
+      .getByRole("button", { name: /Record return from Reg\. Officer/ })
+      .click();
+    await expect(status(page)).toContainText(
+      "OGSERC/RL/001 returned to the Registry from Reg. Officer (Registration & Licensing).",
+    );
+
+    // M2: GOV/001 out 2 Dec to PA to Chairman, not returned.
+    setClock("2026-12-02T11:30");
+    await openFile("OGSERC/GOV/001");
+    await issue("PA to Chairman", "Office of the Chairman");
+    await expect(status(page)).toContainText(
+      "OGSERC/GOV/001 issued to PA to Chairman. Return due 07-Dec-2026.",
+    );
+
+    // ==== 10 Dec 2026 ====
+    setClock("2026-12-10T09:00");
+    await openFile("OGSERC/RL/001");
+    await expect(page.locator("main header:visible")).toContainText(
+      "Currently with: Registry",
+    );
+    await expect(detail(page, "Inward items")).toHaveText("2");
+    await expect(detail(page, "Outward items")).toHaveText("1");
+    await expect(detail(page, "Last correspondence")).toHaveText("01-Dec-2026");
+    const m1 = page.locator("tr:visible", {
+      hasText: "Reg. Officer (Registration & Licensing)",
+    });
+    await expect(m1).toContainText("25-Nov-2026"); // return due and returned
+    await expect(m1).toContainText("Returned");
+    await expect(m1.locator("td").nth(5)).toHaveText("3"); // working days out
+
+    await openFile("OGSERC/GOV/001");
+    await expect(page.locator("main header:visible")).toContainText(
+      "Currently with: PA to Chairman (Office of the Chairman) since 02-Dec-2026 (6 working days)",
+    );
+    await expect(page.locator("ul.bg-status-flagged:visible")).toContainText(
+      "Out beyond return date",
+    );
+    const m2 = page.locator("tr:visible", {
+      hasText: "PA to Chairman (Office of the Chairman)",
+    });
+    await expect(m2).toContainText("07-Dec-2026");
+    await expect(m2).toContainText("Overdue");
+
+    await page.goto("/files?out=1");
+    await expect(page.locator("tbody:visible tr")).toHaveCount(1);
+    await expect(page.locator("tbody:visible")).toContainText("OGSERC/GOV/001");
+
+    // Issue again while still out: asked first; Cancel issues nothing.
+    await openFile("OGSERC/GOV/001");
+    await issue("Legal Adviser", "Legal");
+    const ask = page.getByRole("alertdialog", { name: "Confirm issue" });
+    await expect(ask).toContainText(
+      "OGSERC/GOV/001 is still out with PA to Chairman (Office of the Chairman). Issue it anyway?",
+    );
+    await ask.getByRole("link", { name: "Cancel" }).click();
+    await expect(page.getByRole("alertdialog")).toHaveCount(0);
+    await expect(
+      page.locator("tr:visible", { hasText: "Legal Adviser" }),
+    ).toHaveCount(0);
+
+    await issue("Legal Adviser", "Legal");
+    await page.getByRole("button", { name: "Issue anyway" }).click();
+    await expect(status(page)).toContainText(
+      "OGSERC/GOV/001 issued to Legal Adviser. Return due 15-Dec-2026.",
+    );
+    await page.reload();
+    await expect(
+      page.locator("tr:visible", { hasText: "Legal Adviser (Legal)" }),
+    ).toContainText("Earlier movement of this file not returned");
+  } finally {
+    setClock();
+  }
 });

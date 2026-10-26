@@ -12,6 +12,10 @@ export type FormState = {
   missing?: string[];
   errors?: string[];
   values?: Record<string, string>;
+  /** New on every error response; forms key on it (see formError). */
+  attempt?: string;
+  /** A question the user must confirm before the action goes ahead. */
+  confirm?: string;
   /** New Inward: open ("print") or download ("pdf") the slip after saving. */
   after?: "print" | "pdf";
   /** A link shown with the success message, e.g. to the saved item. */

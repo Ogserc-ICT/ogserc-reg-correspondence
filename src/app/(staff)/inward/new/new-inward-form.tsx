@@ -20,7 +20,7 @@ export function NewInwardForm({
   const [dirty, setDirty] = useState(false);
   // After a save: fresh defaults. After an error: what was typed.
   const values = state.values ?? defaults;
-  const key = `${state.message ?? ""}-${state.errors?.length ?? 0}-${cleared}`;
+  const key = `${state.message ?? ""}-${state.attempt ?? ""}-${cleared}`;
 
   // Save + print slip / Save + PDF slip (SPEC §7).
   const slip = state.ok && state.link ? `${state.link.href}/slip` : null;

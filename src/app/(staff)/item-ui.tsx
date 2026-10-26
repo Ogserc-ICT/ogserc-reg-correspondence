@@ -62,6 +62,8 @@ const ACTIONS: Record<string, string> = {
   dispatch: "Dispatched",
   deliver: "Delivery confirmed",
   void: "Voided",
+  issue: "Issued",
+  return: "Returned to the Registry",
 };
 
 /** Audit history with field labels and ids turned into names. */

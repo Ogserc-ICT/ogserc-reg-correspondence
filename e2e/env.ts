@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { writeFileSync } from "node:fs";
+import path from "node:path";
 import { localUrl } from "../scripts/pg-cluster";
 
 export const E2E_DATABASE_URL = process.env.DATABASE_URL_E2E || localUrl("e2e");
@@ -9,3 +11,11 @@ export const DEV_PASSWORD =
 
 /** The app clock during e2e runs: SPEC §12.2's "today" (Lagos time). */
 export const E2E_APP_NOW = "2026-12-10T09:00";
+
+/** The e2e server reads its clock from this file on every request. */
+export const E2E_CLOCK_FILE = path.resolve(".e2e-clock");
+
+/** Moves the app clock (Lagos time, "2026-11-20T14:00"). */
+export function setClock(value: string = E2E_APP_NOW) {
+  writeFileSync(E2E_CLOCK_FILE, value);
+}

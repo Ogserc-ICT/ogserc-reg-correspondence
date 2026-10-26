@@ -25,7 +25,7 @@ export function CreateUserForm({
   return (
     // A new key after each save clears the form; after an error it keeps the values.
     <form
-      key={state.ok ? state.message : "form"}
+      key={state.ok ? state.message : (state.attempt ?? "form")}
       action={action}
       className="space-y-4"
     >
