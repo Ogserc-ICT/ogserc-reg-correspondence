@@ -127,3 +127,32 @@ describe("audit log viewer", () => {
     expect(issues.facets.types).toContain("InwardItem");
   });
 });
+
+describe("backup check", () => {
+  it("fails when backups are missing, empty or stale, and passes when recent", async () => {
+    const { mkdtempSync, writeFileSync, utimesSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const path = await import("node:path");
+    const { backupCheck } = await import("@/server/jobs");
+    const now = new Date("2026-12-10T06:00:00Z");
+    await expect(backupCheck(db, now, {} as NodeJS.ProcessEnv)).rejects.toThrow(
+      "BACKUP_DIR is not set",
+    );
+
+    const dir = mkdtempSync(path.join(tmpdir(), "backups-"));
+    const env = { BACKUP_DIR: dir } as unknown as NodeJS.ProcessEnv;
+    await expect(backupCheck(db, now, env)).rejects.toThrow("No backups");
+
+    const file = path.join(dir, "registry-20261209T2330Z.dump");
+    writeFileSync(file, "");
+    utimesSync(file, now, new Date("2026-12-09T23:30:00Z"));
+    await expect(backupCheck(db, now, env)).rejects.toThrow("is empty");
+
+    writeFileSync(file, "PGDMP backup bytes");
+    utimesSync(file, now, new Date("2026-12-09T23:30:00Z"));
+    expect((await backupCheck(db, now, env)).summary).toContain("6 h old");
+
+    utimesSync(file, now, new Date("2026-12-08T01:00:00Z"));
+    await expect(backupCheck(db, now, env)).rejects.toThrow("53 hours old");
+  });
+});

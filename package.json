@@ -20,6 +20,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "admin:create": "tsx scripts/create-admin.ts",
     "import:workbook": "tsx scripts/import-workbook.ts",
+    "compare:workbook": "tsx scripts/compare-workbook.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run build"

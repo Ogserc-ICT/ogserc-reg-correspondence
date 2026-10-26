@@ -47,7 +47,7 @@ export type ImportReport = {
 const FIRST_ROW = 6; // rows 1–5 are titles and headers in every register
 const HEADER_ROW = 5;
 
-const COLS = {
+export const COLS = {
   inward: {
     number: "Inward / Ack. No. in Use",
     receivedAt: "Date & Time Received *",
@@ -137,14 +137,14 @@ const COLS = {
   },
 } as const;
 
-const SHEETS = {
+export const SHEETS = {
   inward: "Inward Register",
   outward: "Outward Register",
   files: "File Index",
   movements: "File Movement",
 } as const;
 
-type Row = { n: number; get: (header: string) => unknown };
+export type Row = { n: number; get: (header: string) => unknown };
 
 /** A formula cell's cached result, rich text as plain text, otherwise the value. */
 function plain(v: ExcelJS.CellValue): unknown {
@@ -160,7 +160,7 @@ function plain(v: ExcelJS.CellValue): unknown {
   return v;
 }
 
-function readSheet(
+export function readSheet(
   wb: ExcelJS.Workbook,
   sheet: string,
   headers: readonly string[],
@@ -193,17 +193,17 @@ function readSheet(
 const isoOf = (d: Date) => d.toISOString().slice(0, 10);
 const hhmmOf = (d: Date) => d.toISOString().slice(11, 16);
 
-function text(v: unknown): string | null {
+export function text(v: unknown): string | null {
   if (v === null || v === undefined) return null;
   const s = (v instanceof Date ? isoOf(v) : String(v)).trim();
   return s ? s : null;
 }
-function date(v: unknown): string | null {
+export function date(v: unknown): string | null {
   if (v instanceof Date) return isoOf(v);
   const s = text(v);
   return s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
 }
-function instant(v: unknown): Date | null {
+export function instant(v: unknown): Date | null {
   return v instanceof Date ? instantIn(isoOf(v), hhmmOf(v)) : null;
 }
 function int(v: unknown): number | null {
@@ -218,7 +218,7 @@ function yesNo(v: unknown): boolean | null {
       ? false
       : null;
 }
-const isExample = (...values: unknown[]) =>
+export const isExample = (...values: unknown[]) =>
   values.some((v) => text(v)?.toUpperCase().startsWith("EXAMPLE"));
 const key = (s: string) => s.trim().toLowerCase();
 

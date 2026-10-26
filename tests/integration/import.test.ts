@@ -173,3 +173,44 @@ it("treats a movement typed into both places on the same day as one", async () =
   });
   expect(again.movements).toMatchObject({ created: 0, skippedExisting: 2 });
 });
+
+describe("parallel-run comparison", () => {
+  it("matches every day after importing the workbook, and shows a difference", async () => {
+    const { compareDailyCounts } = await import("@/server/import/compare");
+    await importWorkbook(db, {
+      file: FILE,
+      as: head,
+      now: NOW,
+      commit: true,
+      includeExamples: true,
+    });
+    const range = {
+      file: FILE,
+      from: "2026-11-20",
+      to: "2026-12-10",
+      includeExamples: true,
+    };
+    const before = await compareDailyCounts(db, range);
+    expect(before.every((d) => d.matches)).toBe(true);
+    expect(before.find((d) => d.date === "2026-11-30")?.received).toEqual({
+      workbook: 1,
+      app: 1,
+    });
+
+    // Void one item in the app: that day no longer matches, with both sides listed.
+    const i2 = await db.inwardItem.findFirstOrThrow({
+      where: { number: "OGSERC/ACK/2026/00002" },
+    });
+    await db.inwardItem.update({
+      where: { id: i2.id },
+      data: { voidedAt: NOW, voidedById: head.id, voidReason: "Test" },
+    });
+    const after = await compareDailyCounts(db, range);
+    const day = after.find((d) => d.date === "2026-11-30")!;
+    expect(day).toMatchObject({
+      matches: false,
+      received: { workbook: 1, app: 0 },
+    });
+    expect(day.detail?.workbookReceived[0]).toMatchObject({ time: "18:40" });
+  });
+});
