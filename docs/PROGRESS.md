@@ -7,7 +7,7 @@ Updated at the end of each phase. Phases and "done when" criteria come from `CLA
 | 0 | Scaffold and questions | `phase-0` | ✅ Done, pushed: awaiting review |
 | 1 | Domain engine + tests | `phase-1` | ✅ Done, pushed: awaiting review |
 | 2 | Data model, migrations, seed, number service | `phase-2` | ✅ Done, pushed: awaiting review |
-| 3 | Auth, users and roles | `phase-3` | 🔨 In progress |
+| 3 | Auth, users and roles | `phase-3` | ✅ Done: awaiting review |
 | 4 | Inward and outward workflows | | ⬜ Not started |
 | 5 | Slips and reports (PDF) | | ⬜ Not started |
 | 6 | File Desk | | ⬜ Not started |
@@ -37,13 +37,13 @@ Nothing is merged to `main` yet.
 - [x] `nextNumber(series, year, tx)` with the prefix from settings
 - [x] Migrations run on a fresh DB; N3 (concurrency) and N4 (void) pass (`docs/PHASE2_REPORT.md`)
 
-## Phase 3: Auth, users and roles 🔨
-- [ ] Login with email + password, sessions in the DB, no public sign-up
-- [ ] Admin creates and manages users; roles and capabilities per SPEC §10
-- [ ] Password rules, session expiry, lockout after repeated failures (admin can unlock)
-- [ ] Server-side permission checks on every action and query (deny by default)
-- [ ] Tests: unit officer can't read another unit's items or write anything
-- [ ] Tests: only Head of Registry can void; only Admin manages users and settings
+## Phase 3: Auth, users and roles ✅
+- [x] Login with email + password, sessions in the DB, no public sign-up
+- [x] Admin creates and manages users; roles and capabilities per SPEC §10
+- [x] Password rules, session expiry, lockout after repeated failures (admin can unlock)
+- [x] Server-side permission checks on every action and query (deny by default)
+- [x] Tests: unit officer can't read another unit's items or write anything
+- [x] Tests: only Head of Registry can void; only Admin manages users and settings (`docs/PHASE3_REPORT.md`)
 
 ## Phase 4: Inward and outward workflows
 - [ ] Registry Desk (tiles + buttons)
