@@ -18,7 +18,7 @@ import {
   logOutward,
   updateOutward,
 } from "@/server/workflows/outward";
-import { actorFor, connectTestDb, DEC_10, resetDb } from "./helpers";
+import { actorFor, connectTestDb, resetDb } from "./helpers";
 
 const db = connectTestDb();
 let ids: ExampleIds;

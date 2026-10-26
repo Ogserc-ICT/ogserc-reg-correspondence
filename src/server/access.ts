@@ -22,16 +22,25 @@ export function outwardWhere(user: Principal): Prisma.OutwardItemWhereInput {
   return NOTHING;
 }
 
-/** Confidential security or Personnel class (SPEC §10). */
-export const CONFIDENTIAL_FILE: Prisma.RegistryFileWhereInput = {
-  OR: [
-    { security: { systemKey: "CONFIDENTIAL" } },
-    { fileClass: { systemKey: "PERSONNEL" } },
+/** A system key that is absent or different (NULL-safe: SQL's NULL <> x is NULL). */
+const keyIsNot = (key: string) => ({
+  OR: [{ systemKey: null }, { systemKey: { not: key } }],
+});
+
+/**
+ * Files a registry officer may see: neither Confidential security nor the
+ * Personnel class (SPEC §10). Written positively because NOT(...) over a
+ * NULL system key would hide ordinary files too.
+ */
+export const NON_CONFIDENTIAL_FILE: Prisma.RegistryFileWhereInput = {
+  AND: [
+    { security: keyIsNot("CONFIDENTIAL") },
+    { OR: [{ fileClassId: null }, { fileClass: keyIsNot("PERSONNEL") }] },
   ],
 };
 
 export function fileWhere(user: Principal): Prisma.RegistryFileWhereInput {
   if (!can(user, "files.read")) return NOTHING;
   if (can(user, "files.readConfidential")) return {};
-  return { NOT: CONFIDENTIAL_FILE };
+  return NON_CONFIDENTIAL_FILE;
 }
