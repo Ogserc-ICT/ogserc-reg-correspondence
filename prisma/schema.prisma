@@ -1,7 +1,12 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// OGSERC Registry: data model (SPEC §1, STACK rules 8–10).
+//
+// Conventions
+// - Business dates are @db.Date; the domain handles them as "YYYY-MM-DD".
+//   Only InwardItem.receivedAt and FileMovement.outAt are timestamps.
+// - Inward/outward items are never deleted (voided instead); numbers never
+//   change. Both are enforced by triggers in the init migration.
+// - snap* columns hold the type and settings rules as they were when the item
+//   was saved, so later edits to types or settings never rewrite history.
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +15,485 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Role {
+  REGISTRY_OFFICER
+  HEAD_OF_REGISTRY
+  UNIT_OFFICER
+  SECRETARY
+  ADMIN
+}
+
+enum Series {
+  ACK
+  OUT
+}
+
+enum ListKind {
+  RECEIPT_MODE
+  LGA
+  ACK_VIA
+  PARTY_CATEGORY
+  ACTION_REQUIRED
+  PRIORITY
+  FILE_CLASS
+  FILE_SECURITY
+  FILE_STATUS
+}
+
+enum HolidayStatus {
+  FIXED
+  PROVISIONAL
+  ESTIMATED
+}
+
+/// Which footer the acknowledgement slip prints (TEMPLATES §1, Q4).
+enum SlipFooter {
+  REGISTRATION
+  PARA103
+  GENERAL
+}
+
+enum InwardStatus {
+  VOID
+  CLOSED
+  OVERDUE
+  AWAITING_FORWARDING
+  NOTED_FILED
+  OPEN
+}
+
+enum OutwardStatus {
+  VOID
+  NOT_YET_DISPATCHED
+  RESPONSE_RECEIVED
+  RESPONSE_OVERDUE
+  AWAITING_RESPONSE
+  DELIVERED
+  DISPATCHED
+}
+
+// ---------------------------------------------------------------- users ---
+
+/// Staff. Phase 3 adds the Better Auth session/account tables.
+model User {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          Role
+  /// Unit officers only: the unit whose items they may read.
+  unitId        String?   @db.Uuid
+  unit          Unit?     @relation(fields: [unitId], references: [id])
+  isSignatory   Boolean   @default(false)
+  designation   String?
+  active        Boolean   @default(true)
+  failedLogins  Int       @default(0)
+  lockedUntil   DateTime? @db.Timestamptz
+  createdAt     DateTime  @default(now()) @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @db.Timestamptz
+
+  inwardReceived    InwardItem[]       @relation("InwardReceivedBy")
+  inwardCreated     InwardItem[]       @relation("InwardCreatedBy")
+  inwardVoided      InwardItem[]       @relation("InwardVoidedBy")
+  outwardSigned     OutwardItem[]      @relation("OutwardSignedBy")
+  outwardDispatched OutwardItem[]      @relation("OutwardDispatchedBy")
+  outwardCreated    OutwardItem[]      @relation("OutwardCreatedBy")
+  outwardVoided     OutwardItem[]      @relation("OutwardVoidedBy")
+  filesCreated      RegistryFile[]
+  movementsReleased FileMovement[]     @relation("MovementReleasedBy")
+  movementsIssuedTo FileMovement[]     @relation("MovementIssuedTo")
+  movementsReceived FileMovement[]     @relation("MovementReceivedBackBy")
+  auditEntries      AuditLog[]
+  settingsUpdates   RegistrySettings[]
+}
+
+// ------------------------------------------------------- reference data ---
+
+model Unit {
+  id        String  @id @default(uuid(7)) @db.Uuid
+  name      String  @unique
+  sortOrder Int     @default(0)
+  active    Boolean @default(true)
+
+  users             User[]
+  incomingTypes     IncomingType[]
+  inwardRouted      InwardItem[]   @relation("InwardRoutedUnit")
+  inwardOverride    InwardItem[]   @relation("InwardUnitOverride")
+  inwardSnapDefault InwardItem[]   @relation("InwardSnapDefaultUnit")
+  outwardOriginated OutwardItem[]
+  filesOwned        RegistryFile[]
+  movements         FileMovement[]
+}
+
+/// One value of a simple list. Values the rules depend on carry a systemKey;
+/// admins can rename them but not delete them.
+model ListItem {
+  id                     String   @id @default(uuid(7)) @db.Uuid
+  list                   ListKind
+  label                  String
+  sortOrder              Int      @default(0)
+  active                 Boolean  @default(true)
+  systemKey              String?
+  /// RECEIPT_MODE only: receipt at or after the closing time is deemed next working day (§2.1, Q3).
+  afterHoursCutoff       Boolean  @default(false)
+  /// RECEIPT_MODE only: dispatch by this mode never needs proof of delivery (§5.4).
+  noDeliveryConfirmation Boolean  @default(false)
+
+  inwardMode           InwardItem[]   @relation("InwardMode")
+  inwardSenderCategory InwardItem[]   @relation("InwardSenderCategory")
+  inwardLga            InwardItem[]   @relation("InwardLga")
+  inwardAckVia         InwardItem[]   @relation("InwardAckVia")
+  inwardAction         InwardItem[]   @relation("InwardAction")
+  inwardPriority       InwardItem[]   @relation("InwardPriority")
+  outwardRecipientCat  OutwardItem[]  @relation("OutwardRecipientCategory")
+  outwardDispatchMode  OutwardItem[]  @relation("OutwardDispatchMode")
+  filesClass           RegistryFile[] @relation("FileClass")
+  filesSecurity        RegistryFile[] @relation("FileSecurity")
+  filesStatus          RegistryFile[] @relation("FileStatus")
+
+  @@unique([list, label])
+  @@unique([list, systemKey])
+}
+
+model IncomingType {
+  id                      String     @id @default(uuid(7)) @db.Uuid
+  name                    String     @unique
+  category                String
+  defaultUnitId           String     @db.Uuid
+  defaultUnit             Unit       @relation(fields: [defaultUnitId], references: [id])
+  orderRef                String?
+  responseTargetDays      Int
+  para103SlipWording      Boolean
+  slipFooter              SlipFooter
+  /// REG-01 checks: duplicate CAC, fee evidence, Schedule 2, deadline (§4.4).
+  isRegistration          Boolean    @default(false)
+  /// "Related OGSERC number missing" applies (§4.4).
+  requiresRelatedOgsercNo Boolean    @default(false)
+  sortOrder               Int        @default(0)
+  active                  Boolean    @default(true)
+
+  inwardItems InwardItem[]
+}
+
+model OutgoingType {
+  id                 String  @id @default(uuid(7)) @db.Uuid
+  name               String  @unique
+  responseExpected   Boolean
+  responseWindowDays Int
+  /// SPEC §9 R4: false for a holding reply.
+  closesInwardItem   Boolean
+  sortOrder          Int     @default(0)
+  active             Boolean @default(true)
+
+  outwardItems OutwardItem[]
+}
+
+model PublicHoliday {
+  id     String        @id @default(uuid(7)) @db.Uuid
+  date   DateTime      @unique @db.Date
+  name   String
+  status HolidayStatus
+  note   String?
+}
+
+/// Exactly one row (id = 1, enforced by a CHECK constraint).
+model RegistrySettings {
+  id                              Int      @id @default(1)
+  ackPrefix                       String
+  outPrefix                       String
+  /// "HH:mm"
+  officeClosingTime               String
+  timezone                        String
+  registryForwardingTargetDays    Int
+  dispatchTargetDays              Int
+  chaseProofOfDeliveryAfterDays   Int
+  urgentResponseTargetDays        Int
+  defaultResponseTargetDays       Int
+  fileReturnTargetDays            Int
+  effectiveDate                   DateTime @db.Date
+  effectiveDateIsPlaceholder      Boolean
+  registrationDeadlineDays        Int
+  /// Q1; false = Excel behaviour.
+  deadlineRollsToNextWorkingDay   Boolean  @default(false)
+  dashboardFirstMonth             DateTime @db.Date
+  registryAddress                 String
+  schedule2RequiredDocs           Int      @default(12)
+  schedule2RequiredDocsMultiState Int      @default(13)
+  /// Slip footers (TEMPLATES §1). "{closingTime}" is replaced from officeClosingTime.
+  slipFooterRegistration          String
+  slipFooterPara103               String
+  slipFooterGeneral               String
+  secretaryName                   String   @default("")
+  /// STACK rule 7: may the Head of Registry void items they logged themselves?
+  headMayVoidOwnItems             Boolean  @default(false)
+  updatedAt                       DateTime @updatedAt @db.Timestamptz
+  updatedById                     String?  @db.Uuid
+  updatedBy                       User?    @relation(fields: [updatedById], references: [id])
+}
+
+// ------------------------------------------------------------ registers ---
+
+model NumberCounter {
+  series    Series
+  year      Int
+  lastValue Int
+
+  @@id([series, year])
+}
+
+model InwardItem {
+  id         String @id @default(uuid(7)) @db.Uuid
+  /// Assigned once in the insert transaction; a trigger blocks changes.
+  number     String @unique
+  numberYear Int
+  serial     Int
+
+  // inputs (§4.1)
+  receivedAt                   DateTime      @db.Timestamptz
+  modeId                       String        @db.Uuid
+  mode                         ListItem      @relation("InwardMode", fields: [modeId], references: [id])
+  typeId                       String        @db.Uuid
+  type                         IncomingType  @relation(fields: [typeId], references: [id])
+  sender                       String
+  senderCategoryId             String        @db.Uuid
+  senderCategory               ListItem      @relation("InwardSenderCategory", fields: [senderCategoryId], references: [id])
+  subject                      String
+  senderRef                    String?
+  documentDate                 DateTime?     @db.Date
+  relatedOgsercNo              String?
+  inResponseToOutwardId        String?       @db.Uuid
+  inResponseToOutward          OutwardItem?  @relation("InwardInResponseTo", fields: [inResponseToOutwardId], references: [id])
+  cacNo                        String?
+  principalLgaId               String?       @db.Uuid
+  principalLga                 ListItem?     @relation("InwardLga", fields: [principalLgaId], references: [id])
+  contactPerson                String?
+  phone                        String?
+  email                        String?
+  deliveredBy                  String?
+  volumes                      Int?
+  schedule2DocsAttached        Int?
+  feeEvidenceAttached          Boolean?
+  paymentRef                   String?
+  amountShownKobo              BigInt?
+  receivedById                 String        @db.Uuid
+  receivedBy                   User          @relation("InwardReceivedBy", fields: [receivedById], references: [id])
+  fileId                       String?       @db.Uuid
+  file                         RegistryFile? @relation(fields: [fileId], references: [id])
+  unitOverrideId               String?       @db.Uuid
+  unitOverride                 Unit?         @relation("InwardUnitOverride", fields: [unitOverrideId], references: [id])
+  ackIssuedViaId               String        @db.Uuid
+  ackIssuedVia                 ListItem      @relation("InwardAckVia", fields: [ackIssuedViaId], references: [id])
+  actionRequiredId             String        @db.Uuid
+  actionRequired               ListItem      @relation("InwardAction", fields: [actionRequiredId], references: [id])
+  /// Blank = Normal.
+  priorityId                   String?       @db.Uuid
+  priority                     ListItem?     @relation("InwardPriority", fields: [priorityId], references: [id])
+  actionOfficer                String?
+  responseDueOverride          DateTime?     @db.Date
+  remarks                      String?
+  /// SPEC §4.4 optional tick (Q-E).
+  multiState                   Boolean?
+  /// Para 25 extension (§2.2).
+  registrationDeadlineOverride DateTime?     @db.Date
+
+  // handling (Update Item)
+  dateForwarded         DateTime? @db.Date
+  receivedByUnitOfficer String?
+  dateClosedManual      DateTime? @db.Date
+  closingNote           String?
+
+  // snapshot on save (STACK rule 10)
+  snapTypeName                String
+  snapCategory                String
+  snapOrderRef                String?
+  snapDefaultUnitId           String     @db.Uuid
+  snapDefaultUnit             Unit       @relation("InwardSnapDefaultUnit", fields: [snapDefaultUnitId], references: [id])
+  snapResponseTargetDays      Int
+  snapPara103SlipWording      Boolean
+  snapSlipFooter              SlipFooter
+  snapIsRegistration          Boolean
+  snapRequiresRelatedOgsercNo Boolean
+  snapClosingTime             String
+  deemedReceiptDate           DateTime   @db.Date
+
+  // cached for queries; recomputed on every write and nightly (§9 R6)
+  routedUnitId   String        @db.Uuid
+  routedUnit     Unit          @relation("InwardRoutedUnit", fields: [routedUnitId], references: [id])
+  statusCache    InwardStatus?
+  statusCachedOn DateTime?     @db.Date
+
+  // void (§3.2)
+  voidedAt   DateTime? @db.Timestamptz
+  voidedById String?   @db.Uuid
+  voidedBy   User?     @relation("InwardVoidedBy", fields: [voidedById], references: [id])
+  voidReason String?
+
+  imported    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  createdById String   @db.Uuid
+  createdBy   User     @relation("InwardCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  replies OutwardItem[] @relation("OutwardInReplyTo")
+
+  @@unique([numberYear, serial])
+  @@index([routedUnitId])
+  @@index([deemedReceiptDate])
+  @@index([receivedAt])
+  @@index([cacNo])
+  @@index([inResponseToOutwardId])
+  @@index([fileId])
+}
+
+model OutwardItem {
+  id         String @id @default(uuid(7)) @db.Uuid
+  /// Assigned once in the insert transaction; a trigger blocks changes.
+  number     String @unique
+  numberYear Int
+  serial     Int
+
+  // inputs (§5.1)
+  documentDate             DateTime      @db.Date
+  typeId                   String        @db.Uuid
+  type                     OutgoingType  @relation(fields: [typeId], references: [id])
+  subject                  String
+  addressee                String
+  recipientCategoryId      String        @db.Uuid
+  recipientCategory        ListItem      @relation("OutwardRecipientCategory", fields: [recipientCategoryId], references: [id])
+  recipientContact         String?
+  inReplyToInwardId        String?       @db.Uuid
+  inReplyToInward          InwardItem?   @relation("OutwardInReplyTo", fields: [inReplyToInwardId], references: [id])
+  relatedOgsercNo          String?
+  fileId                   String?       @db.Uuid
+  file                     RegistryFile? @relation(fields: [fileId], references: [id])
+  originatingUnitId        String        @db.Uuid
+  originatingUnit          Unit          @relation(fields: [originatingUnitId], references: [id])
+  preparedBy               String?
+  /// A user flagged as signatory (§9 R11); null only for imported rows.
+  signedById               String?       @db.Uuid
+  signedBy                 User?         @relation("OutwardSignedBy", fields: [signedById], references: [id])
+  /// Imported rows: the signatory as typed in the workbook.
+  signedByText             String?
+  signatoryDesignation     String
+  dispatchModeId           String        @db.Uuid
+  dispatchMode             ListItem      @relation("OutwardDispatchMode", fields: [dispatchModeId], references: [id])
+  dateDispatched           DateTime?     @db.Date
+  dispatchedById           String?       @db.Uuid
+  dispatchedBy             User?         @relation("OutwardDispatchedBy", fields: [dispatchedById], references: [id])
+  trackingRef              String?
+  /// Null = type default.
+  responseExpectedOverride Boolean?
+  responseDueOverride      DateTime?     @db.Date
+  remarks                  String?
+
+  // delivery (Update Item)
+  deliveryConfirmed   Boolean?
+  dateDelivered       DateTime? @db.Date
+  receivedByRecipient String?
+
+  // snapshot on save (STACK rule 10)
+  snapTypeName           String
+  snapResponseExpected   Boolean
+  snapResponseWindowDays Int
+  snapClosesInwardItem   Boolean
+
+  statusCache    OutwardStatus?
+  statusCachedOn DateTime?      @db.Date
+
+  voidedAt   DateTime? @db.Timestamptz
+  voidedById String?   @db.Uuid
+  voidedBy   User?     @relation("OutwardVoidedBy", fields: [voidedById], references: [id])
+  voidReason String?
+
+  imported    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  createdById String   @db.Uuid
+  createdBy   User     @relation("OutwardCreatedBy", fields: [createdById], references: [id])
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+
+  responses InwardItem[] @relation("InwardInResponseTo")
+
+  @@unique([numberYear, serial])
+  @@index([originatingUnitId])
+  @@index([documentDate])
+  @@index([dateDispatched])
+  @@index([inReplyToInwardId])
+  @@index([fileId])
+}
+
+// ---------------------------------------------------------------- files ---
+
+model RegistryFile {
+  id                   String    @id @default(uuid(7)) @db.Uuid
+  reference            String    @unique
+  title                String
+  fileClassId          String?   @db.Uuid
+  fileClass            ListItem? @relation("FileClass", fields: [fileClassId], references: [id])
+  owningUnitId         String?   @db.Uuid
+  owningUnit           Unit?     @relation(fields: [owningUnitId], references: [id])
+  dateOpened           DateTime  @db.Date
+  currentVolume        Int       @default(1)
+  securityId           String    @db.Uuid
+  security             ListItem  @relation("FileSecurity", fields: [securityId], references: [id])
+  fileStatusId         String    @db.Uuid
+  fileStatus           ListItem  @relation("FileStatus", fields: [fileStatusId], references: [id])
+  dateClosedOrArchived DateTime? @db.Date
+  remarks              String?
+  createdAt            DateTime  @default(now()) @db.Timestamptz
+  createdById          String    @db.Uuid
+  createdBy            User      @relation(fields: [createdById], references: [id])
+  updatedAt            DateTime  @updatedAt @db.Timestamptz
+
+  inwardItems  InwardItem[]
+  outwardItems OutwardItem[]
+  movements    FileMovement[]
+}
+
+model FileMovement {
+  id               String       @id @default(uuid(7)) @db.Uuid
+  fileId           String       @db.Uuid
+  file             RegistryFile @relation(fields: [fileId], references: [id])
+  outAt            DateTime     @db.Timestamptz
+  volume           Int?
+  releasedById     String       @db.Uuid
+  releasedBy       User         @relation("MovementReleasedBy", fields: [releasedById], references: [id])
+  issuedTo         String
+  issuedToUserId   String?      @db.Uuid
+  issuedToUser     User?        @relation("MovementIssuedTo", fields: [issuedToUserId], references: [id])
+  unitId           String?      @db.Uuid
+  unit             Unit?        @relation(fields: [unitId], references: [id])
+  purpose          String?
+  returnByOverride DateTime?    @db.Date
+  dateReturned     DateTime?    @db.Date
+  receivedBackById String?      @db.Uuid
+  receivedBackBy   User?        @relation("MovementReceivedBackBy", fields: [receivedBackById], references: [id])
+  /// Issued after confirming the file was still out (§6.2).
+  issuedWhileOut   Boolean      @default(false)
+  createdAt        DateTime     @default(now()) @db.Timestamptz
+  updatedAt        DateTime     @updatedAt @db.Timestamptz
+
+  @@index([fileId, outAt])
+}
+
+// ---------------------------------------------------------------- audit ---
+
+/// Append-only (a trigger rejects UPDATE and DELETE).
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  at         DateTime @default(now()) @db.Timestamptz
+  /// Null for system jobs and the seed.
+  userId     String?  @db.Uuid
+  user       User?    @relation(fields: [userId], references: [id])
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  note       String?
+
+  @@index([entityType, entityId])
+  @@index([at])
 }
