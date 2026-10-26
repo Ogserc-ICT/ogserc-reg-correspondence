@@ -7,8 +7,8 @@ Updated at the end of each phase. Phases and "done when" criteria come from `CLA
 | 0 | Scaffold and questions | `phase-0` | ✅ Done, pushed: awaiting review |
 | 1 | Domain engine + tests | `phase-1` | ✅ Done, pushed: awaiting review |
 | 2 | Data model, migrations, seed, number service | `phase-2` | ✅ Done, pushed: awaiting review |
-| 3 | Auth, users and roles | `phase-3` | ✅ Done: awaiting review |
-| 4 | Inward and outward workflows | | ⬜ Not started |
+| 3 | Auth, users and roles | `phase-3` | ✅ Done, pushed: awaiting review |
+| 4 | Inward and outward workflows | `phase-4` | ✅ Done: awaiting review |
 | 5 | Slips and reports (PDF) | | ⬜ Not started |
 | 6 | File Desk | | ⬜ Not started |
 | 7 | Dashboard (+ optional attachments) | | ⬜ Not started |
@@ -45,16 +45,16 @@ Nothing is merged to `main` yet.
 - [x] Tests: unit officer can't read another unit's items or write anything
 - [x] Tests: only Head of Registry can void; only Admin manages users and settings (`docs/PHASE3_REPORT.md`)
 
-## Phase 4: Inward and outward workflows
-- [ ] Registry Desk (tiles + buttons)
-- [ ] New Inward, New Outward
-- [ ] Item detail and update (inward and outward)
-- [ ] One-click actions: Forwarded today, Close today, Dispatched today, Delivered today
-- [ ] Void (Head of Registry, reason required)
-- [ ] Registers with filters, search and CSV export
-- [ ] Linked items and audit history on each item
-- [ ] Validation per SPEC §9 R10; messages per TEMPLATES §4
-- [ ] The full §12.2 scenario can be entered through the UI and matches the fixtures
+## Phase 4: Inward and outward workflows ✅
+- [x] Registry Desk (tiles + buttons)
+- [x] New Inward, New Outward
+- [x] Item detail and update (inward and outward)
+- [x] One-click actions: Forwarded today, Close today, Dispatched today, Delivered today
+- [x] Void (Head of Registry, reason required)
+- [x] Registers with filters, search and CSV export
+- [x] Linked items and audit history on each item
+- [x] Validation per SPEC §9 R10; messages per TEMPLATES §4
+- [x] The full §12.2 scenario can be entered through the UI and matches the fixtures (`docs/PHASE4_REPORT.md`)
 
 ## Phase 5: Slips and reports
 - [ ] Acknowledgement slip PDF (two copies; heading and footer variants)
