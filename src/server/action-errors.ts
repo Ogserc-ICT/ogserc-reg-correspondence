@@ -1,8 +1,11 @@
 // Turns server-layer errors into a form state; anything unexpected is rethrown
 // (Next's redirect/forbidden are errors too and must pass through).
 import { ForbiddenError, ValidationError } from "./errors";
+import { FormProblems } from "./workflows/common";
 
 export function formError(err: unknown, values?: Record<string, string>) {
+  if (err instanceof FormProblems)
+    return { missing: err.missing, errors: err.problems, values };
   if (err instanceof ValidationError) return { errors: err.problems, values };
   if (err instanceof ForbiddenError) return { errors: [err.message], values };
   throw err;

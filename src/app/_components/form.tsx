@@ -8,23 +8,45 @@ import { useFormStatus } from "react-dom";
 export type FormState = {
   ok?: boolean;
   message?: string;
+  /** Required fields left empty ("Please complete:", TEMPLATES §4). */
+  missing?: string[];
   errors?: string[];
   values?: Record<string, string>;
+  /** A link shown with the success message, e.g. to the saved item. */
+  link?: { href: string; label: string };
 };
 
 export function Messages({ state }: { state: FormState }) {
-  if (state.errors?.length)
+  if (state.errors?.length || state.missing?.length)
     return (
       <div
         role="alert"
         className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900"
       >
-        <p className="font-medium">Please fix the following:</p>
-        <ul className="mt-1 list-disc pl-5">
-          {state.errors.map((e) => (
-            <li key={e}>{e}</li>
-          ))}
-        </ul>
+        {state.missing?.length ? (
+          <>
+            <p className="font-medium">Please complete:</p>
+            <ul className="mt-1 mb-2 list-disc pl-5">
+              {state.missing.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+            </ul>
+          </>
+        ) : null}
+        {state.errors?.length ? (
+          <>
+            <p className="font-medium">
+              {state.missing?.length
+                ? "Also fix:"
+                : "Please fix the following:"}
+            </p>
+            <ul className="mt-1 list-disc pl-5">
+              {state.errors.map((e) => (
+                <li key={e}>{e}</li>
+              ))}
+            </ul>
+          </>
+        ) : null}
       </div>
     );
   if (state.message)
@@ -34,6 +56,14 @@ export function Messages({ state }: { state: FormState }) {
         className="mb-4 rounded border border-green-300 bg-green-50 p-3 text-sm text-green-900"
       >
         {state.message}
+        {state.link && (
+          <>
+            {" "}
+            <a href={state.link.href} className="font-medium underline">
+              {state.link.label}
+            </a>
+          </>
+        )}
       </p>
     );
   return null;

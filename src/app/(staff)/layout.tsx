@@ -30,7 +30,10 @@ export default function StaffLayout({ children }: LayoutProps<"/">) {
 
 async function UserBar() {
   const user = await requireUser({ allowTemporaryPassword: true });
+  const registers = user.role !== "ADMIN";
   const links = [
+    registers && { href: "/inward", label: "Inward" },
+    registers && { href: "/outward", label: "Outward" },
     can(user, "users.manage") && { href: "/admin/users", label: "Users" },
     can(user, "settings.manage") && {
       href: "/admin/settings",
