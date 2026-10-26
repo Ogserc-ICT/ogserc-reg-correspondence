@@ -239,3 +239,41 @@ describe("database protections", () => {
     );
   });
 });
+
+describe("full dashboard (SPEC §8.4)", () => {
+  it("matches the §12.2 counts and breakdowns on 10 Dec 2026", async () => {
+    const { loadFullDashboard } = await import("@/server/dashboard");
+    const { loadPrincipal } = await import("@/server/session");
+    const officer = await loadPrincipal(db, ids.users.officer);
+    const d = await loadFullDashboard(db, DEC_10, officer);
+    expect(d.summary.incoming).toMatchObject({
+      logged: 3,
+      awaitingForwarding: 1,
+      closed: 2,
+      closedOnTimePct: 100,
+      afterHoursOrNonWorkingDay: 1,
+    });
+    expect(d.summary.outgoing).toMatchObject({
+      logged: 2,
+      responsesReceived: 1,
+      repliesToInward: 2,
+    });
+    expect(d.summary.files).toMatchObject({ outWithOfficers: 1, overdue: 1 });
+    expect(
+      d.breakdowns.byUnit.find((u) => u.label === "Registration & Licensing"),
+    ).toMatchObject({
+      inwardRouted: 2,
+      pending: 1,
+      closed: 1,
+      outwardOriginated: 1,
+    });
+    expect(d.breakdowns.byMonth[0]).toEqual({
+      month: "2026-11",
+      inward: 1,
+      outward: 1,
+    });
+    expect(d.breakdowns.incomingByLga).toEqual([
+      { label: "Sagamu", received: 1 },
+    ]);
+  });
+});
