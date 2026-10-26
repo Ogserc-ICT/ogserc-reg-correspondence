@@ -84,9 +84,7 @@ test("admin adds a user, who must change the temporary password", async ({
   await page.getByLabel("New password again").fill("Lagos rain in July 42");
   await page.getByRole("button", { name: "Change password" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(
-    page.getByText("Signed in as Tolu Adeyemi (Registry officer)"),
-  ).toBeVisible();
+  await expect(page.getByText("Tolu Adeyemi · Registry officer")).toBeVisible();
 });
 
 test("a unit officer can't open admin pages", async ({ page }) => {

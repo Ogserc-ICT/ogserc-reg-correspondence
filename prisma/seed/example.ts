@@ -82,6 +82,73 @@ async function lookups(tx: Tx) {
 }
 
 /** Returns null if the database already has items (nothing is changed). */
+/** F1 and F2 (SPEC §12.2), created if missing. */
+async function createExampleFiles(tx: Tx, officerId: string) {
+  const L = await lookups(tx);
+  const file = async (
+    reference: string,
+    title: string,
+    fileClass: string,
+    security: string,
+    unit: string,
+  ) => {
+    const existing = await tx.registryFile.findUnique({ where: { reference } });
+    if (existing) return existing.id;
+    const f = await tx.registryFile.create({
+      data: {
+        reference,
+        title,
+        fileClassId: L.list("FILE_CLASS", fileClass),
+        owningUnitId: L.unit(unit),
+        dateOpened: toDbDate("2026-11-02"),
+        securityId: L.list("FILE_SECURITY", security),
+        fileStatusId: L.list("FILE_STATUS", "Open"),
+        createdById: officerId,
+      },
+    });
+    await audit(
+      tx,
+      {
+        userId: officerId,
+        action: "create",
+        entityType: "RegistryFile",
+        entityId: f.id,
+        after: f,
+      },
+      instantIn("2026-11-02", "09:00"),
+    );
+    return f.id;
+  };
+  return {
+    F1: await file(
+      "OGSERC/RL/001",
+      "Sample Mini-Grid Ltd",
+      "Licensee file",
+      "Restricted",
+      "Registration & Licensing",
+    ),
+    F2: await file(
+      "OGSERC/GOV/001",
+      "NERC and Federal agencies",
+      "Government & external relations",
+      "Open",
+      "Office of the Chairman",
+    ),
+  };
+}
+
+/**
+ * Only the example files, for entering the §12.2 items by hand (e2e test of
+ * Phase 4). Run seedDevLogins first so the registry officer exists.
+ */
+export async function seedExampleFiles(db: Db) {
+  assertNotProduction();
+  const officer = await db.user.findUniqueOrThrow({
+    where: { email: "registry.officer1@example.invalid" },
+  });
+  return db.$transaction((tx) => createExampleFiles(tx, officer.id));
+}
+
 export async function seedExample(db: Db): Promise<ExampleIds | null> {
   assertNotProduction();
   if ((await db.inwardItem.count()) + (await db.outwardItem.count()) > 0)
@@ -111,52 +178,7 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
         now: instantIn(date, time),
       });
 
-      const file = async (
-        reference: string,
-        title: string,
-        fileClass: string,
-        security: string,
-        unit: string,
-      ) => {
-        const f = await tx.registryFile.create({
-          data: {
-            reference,
-            title,
-            fileClassId: L.list("FILE_CLASS", fileClass),
-            owningUnitId: L.unit(unit),
-            dateOpened: toDbDate("2026-11-02"),
-            securityId: L.list("FILE_SECURITY", security),
-            fileStatusId: L.list("FILE_STATUS", "Open"),
-            createdById: users.officer,
-          },
-        });
-        await audit(
-          tx,
-          {
-            userId: users.officer,
-            action: "create",
-            entityType: "RegistryFile",
-            entityId: f.id,
-            after: f,
-          },
-          instantIn("2026-11-02", "09:00"),
-        );
-        return f.id;
-      };
-      const F1 = await file(
-        "OGSERC/RL/001",
-        "Sample Mini-Grid Ltd",
-        "Licensee file",
-        "Restricted",
-        "Registration & Licensing",
-      );
-      const F2 = await file(
-        "OGSERC/GOV/001",
-        "NERC and Federal agencies",
-        "Government & external relations",
-        "Open",
-        "Office of the Chairman",
-      );
+      const { F1, F2 } = await createExampleFiles(tx, users.officer);
 
       const I1 = await createInward(
         tx,

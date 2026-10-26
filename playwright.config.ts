@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { E2E_DATABASE_URL } from "./e2e/env";
+import { E2E_APP_NOW, E2E_DATABASE_URL } from "./e2e/env";
 
 const port = Number(process.env.E2E_PORT ?? 3100);
 
@@ -23,6 +23,10 @@ export default defineConfig({
     // Never reuse a server that may be pointing at the dev database.
     reuseExistingServer: false,
     timeout: 120_000,
-    env: { DATABASE_URL: E2E_DATABASE_URL, APP_NOW: "" },
+    env: {
+      DATABASE_URL: E2E_DATABASE_URL,
+      APP_NOW: E2E_APP_NOW,
+      NEXT_DIST_DIR: ".next-e2e",
+    },
   },
 });
