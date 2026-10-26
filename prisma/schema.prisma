@@ -76,24 +76,26 @@ enum OutwardStatus {
 
 // ---------------------------------------------------------------- users ---
 
-/// Staff. Phase 3 adds the Better Auth session/account tables.
+/// Staff. Admin-created only; Better Auth reads and writes the core fields.
 model User {
-  id            String    @id @default(uuid(7)) @db.Uuid
-  name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
-  image         String?
-  role          Role
+  id                 String    @id @default(uuid(7)) @db.Uuid
+  name               String
+  email              String    @unique
+  emailVerified      Boolean   @default(false)
+  image              String?
+  role               Role
   /// Unit officers only: the unit whose items they may read.
-  unitId        String?   @db.Uuid
-  unit          Unit?     @relation(fields: [unitId], references: [id])
-  isSignatory   Boolean   @default(false)
-  designation   String?
-  active        Boolean   @default(true)
-  failedLogins  Int       @default(0)
-  lockedUntil   DateTime? @db.Timestamptz
-  createdAt     DateTime  @default(now()) @db.Timestamptz
-  updatedAt     DateTime  @updatedAt @db.Timestamptz
+  unitId             String?   @db.Uuid
+  unit               Unit?     @relation(fields: [unitId], references: [id])
+  isSignatory        Boolean   @default(false)
+  designation        String?
+  active             Boolean   @default(true)
+  failedLogins       Int       @default(0)
+  lockedUntil        DateTime? @db.Timestamptz
+  /// Set when an admin issues a temporary password; cleared when the user changes it.
+  mustChangePassword Boolean   @default(false)
+  createdAt          DateTime  @default(now()) @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @db.Timestamptz
 
   inwardReceived    InwardItem[]       @relation("InwardReceivedBy")
   inwardCreated     InwardItem[]       @relation("InwardCreatedBy")
@@ -108,6 +110,56 @@ model User {
   movementsReceived FileMovement[]     @relation("MovementReceivedBackBy")
   auditEntries      AuditLog[]
   settingsUpdates   RegistrySettings[]
+  sessions          Session[]
+  accounts          Account[]
+}
+
+/// Better Auth: one row per signed-in browser.
+model Session {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  expiresAt DateTime @db.Timestamptz
+  token     String   @unique
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  ipAddress String?
+  userAgent String?
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Better Auth: the "credential" account holds the argon2 password hash.
+model Account {
+  id                    String    @id @default(uuid(7)) @db.Uuid
+  accountId             String
+  providerId            String
+  userId                String    @db.Uuid
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime? @db.Timestamptz
+  refreshTokenExpiresAt DateTime? @db.Timestamptz
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @db.Timestamptz
+  updatedAt             DateTime  @updatedAt @db.Timestamptz
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+}
+
+/// Better Auth: one-time tokens (unused while sign-up and email flows are off).
+model Verification {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @db.Timestamptz
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  updatedAt  DateTime @updatedAt @db.Timestamptz
+
+  @@index([identifier])
 }
 
 // ------------------------------------------------------- reference data ---
