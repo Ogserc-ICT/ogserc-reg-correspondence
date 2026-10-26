@@ -34,7 +34,9 @@ export type Capability =
   /** Incoming/outgoing types, lists, holidays. */
   | "reference.manage"
   | "users.manage"
-  | "settings.manage";
+  | "settings.manage"
+  /** Read the audit log. */
+  | "audit.view";
 
 const CAPABILITIES: Record<Role, readonly Capability[]> = {
   REGISTRY_OFFICER: [
@@ -54,6 +56,7 @@ const CAPABILITIES: Record<Role, readonly Capability[]> = {
     "reports.print",
     "dashboard.view",
     "reference.manage",
+    "audit.view",
   ],
   // Read-only in v1 (Q5); reads are limited by readScope.
   UNIT_OFFICER: [],
@@ -63,7 +66,7 @@ const CAPABILITIES: Record<Role, readonly Capability[]> = {
     "reports.print",
     "dashboard.view",
   ],
-  ADMIN: ["users.manage", "settings.manage"],
+  ADMIN: ["users.manage", "settings.manage", "audit.view"],
 };
 
 export type Principal = {

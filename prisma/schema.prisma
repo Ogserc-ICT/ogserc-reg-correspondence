@@ -112,6 +112,7 @@ model User {
   settingsUpdates   RegistrySettings[]
   sessions          Session[]
   accounts          Account[]
+  jobRuns           JobRun[]
 }
 
 /// Better Auth: one row per signed-in browser.
@@ -528,6 +529,25 @@ model FileMovement {
   updatedAt        DateTime     @updatedAt @db.Timestamptz
 
   @@index([fileId, outAt])
+}
+
+// ----------------------------------------------------------------- jobs ---
+
+/// One run of a scheduled job (cron or "Run now").
+model JobRun {
+  id            String    @id @default(uuid(7)) @db.Uuid
+  job           String
+  startedAt     DateTime  @db.Timestamptz
+  finishedAt    DateTime? @db.Timestamptz
+  ok            Boolean?
+  /// Short summary shown on the Jobs screen.
+  summary       String?
+  result        Json?
+  /// Null when started by the cron caller.
+  triggeredById String?   @db.Uuid
+  triggeredBy   User?     @relation(fields: [triggeredById], references: [id])
+
+  @@index([job, startedAt])
 }
 
 // ---------------------------------------------------------------- audit ---

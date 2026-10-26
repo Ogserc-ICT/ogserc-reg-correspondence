@@ -10,6 +10,7 @@ import { requireUser } from "@/server/current-user";
 import { loadDashboard } from "@/server/dashboard";
 import { getDb } from "@/server/db";
 import { latestInwardNumber } from "@/server/read/reports";
+import { upcomingUnconfirmedHolidays } from "@/server/jobs";
 import { inputClass } from "@/app/_components/form";
 import { todayIn } from "@/domain/clock";
 
@@ -61,6 +62,11 @@ async function DeskContent() {
   const s = await loadDashboard(db, now, user);
   const printing = can(user, "reports.print");
   const latest = printing ? await latestInwardNumber(db, user) : null;
+  // Phase 8 adds the holiday screens; until then the warning is here.
+  const holidays =
+    can(user, "reference.manage") || can(user, "settings.manage")
+      ? await upcomingUnconfirmedHolidays(db, today)
+      : [];
   const q = (status: string) => `?status=${encodeURIComponent(status)}`;
 
   return (
@@ -69,6 +75,26 @@ async function DeskContent() {
         {formatDate(today)} · Officer on duty: {user.name} (
         {ROLE_LABELS[user.role]})
       </p>
+
+      {holidays.length > 0 && (
+        <div
+          role="note"
+          className="bg-status-awaiting mb-6 rounded p-3 text-sm"
+        >
+          <p className="font-medium">Public holidays to confirm</p>
+          <p>
+            These count as non-working days but are not yet confirmed by the
+            Federal Government. If a date changes, deadlines move with it:
+          </p>
+          <ul className="mt-1 list-disc pl-5">
+            {holidays.map((h) => (
+              <li key={h.date}>
+                {formatDate(h.date)}: {h.name} ({h.status.toLowerCase()})
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {can(user, "registers.write") && (
         <div className="mb-8 flex flex-wrap gap-3">

@@ -39,6 +39,7 @@ describe("capabilities (SPEC §10)", () => {
     ["reference.manage", ["HEAD_OF_REGISTRY"]],
     ["users.manage", ["ADMIN"]],
     ["settings.manage", ["ADMIN"]],
+    ["audit.view", ["HEAD_OF_REGISTRY", "ADMIN"]],
   ];
   const roles: Role[] = [
     "REGISTRY_OFFICER",
