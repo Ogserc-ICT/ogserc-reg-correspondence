@@ -23,6 +23,8 @@ export default function JobsPage() {
 const CRON_EXAMPLE = [
   'curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://<registry-host>/api/jobs/refresh-status',
   'curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://<registry-host>/api/jobs/holiday-check',
+  "# each morning, after the nightly backup (scripts/backup-db.sh):",
+  'curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://<registry-host>/api/jobs/backup-check',
 ].join("\n");
 
 async function Jobs() {
