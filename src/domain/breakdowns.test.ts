@@ -17,6 +17,7 @@ function breakdowns(today: string) {
   return dashboardBreakdowns({
     units: seed.units,
     firstMonth: "2026-11-01",
+    today,
     inward: s.inward.map((i) => {
       const d = r.inward.get(i.id)!.derived;
       return {
@@ -76,8 +77,8 @@ describe("dashboard breakdowns", () => {
 
   it("counts by month (inward by deemed date, outward by document date)", () => {
     const b = breakdowns("2026-12-10");
-    expect(b.byMonth).toHaveLength(24);
-    expect(b.byMonth.slice(0, 2)).toEqual([
+    // Ends at this month: nothing plotted for the future.
+    expect(b.byMonth).toEqual([
       { month: "2026-11", inward: 1, outward: 1 },
       { month: "2026-12", inward: 2, outward: 1 }, // I2 deemed 1 Dec
     ]);
@@ -94,6 +95,22 @@ describe("dashboard breakdowns", () => {
       "Letter to NERC / Federal agency",
     ]);
     expect(b.incomingByLga).toEqual([{ label: "Sagamu", received: 1 }]);
+  });
+
+  it("stops at today's month, or the latest month with items, capped at 24", () => {
+    expect(breakdowns("2027-03-15").byMonth.map((m) => m.month)).toEqual([
+      "2026-11",
+      "2026-12",
+      "2027-01",
+      "2027-02",
+      "2027-03",
+    ]);
+    // Before the first month (e.g. dev data dated ahead), show the months with items.
+    expect(breakdowns("2026-10-26").byMonth.map((m) => m.month)).toEqual([
+      "2026-11",
+      "2026-12",
+    ]);
+    expect(breakdowns("2031-01-01").byMonth).toHaveLength(24);
   });
 
   it("builds the 24-month window", () => {

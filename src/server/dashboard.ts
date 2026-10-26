@@ -100,6 +100,7 @@ export async function loadFullDashboard(
     breakdowns: dashboardBreakdowns({
       units: units.map((u) => u.name),
       firstMonth: fromDbDate(settings.dashboardFirstMonth),
+      today: ctx.today,
       inward: inward.map((i) => ({
         voided: i.facts.voided,
         derived: i.derived,

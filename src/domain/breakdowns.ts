@@ -64,11 +64,28 @@ export function dashboardBreakdowns(input: {
   outward: readonly OutwardRow[];
   units: readonly string[];
   firstMonth: IsoDate;
+  today: IsoDate;
 }) {
   const inward = input.inward.filter((r) => !r.voided);
   const outward = input.outward.filter((r) => !r.voided);
-  const months = dashboardMonths(input.firstMonth);
   const monthOf = (d: IsoDate) => d.slice(0, 7);
+  // Up to 24 months from the first dashboard month, ending at this month or
+  // the latest month with items, so the chart never plots an empty future.
+  const latest = [
+    monthOf(input.today),
+    ...inward.map((r) => monthOf(r.derived.deemedReceiptDate)),
+    ...outward.map((r) => monthOf(r.documentDate)),
+  ]
+    .sort()
+    .at(-1)!;
+  const allMonths = dashboardMonths(input.firstMonth);
+  const end = allMonths.indexOf(latest);
+  const months =
+    end === -1
+      ? latest > allMonths[0]
+        ? allMonths
+        : allMonths.slice(0, 1)
+      : allMonths.slice(0, end + 1);
   const pending = (r: InwardRow) => r.derived.pending;
   const overdue = (r: InwardRow) => r.derived.status === "Overdue";
   const closed = (r: InwardRow) => r.derived.status === "Closed";

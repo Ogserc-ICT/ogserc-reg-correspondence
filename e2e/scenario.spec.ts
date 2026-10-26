@@ -375,24 +375,6 @@ test("Daily Registers for 20 Nov and 2 Dec 2026 list the right items", async ({
   expect(pending).toContain("OGSERC/ACK/2026/00002");
 });
 
-test("Save + PDF slip downloads the new item's slip", async ({ page }) => {
-  await signInAs(page, "registry.officer1@example.invalid");
-  await page.goto("/inward/new");
-  await fill(page, { sender: "Walk-in visitor", subject: "Enquiry" });
-  await choose(page, {
-    modeId: "Hand delivery",
-    typeId: "Other correspondence",
-    senderCategoryId: "Consumer / member of public",
-    actionRequiredId: "For information",
-  });
-  const download = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Save + PDF slip" }).click();
-  await expect(status(page)).toContainText("Saved as OGSERC/ACK/2026/00004.");
-  expect((await download).suggestedFilename()).toBe(
-    "Slip OGSERC-ACK-2026-00004.pdf",
-  );
-});
-
 test("unit officers can't print reports", async ({ page }) => {
   await signInAs(page, "unit.registration@example.invalid");
   expect((await page.request.get("/daily/pdf")).status()).toBe(403);
@@ -482,6 +464,30 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
     await expect(page.locator("tbody:visible tr")).toHaveCount(1);
     await expect(page.locator("tbody:visible")).toContainText("OGSERC/GOV/001");
 
+    // Dashboard on 10 Dec 2026 (SPEC §12.2, Phase 7 done-when).
+    await page.goto("/dashboard");
+    const stat = (group: string, label: string) =>
+      page
+        .locator("main section:visible", {
+          has: page.getByRole("heading", { name: group, exact: true }),
+        })
+        .locator("a, div", { hasText: new RegExp(`^[\\d—]+%?${label}$`) })
+        .first();
+    const expectStat = async (group: string, label: string, value: string) =>
+      expect(stat(group, label)).toHaveText(`${value}${label}`);
+    await expectStat("Incoming", "Items logged", "3");
+    await expectStat("Incoming", "Awaiting forwarding", "1");
+    await expectStat("Incoming", "Closed", "2");
+    await expectStat("Incoming", "Closed on time", "100%");
+    await expectStat("Incoming", "Received after hours / non-working day", "1");
+    await expectStat("Outgoing", "Items logged", "2");
+    await expectStat("Outgoing", "Responses received", "1");
+    await expectStat("Outgoing", "Replies to inward items", "2");
+    await expectStat("Files", "Files out with officers", "1");
+    await expectStat("Files", "Files overdue", "1");
+    await page.getByRole("button", { name: "Show as table" }).first().click();
+    await expect(page.locator("main:visible")).toContainText("Dec 26");
+
     // Issue again while still out: asked first; Cancel issues nothing.
     await openFile("OGSERC/GOV/001");
     await issue("Legal Adviser", "Legal");
@@ -507,4 +513,24 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
   } finally {
     setClock();
   }
+});
+
+// Runs last: it adds a fourth inward item, which would change the §12.2
+// dashboard figures checked above.
+test("Save + PDF slip downloads the new item's slip", async ({ page }) => {
+  await signInAs(page, "registry.officer1@example.invalid");
+  await page.goto("/inward/new");
+  await fill(page, { sender: "Walk-in visitor", subject: "Enquiry" });
+  await choose(page, {
+    modeId: "Hand delivery",
+    typeId: "Other correspondence",
+    senderCategoryId: "Consumer / member of public",
+    actionRequiredId: "For information",
+  });
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Save + PDF slip" }).click();
+  await expect(status(page)).toContainText("Saved as OGSERC/ACK/2026/00004.");
+  expect((await download).suggestedFilename()).toBe(
+    "Slip OGSERC-ACK-2026-00004.pdf",
+  );
 });
