@@ -1,9 +1,10 @@
 // `npm run db:seed`            reference data from seed-data.json (safe to re-run)
-// `npm run db:seed -- --example` also the SPEC §12.2 example (dev/test only)
+// `npm run db:seed -- --example` also the SPEC §12.2 example and one dev
+//                               login per role (dev/test only)
 import "dotenv/config";
 import { appNow } from "../src/server/clock";
 import { createDb } from "../src/server/db";
-import { seedExample } from "./seed/example";
+import { DEV_PASSWORD, seedDevLogins, seedExample } from "./seed/example";
 import { seedReference } from "./seed/reference";
 
 async function main() {
@@ -20,6 +21,12 @@ async function main() {
           ? "Example scenario added."
           : "Items already exist; example skipped.",
       );
+      const emails = await seedDevLogins(db);
+      const shown = process.env.DEV_SEED_PASSWORD
+        ? "from DEV_SEED_PASSWORD"
+        : DEV_PASSWORD;
+      console.log(`Dev logins (password: ${shown}):`);
+      for (const email of emails) console.log(`  ${email}`);
     }
   } finally {
     await db.$disconnect();

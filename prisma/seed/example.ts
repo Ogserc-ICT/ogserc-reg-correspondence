@@ -4,6 +4,7 @@
 import { instantIn } from "../../src/domain/clock";
 import type { ListKind } from "../../src/generated/prisma/client";
 import { audit } from "../../src/server/audit";
+import { hashPassword } from "../../src/server/auth";
 import type { Db, Tx } from "../../src/server/db";
 import { toDbDate } from "../../src/server/dates";
 import { createInward, createOutward } from "../../src/server/registers";
@@ -326,4 +327,59 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
     },
     { timeout: 30_000 },
   );
+}
+
+/** The password every dev login gets unless DEV_SEED_PASSWORD is set. */
+export const DEV_PASSWORD = "Dev only pass 2026!";
+
+/**
+ * Sign-in accounts for local development (one per role), all with the same
+ * password. Dev and test databases only; safe to re-run.
+ */
+export async function seedDevLogins(db: Db): Promise<string[]> {
+  assertNotProduction();
+  const password = process.env.DEV_SEED_PASSWORD || DEV_PASSWORD;
+  const hash = await hashPassword(password);
+  const unit = await db.unit.findUniqueOrThrow({
+    where: { name: "Registration & Licensing" },
+  });
+  const extra = [
+    {
+      name: "Dev Admin",
+      email: "admin@example.invalid",
+      role: "ADMIN" as const,
+      unitId: null,
+    },
+    {
+      name: "Unit Officer (Registration & Licensing)",
+      email: "unit.registration@example.invalid",
+      role: "UNIT_OFFICER" as const,
+      unitId: unit.id,
+    },
+  ];
+  const emails: string[] = [];
+  for (const p of [
+    ...PEOPLE.map(({ key, ...rest }) => (void key, rest)),
+    ...extra,
+  ]) {
+    const user = await db.user.upsert({
+      where: { email: p.email },
+      update: { mustChangePassword: false },
+      create: { ...p, emailVerified: true },
+    });
+    await db.account.upsert({
+      where: {
+        providerId_accountId: { providerId: "credential", accountId: user.id },
+      },
+      update: { password: hash },
+      create: {
+        userId: user.id,
+        accountId: user.id,
+        providerId: "credential",
+        password: hash,
+      },
+    });
+    emails.push(user.email);
+  }
+  return emails;
 }
