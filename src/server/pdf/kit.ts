@@ -172,7 +172,7 @@ export function table<T>(
   const widths = fitWidths(
     opts.columns.map((c) => c.width),
     opts.columns.map(
-      (c, i) =>
+      (c) =>
         Math.max(
           longestWord(c.header, doc.bold, size),
           ...opts.rows.map((r, j) =>

@@ -25,9 +25,12 @@ export async function logInwardAction(
     const { item, message } = await logInward(getDb(), actor, raw);
     revalidatePath("/inward");
     revalidatePath("/");
+    const after =
+      raw.after === "print" || raw.after === "pdf" ? raw.after : undefined;
     return {
       ok: true,
       message,
+      after,
       link: { href: `/inward/${item.id}`, label: `Open ${item.number}` },
       values: newInwardDefaults(
         await formOptions(getDb()),

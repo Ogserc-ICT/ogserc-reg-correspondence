@@ -120,6 +120,21 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
           </p>
         )}
         <Flags flags={derived.flags} />
+        {can(user, "reports.print") && (
+          <p className="mt-3 flex gap-4 text-sm">
+            <a
+              href={`/inward/${row.id}/slip`}
+              target="_blank"
+              rel="noopener"
+              className="underline"
+            >
+              Print acknowledgement slip
+            </a>
+            <a href={`/inward/${row.id}/slip?download=1`} className="underline">
+              Save slip PDF
+            </a>
+          </p>
+        )}
       </header>
 
       {writable && (

@@ -2,6 +2,8 @@
 // UI by a registry officer, with every computed value checked on screen.
 // The app clock is 10 Dec 2026 09:00 Lagos (playwright.config APP_NOW).
 import { expect, test, type Page } from "@playwright/test";
+import { HEADING_GENERAL, HEADING_PARA103 } from "../src/domain/slip";
+import { pdfPages } from "../tests/pdf-text";
 import { DEV_PASSWORD } from "./env";
 
 // Next keeps the previous page in the DOM as a hidden Activity, so every
@@ -292,4 +294,102 @@ test("a missing field lists every gap and keeps what was typed", async ({
     "Date & time received can't be in the future.",
   );
   await expect(field(page, "sender")).toHaveValue("Typed sender");
+});
+
+// ---- Phase 5: slips and reports on the data entered above ------------------
+
+async function signInAs(page: Page, email: string) {
+  await page.goto("/login");
+  await page.getByLabel("Email address").fill(email);
+  await page.getByLabel("Password").fill(DEV_PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL((u) => u.pathname !== "/login");
+}
+
+async function pdfText(page: Page, url: string) {
+  const res = await page.request.get(url);
+  expect(res.status()).toBe(200);
+  expect(res.headers()["content-type"]).toBe("application/pdf");
+  return (await pdfPages(new Uint8Array(await res.body()))).join(" ");
+}
+
+test("slips for I1–I3 carry the right heading and footer", async ({ page }) => {
+  await signInAs(page, "registry.officer1@example.invalid");
+  const slip = (no: string) =>
+    pdfText(page, `/slip?no=${encodeURIComponent(no)}`);
+
+  const i1 = await slip("OGSERC/ACK/2026/00001");
+  expect(i1).toContain(HEADING_PARA103);
+  expect(i1).toContain("It is not a registration, licence or permit");
+  expect(i1).toContain("REGISTRANT'S / SENDER'S COPY");
+  expect(i1).toContain("REGISTRY COPY");
+  expect(i1).toContain("₦250,000");
+
+  const i2 = await slip("OGSERC/ACK/2026/00002");
+  expect(i2).toContain(HEADING_PARA103);
+  expect(i2).toContain("It is not a registration, licence or permit");
+
+  const i3 = await slip("OGSERC/ACK/2026/00003");
+  expect(i3).toContain(HEADING_GENERAL);
+  expect(i3).toContain(
+    "Please quote the acknowledgement number on all further correspondence",
+  );
+  expect(i3).not.toContain("registration");
+});
+
+test("Daily Registers for 20 Nov and 2 Dec 2026 list the right items", async ({
+  page,
+}) => {
+  await signInAs(page, "registry.officer1@example.invalid");
+  const nov20 = await pdfText(page, "/daily/pdf?date=2026-11-20");
+  expect(nov20).toContain("Items received: 1");
+  expect(nov20).toContain("OGSERC/ACK/2026/00001");
+  expect(nov20).toContain("Items dispatched: 0");
+
+  const dec2 = await pdfText(page, "/daily/pdf?date=2026-12-02");
+  expect(dec2).toContain("Items received: 1");
+  expect(dec2).toContain("OGSERC/ACK/2026/00003");
+  expect(dec2).not.toContain("OGSERC/OUT/2026/00002"); // dispatched on 3 Dec
+  expect(dec2).toContain("Items dispatched: 0");
+
+  // The screen agrees with the PDF.
+  await page.goto("/daily?date=2026-11-30");
+  await expect(page.locator("main:visible")).toContainText(
+    "OGSERC/ACK/2026/00002",
+  );
+  await expect(page.locator("main:visible")).toContainText("Items received: 1");
+
+  const pending = await pdfText(page, "/pending/pdf");
+  expect(pending).toContain("Pending: 1");
+  expect(pending).toContain("OGSERC/ACK/2026/00002");
+});
+
+test("Save + PDF slip downloads the new item's slip", async ({ page }) => {
+  await signInAs(page, "registry.officer1@example.invalid");
+  await page.goto("/inward/new");
+  await fill(page, { sender: "Walk-in visitor", subject: "Enquiry" });
+  await choose(page, {
+    modeId: "Hand delivery",
+    typeId: "Other correspondence",
+    senderCategoryId: "Consumer / member of public",
+    actionRequiredId: "For information",
+  });
+  const download = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Save + PDF slip" }).click();
+  await expect(status(page)).toContainText("Saved as OGSERC/ACK/2026/00004.");
+  expect((await download).suggestedFilename()).toBe(
+    "Slip OGSERC-ACK-2026-00004.pdf",
+  );
+});
+
+test("unit officers can't print reports", async ({ page }) => {
+  await signInAs(page, "unit.registration@example.invalid");
+  expect((await page.request.get("/daily/pdf")).status()).toBe(403);
+  expect(
+    (await page.request.get("/slip?no=OGSERC/ACK/2026/00001")).status(),
+  ).toBe(403);
+  await page.goto("/pending");
+  await expect(
+    page.getByRole("heading", { name: "You can't open this page" }),
+  ).toBeVisible();
 });

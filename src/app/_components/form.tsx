@@ -12,6 +12,8 @@ export type FormState = {
   missing?: string[];
   errors?: string[];
   values?: Record<string, string>;
+  /** New Inward: open ("print") or download ("pdf") the slip after saving. */
+  after?: "print" | "pdf";
   /** A link shown with the success message, e.g. to the saved item. */
   link?: { href: string; label: string };
 };
