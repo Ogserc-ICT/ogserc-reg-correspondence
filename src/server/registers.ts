@@ -28,7 +28,7 @@ import {
   toInwardFacts,
   toOutwardFacts,
 } from "./facts";
-import { nextNumber } from "./numbers";
+import { advanceCounterTo, nextNumber, type AssignedNumber } from "./numbers";
 import { loadRuleContext } from "./rules";
 
 /** Who is acting and when; `now` comes from `appNow()`. */
@@ -63,6 +63,23 @@ function required(s: string, field: string): string {
   const t = text(s);
   if (!t) throw new Error(`${field} is required`);
   return t;
+}
+
+/**
+ * Workbook import (STACK rule 19): keep the number issued in the workbook and
+ * move the counter past it, so it is never issued again.
+ */
+export type CreateOptions = { preset?: AssignedNumber };
+
+async function numberFor(
+  tx: Tx,
+  series: "ACK" | "OUT",
+  year: number,
+  opts: CreateOptions,
+): Promise<AssignedNumber> {
+  if (!opts.preset) return nextNumber(series, year, tx);
+  await advanceCounterTo(series, opts.preset.year, opts.preset.serial, tx);
+  return opts.preset;
 }
 
 // ----------------------------------------------------------------- inward ---
@@ -111,6 +128,7 @@ export async function createInward(
   tx: Tx,
   input: NewInward,
   actor: Actor,
+  opts: CreateOptions = {},
 ): Promise<InwardItem> {
   assertCan(actor.user, "registers.write");
   const ctx = await loadRuleContext(tx, actor.now);
@@ -123,7 +141,7 @@ export async function createInward(
     ctx.rules,
     ctx.holidays,
   );
-  const no = await nextNumber("ACK", inwardNumberYear(deemed), tx);
+  const no = await numberFor(tx, "ACK", inwardNumberYear(deemed), opts);
 
   const created = await tx.inwardItem.create({
     data: {
@@ -181,6 +199,7 @@ export async function createInward(
       deemedReceiptDate: toDbDate(deemed),
       routedUnitId: input.unitOverrideId ?? type.defaultUnitId,
       createdById: actor.user.id,
+      imported: !!opts.preset,
     },
   });
 
@@ -188,7 +207,7 @@ export async function createInward(
     tx,
     {
       userId: actor.user.id,
-      action: "create",
+      action: opts.preset ? "import" : "create",
       entityType: "InwardItem",
       entityId: created.id,
       after: created,
@@ -264,13 +283,19 @@ export async function createOutward(
   tx: Tx,
   input: NewOutward,
   actor: Actor,
+  opts: CreateOptions = {},
 ): Promise<OutwardItem> {
   assertCan(actor.user, "registers.write");
   const ctx = await loadRuleContext(tx, actor.now);
   const type = await tx.outgoingType.findUniqueOrThrow({
     where: { id: input.typeId },
   });
-  const no = await nextNumber("OUT", outwardNumberYear(input.documentDate), tx);
+  const no = await numberFor(
+    tx,
+    "OUT",
+    outwardNumberYear(input.documentDate),
+    opts,
+  );
   const dispatched = toDbDate(input.dateDispatched);
 
   const created = await tx.outwardItem.create({
@@ -310,6 +335,7 @@ export async function createOutward(
       snapResponseWindowDays: type.responseWindowDays,
       snapClosesInwardItem: type.closesInwardItem,
       createdById: actor.user.id,
+      imported: !!opts.preset,
     },
   });
 
@@ -317,7 +343,7 @@ export async function createOutward(
     tx,
     {
       userId: actor.user.id,
-      action: "create",
+      action: opts.preset ? "import" : "create",
       entityType: "OutwardItem",
       entityId: created.id,
       after: created,
