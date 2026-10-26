@@ -39,6 +39,10 @@ async function UserBar() {
     can(user, "reports.print") && { href: "/pending", label: "Pending" },
     can(user, "reports.print") && { href: "/daily", label: "Daily Register" },
     can(user, "users.manage") && { href: "/admin/users", label: "Users" },
+    can(user, "reference.manage") && {
+      href: "/admin/types",
+      label: "Reference",
+    },
     can(user, "audit.view") && { href: "/admin/audit", label: "Audit" },
     can(user, "settings.manage") && { href: "/admin/jobs", label: "Jobs" },
     can(user, "settings.manage") && {

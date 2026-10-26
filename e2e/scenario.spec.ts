@@ -559,3 +559,48 @@ test("admin runs the holiday check; the Head of Registry reads the audit log", a
   await expect(page.locator("main:visible")).toContainText("issue");
   await expect(page.locator("main:visible")).toContainText("Legal Adviser");
 });
+
+// ---- Phase 8: reference data ----------------------------------------------
+
+test("a holiday added by the Head of Registry moves I2's deadline", async ({
+  page,
+}) => {
+  await signInAs(page, "head.registry@example.invalid");
+  const i2Due = async () => {
+    await page.goto("/inward?q=OGSERC/ACK/2026/00002");
+    await page.getByRole("link", { name: "OGSERC/ACK/2026/00002" }).click();
+    await page.waitForURL(/\/inward\/[0-9a-f-]{36}$/);
+    return detail(page, "Response due").innerText();
+  };
+  expect(await i2Due()).toBe("15-Dec-2026");
+
+  await page.goto("/admin/holidays");
+  const add = page.locator("form:visible", {
+    has: page.getByRole("button", { name: "Add holiday" }),
+  });
+  await add.locator('[name="date"]').fill("2026-12-14");
+  await add.getByRole("button", { name: "Add holiday" }).click();
+  // The error keeps what was typed.
+  await expect(add.locator("[role=alert]")).toContainText(
+    "Enter the holiday's name.",
+  );
+  await expect(add.locator('[name="date"]')).toHaveValue("2026-12-14");
+  await add.locator('[name="name"]').fill("State public holiday");
+  await add.getByRole("button", { name: "Add holiday" }).click();
+  await expect(page.locator("[role=status]:visible").first()).toContainText(
+    "State public holiday added. Deadlines have been recalculated.",
+  );
+  expect(await i2Due()).toBe("16-Dec-2026");
+
+  await page.goto("/admin/holidays");
+  const entry = page.locator("details:visible", {
+    hasText: "State public holiday",
+  });
+  await entry.locator("summary").click();
+  page.once("dialog", (d) => d.accept());
+  await entry.getByRole("button", { name: "Remove this holiday" }).click();
+  await expect(
+    page.locator("details:visible", { hasText: "State public holiday" }),
+  ).toHaveCount(0);
+  expect(await i2Due()).toBe("15-Dec-2026");
+});
