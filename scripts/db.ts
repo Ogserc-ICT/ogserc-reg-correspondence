@@ -6,51 +6,29 @@
  *   npm run db:e2e      e2e cluster   on port 5445, database ogserc_registry_e2e
  *
  * Data lives in .pgdata/<target> (git-ignored). Runs in the foreground; Ctrl+C stops it.
- * Local use only: the credentials are fixed and not secret.
  */
-import { existsSync } from "node:fs";
-import path from "node:path";
-import EmbeddedPostgres from "embedded-postgres";
-
-const targets = {
-  dev: { port: 5443, database: "ogserc_registry" },
-  test: { port: 5444, database: "ogserc_registry_test" },
-  e2e: { port: 5445, database: "ogserc_registry_e2e" },
-} as const;
-
-type Target = keyof typeof targets;
+import {
+  localUrl,
+  startCluster,
+  stopCluster,
+  targets,
+  type Target,
+} from "./pg-cluster";
 
 async function main() {
   const name = (process.argv[2] ?? "dev") as Target;
-  const target = targets[name];
-  if (!target) {
+  if (!targets[name]) {
     console.error(
       `Unknown target "${name}". Use one of: ${Object.keys(targets).join(", ")}`,
     );
     process.exit(1);
   }
 
-  const databaseDir = path.resolve(".pgdata", name);
-  const firstRun = !existsSync(path.join(databaseDir, "PG_VERSION"));
-
-  const pg = new EmbeddedPostgres({
-    databaseDir,
-    port: target.port,
-    user: "ogserc",
-    password: "ogserc",
-    persistent: true,
-  });
-
-  if (firstRun) await pg.initialise();
-  await pg.start();
-  if (firstRun) await pg.createDatabase(target.database);
-
-  console.log(
-    `PostgreSQL (${name}) ready: postgresql://ogserc:ogserc@localhost:${target.port}/${target.database}`,
-  );
+  const pg = await startCluster(name);
+  console.log(`PostgreSQL (${name}) ready: ${localUrl(name)}`);
 
   const stop = async () => {
-    await pg.stop();
+    await stopCluster(name, pg);
     process.exit(0);
   };
   process.on("SIGINT", stop);
