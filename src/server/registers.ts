@@ -1,7 +1,8 @@
 // Inward and outward items: create (number assigned in the insert transaction),
-// void, and the cached status/routing columns. Permission checks and form
-// validation wrap these in Phases 3 and 4.
+// void, and the cached status/routing columns. Permissions are checked here,
+// so no caller can skip them; form validation wraps these in Phase 4.
 import type { IsoDate } from "@/domain/calendar";
+import { canVoid, type Principal } from "@/domain/permissions";
 import {
   deriveInward,
   type InwardStatus as DomainInwardStatus,
@@ -20,6 +21,7 @@ import type {
 import { audit } from "./audit";
 import { toDbDate } from "./dates";
 import type { Tx } from "./db";
+import { assertCan, ForbiddenError, ValidationError } from "./errors";
 import {
   inwardFactsInclude,
   outwardFactsInclude,
@@ -30,7 +32,7 @@ import { nextNumber } from "./numbers";
 import { loadRuleContext } from "./rules";
 
 /** Who is acting and when; `now` comes from `appNow()`. */
-export type Actor = { userId: string; now: Date };
+export type Actor = { user: Principal; now: Date };
 
 const INWARD_STATUS: Record<DomainInwardStatus, InwardStatus> = {
   Void: "VOID",
@@ -110,6 +112,7 @@ export async function createInward(
   input: NewInward,
   actor: Actor,
 ): Promise<InwardItem> {
+  assertCan(actor.user, "registers.write");
   const ctx = await loadRuleContext(tx, actor.now);
   const type = await tx.incomingType.findUniqueOrThrow({
     where: { id: input.typeId },
@@ -177,14 +180,14 @@ export async function createInward(
       snapClosingTime: ctx.rules.officeClosingTime,
       deemedReceiptDate: toDbDate(deemed),
       routedUnitId: input.unitOverrideId ?? type.defaultUnitId,
-      createdById: actor.userId,
+      createdById: actor.user.id,
     },
   });
 
   await audit(
     tx,
     {
-      userId: actor.userId,
+      userId: actor.user.id,
       action: "create",
       entityType: "InwardItem",
       entityId: created.id,
@@ -262,6 +265,7 @@ export async function createOutward(
   input: NewOutward,
   actor: Actor,
 ): Promise<OutwardItem> {
+  assertCan(actor.user, "registers.write");
   const ctx = await loadRuleContext(tx, actor.now);
   const type = await tx.outgoingType.findUniqueOrThrow({
     where: { id: input.typeId },
@@ -292,7 +296,7 @@ export async function createOutward(
       dateDispatched: dispatched,
       // SPEC §5.1 (VBA): no dispatch date, no dispatcher.
       dispatchedById: dispatched
-        ? (input.dispatchedById ?? actor.userId)
+        ? (input.dispatchedById ?? actor.user.id)
         : null,
       trackingRef: text(input.trackingRef),
       responseExpectedOverride: input.responseExpectedOverride ?? null,
@@ -305,14 +309,14 @@ export async function createOutward(
       snapResponseExpected: type.responseExpected,
       snapResponseWindowDays: type.responseWindowDays,
       snapClosesInwardItem: type.closesInwardItem,
-      createdById: actor.userId,
+      createdById: actor.user.id,
     },
   });
 
   await audit(
     tx,
     {
-      userId: actor.userId,
+      userId: actor.user.id,
       action: "create",
       entityType: "OutwardItem",
       entityId: created.id,
@@ -356,22 +360,46 @@ export async function voidItem(
   actor: Actor,
 ): Promise<void> {
   const why = text(reason);
-  if (!why) throw new Error("A reason is required to void an item");
+  if (!why) throw new ValidationError(["Give a reason for voiding this item."]);
   const ctx = await loadRuleContext(tx, actor.now);
+  const { headMayVoidOwnItems } = await tx.registrySettings.findUniqueOrThrow({
+    where: { id: 1 },
+    select: { headMayVoidOwnItems: true },
+  });
+  const check = (item: {
+    number: string;
+    createdById: string;
+    voidedAt: Date | null;
+  }) => {
+    if (item.voidedAt)
+      throw new ValidationError([`${item.number} is already void.`]);
+    if (
+      !canVoid(
+        actor.user,
+        { createdById: item.createdById, voided: false },
+        headMayVoidOwnItems,
+      )
+    )
+      throw new ForbiddenError(
+        actor.user.role === "HEAD_OF_REGISTRY"
+          ? `You logged ${item.number}, so another Head of Registry must void it.`
+          : "Only the Head of Registry can void an item.",
+      );
+  };
   const data = {
     voidedAt: actor.now,
-    voidedById: actor.userId,
+    voidedById: actor.user.id,
     voidReason: why,
   };
 
   if (kind === "inward") {
     const before = await tx.inwardItem.findUniqueOrThrow({ where: { id } });
-    if (before.voidedAt) throw new Error(`${before.number} is already void`);
+    check(before);
     await tx.inwardItem.update({ where: { id }, data });
     await audit(
       tx,
       {
-        userId: actor.userId,
+        userId: actor.user.id,
         action: "void",
         entityType: "InwardItem",
         entityId: id,
@@ -387,12 +415,12 @@ export async function voidItem(
       await refreshSameCac(tx, before.cacNo, ctx);
   } else {
     const before = await tx.outwardItem.findUniqueOrThrow({ where: { id } });
-    if (before.voidedAt) throw new Error(`${before.number} is already void`);
+    check(before);
     await tx.outwardItem.update({ where: { id }, data });
     await audit(
       tx,
       {
-        userId: actor.userId,
+        userId: actor.user.id,
         action: "void",
         entityType: "OutwardItem",
         entityId: id,

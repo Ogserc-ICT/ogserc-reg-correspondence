@@ -99,8 +99,14 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
         });
         users[key] = u.id;
       }
+      const officer = {
+        id: users.officer,
+        role: "REGISTRY_OFFICER" as const,
+        unitId: null,
+        active: true,
+      };
       const at = (date: string, time = "09:00") => ({
-        userId: users.officer,
+        user: officer,
         now: instantIn(date, time),
       });
 

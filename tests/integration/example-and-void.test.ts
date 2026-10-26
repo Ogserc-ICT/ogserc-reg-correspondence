@@ -10,7 +10,7 @@ import { seedReference } from "../../prisma/seed/reference";
 import { instantIn } from "@/domain/clock";
 import { loadDashboard } from "@/server/dashboard";
 import { createInward, voidItem } from "@/server/registers";
-import { DEC_10, resetDb, connectTestDb } from "./helpers";
+import { actorFor, connectTestDb, DEC_10, resetDb } from "./helpers";
 
 const db = connectTestDb();
 let ids: ExampleIds;
@@ -90,7 +90,7 @@ describe("N4: voiding I2", () => {
     });
 
   it("keeps the number, drops it from counts, and never reissues it", async () => {
-    const actor = { userId: (await head()).id, now: DEC_10 };
+    const actor = await actorFor(db, (await head()).id);
     await db.$transaction((tx) =>
       voidItem(tx, "inward", ids.I2, "Logged twice", actor),
     );
@@ -116,6 +116,7 @@ describe("N4: voiding I2", () => {
     expect(o1.statusCache).toBe("RESPONSE_OVERDUE");
 
     const i1 = await db.inwardItem.findUniqueOrThrow({ where: { id: ids.I1 } });
+    const officerActor = await actorFor(db, i1.receivedById);
     const next = await db.$transaction((tx) =>
       createInward(
         tx,
@@ -130,7 +131,7 @@ describe("N4: voiding I2", () => {
           ackIssuedViaId: i1.ackIssuedViaId,
           actionRequiredId: i1.actionRequiredId,
         },
-        { userId: i1.receivedById, now: DEC_10 },
+        officerActor,
       ),
     );
     expect(next.number).toBe("OGSERC/ACK/2026/00004");
@@ -143,7 +144,7 @@ describe("N4: voiding I2", () => {
   });
 
   it("needs a reason and cannot void twice", async () => {
-    const actor = { userId: (await head()).id, now: DEC_10 };
+    const actor = await actorFor(db, (await head()).id);
     await expect(
       db.$transaction((tx) => voidItem(tx, "inward", ids.I2, "  ", actor)),
     ).rejects.toThrow("reason");
@@ -191,8 +192,9 @@ describe("database protections", () => {
         data: { voidedAt: DEC_10, voidedById: head.id },
       }),
     ).rejects.toThrow(/void_complete/);
+    const headActor = await actorFor(db, head.id);
     await db.$transaction((tx) =>
-      voidItem(tx, "inward", ids.I1, "Test", { userId: head.id, now: DEC_10 }),
+      voidItem(tx, "inward", ids.I1, "Test", headActor),
     );
     await expect(
       db.inwardItem.update({

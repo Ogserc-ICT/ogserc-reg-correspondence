@@ -5,7 +5,7 @@ import { instantIn } from "@/domain/clock";
 import { nextNumber } from "@/server/numbers";
 import { createInward, type NewInward } from "@/server/registers";
 import type { Db } from "@/server/db";
-import { DEC_10, resetDb, connectTestDb } from "./helpers";
+import { actorFor, connectTestDb, resetDb } from "./helpers";
 
 const db = connectTestDb();
 
@@ -38,7 +38,7 @@ async function inwardInput(db: Db, receivedAt: Date, mode = "Hand delivery") {
     ackIssuedViaId: await list("ACK_VIA", "Printed slip"),
     actionRequiredId: await list("ACTION_REQUIRED", "Action required"),
   };
-  return { input, actor: { userId: officer.id, now: DEC_10 } };
+  return { input, actor: await actorFor(db, officer.id) };
 }
 
 describe("number service", () => {
@@ -127,6 +127,6 @@ describe("number service", () => {
     });
     const log = await db.auditLog.findMany({ where: { entityId: item.id } });
     expect(log.map((l) => l.action)).toEqual(["create"]);
-    expect(log[0].userId).toBe(actor.userId);
+    expect(log[0].userId).toBe(actor.user.id);
   });
 });

@@ -4,6 +4,8 @@ import { afterAll, inject } from "vitest";
 import { seedReference } from "../../prisma/seed/reference";
 import { instantIn } from "@/domain/clock";
 import { createDb, type Db } from "@/server/db";
+import type { Actor } from "@/server/registers";
+import { loadPrincipal } from "@/server/session";
 
 export function connectTestDb(): Db {
   const db = createDb(inject("databaseUrl"));
@@ -24,3 +26,11 @@ export async function resetDb(db: Db): Promise<void> {
 
 /** "Today" for the §12.2 scenario: 10 Dec 2026, 09:00 Lagos. */
 export const DEC_10 = instantIn("2026-12-10", "09:00");
+
+export async function actorFor(
+  db: Db,
+  userId: string,
+  now = DEC_10,
+): Promise<Actor> {
+  return { user: await loadPrincipal(db, userId), now };
+}
