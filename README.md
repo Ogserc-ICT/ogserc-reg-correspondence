@@ -6,6 +6,10 @@ Internal web app for Ogun State Electricity Regulatory Commission (OGSERC) staff
 - Print layouts and messages: [docs/TEMPLATES.md](docs/TEMPLATES.md)
 - Stack and architecture rules: [docs/STACK.md](docs/STACK.md)
 - Build phases and working rules: [CLAUDE.md](CLAUDE.md)
+- Hosting, deployment, backups and restore: [docs/OPERATIONS.md](docs/OPERATIONS.md)
+- Guide for registry staff: [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
+- Parallel week with the workbook: [docs/PARALLEL_RUN.md](docs/PARALLEL_RUN.md)
+- Build progress and open questions: [docs/PROGRESS.md](docs/PROGRESS.md)
 
 ## Requirements
 
@@ -32,6 +36,7 @@ npx playwright install chromium  # once, for end-to-end tests
 | `npm run db:seed` | Reference data from `seed-data.json` (fills empty tables only; safe to re-run) |
 | `npm run db:seed -- --example` | Also the SPEC §12.2 example items and one dev login per role (dev/test only; refused in production) |
 | `npm run db:seed -- --logins --files` | Dev logins and the two example files only, with empty registers (what the e2e tests use) |
+| `npm run compare:workbook -- --file <xlsm> --from <date> --to <date>` | Parallel run: daily counts, workbook vs app |
 | `npm run import:workbook -- --file <xlsm> --as <email>` | Import the workbook (dry run unless `--commit`) |
 | `npm run admin:create -- --email <email> --name "<name>"` | First admin account on a new database; prints a temporary password once |
 | `npm test` | Vitest: domain rules, plus integration tests against a fresh local test database |

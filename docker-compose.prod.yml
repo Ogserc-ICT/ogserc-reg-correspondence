@@ -1,0 +1,38 @@
+# OGSERC Registry: app + PostgreSQL on one server (docs/OPERATIONS.md).
+#   cp .env.production.example .env.production   # fill in every value
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Put HTTPS (Coolify, Caddy or nginx) in front of port 3000; never expose
+# PostgreSQL to the internet.
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ogserc_registry
+      POSTGRES_USER: ogserc_registry
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.production}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ogserc_registry -d ogserc_registry"]
+      interval: 10s
+      retries: 6
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env.production
+    environment:
+      DATABASE_URL: postgresql://ogserc_registry:${POSTGRES_PASSWORD}@db:5432/ogserc_registry
+      BACKUP_DIR: /backups
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - backups:/backups
+
+volumes:
+  pgdata:
+  backups:

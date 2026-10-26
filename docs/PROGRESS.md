@@ -10,9 +10,9 @@ Updated at the end of each phase. Phases and "done when" criteria come from `CLA
 | 3 | Auth, users and roles | `phase-3` | ✅ Done, pushed: awaiting review |
 | 4 | Inward and outward workflows | `phase-4` | ✅ Done, pushed: awaiting review |
 | 5 | Slips and reports (PDF) | `phase-5` | ✅ Done, pushed: awaiting review |
-| 6 | File Desk | `phase-6` | ✅ Done: awaiting review (not pushed) |
-| 7 | Dashboard (+ optional attachments) | `phase-7` | ✅ Done: awaiting review |
-| 8 | Hardening and go-live | | ⬜ Not started |
+| 6 | File Desk | `phase-6` | ✅ Done, pushed: awaiting review |
+| 7 | Dashboard (+ optional attachments) | `phase-7` | ✅ Done, pushed: awaiting review |
+| 8 | Hardening and go-live | `phase-8` | 🔨 Built, awaiting the parallel week |
 
 Nothing is merged to `main` yet.
 
@@ -77,13 +77,13 @@ Nothing is merged to `main` yet.
 - [ ] Optional, only if Q8 is confirmed: scanned letter uploads (not built: Q8 open)
 - [x] Dashboard numbers for 10 Dec 2026 match SPEC §12.2 (`docs/PHASE7_REPORT.md`)
 
-## Phase 8: Hardening and go-live
-- [ ] Admin screens: settings, types, lists, holidays (with the 30-day estimated-holiday warning)
-- [ ] Backup and restore notes (restore tested)
-- [ ] User guide for registry staff
-- [ ] Dev seed data cannot reach production
-- [ ] Hosting notes (Node server + PostgreSQL)
-- [ ] Parallel week with the workbook; daily counts match
+## Phase 8: Hardening and go-live 🔨
+- [x] Admin screens: settings, types, lists, holidays (with the 30-day estimated-holiday warning)
+- [ ] Backup and restore notes (restore tested) (notes and script done; **restore drill still to do on the server**)
+- [x] User guide for registry staff
+- [x] Dev seed data cannot reach production
+- [x] Hosting notes (Node server + PostgreSQL)
+- [ ] Parallel week with the workbook; daily counts match (`docs/PARALLEL_RUN.md`, `npm run compare:workbook`; your team runs it)
 
 ---
 
