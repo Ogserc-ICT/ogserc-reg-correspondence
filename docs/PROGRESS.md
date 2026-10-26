@@ -8,8 +8,8 @@ Updated at the end of each phase. Phases and "done when" criteria come from `CLA
 | 1 | Domain engine + tests | `phase-1` | ✅ Done, pushed: awaiting review |
 | 2 | Data model, migrations, seed, number service | `phase-2` | ✅ Done, pushed: awaiting review |
 | 3 | Auth, users and roles | `phase-3` | ✅ Done, pushed: awaiting review |
-| 4 | Inward and outward workflows | `phase-4` | ✅ Done: awaiting review |
-| 5 | Slips and reports (PDF) | | ⬜ Not started |
+| 4 | Inward and outward workflows | `phase-4` | ✅ Done, pushed: awaiting review |
+| 5 | Slips and reports (PDF) | `phase-5` | ✅ Done: awaiting review |
 | 6 | File Desk | | ⬜ Not started |
 | 7 | Dashboard (+ optional attachments) | | ⬜ Not started |
 | 8 | Hardening and go-live | | ⬜ Not started |
@@ -56,13 +56,13 @@ Nothing is merged to `main` yet.
 - [x] Validation per SPEC §9 R10; messages per TEMPLATES §4
 - [x] The full §12.2 scenario can be entered through the UI and matches the fixtures (`docs/PHASE4_REPORT.md`)
 
-## Phase 5: Slips and reports
-- [ ] Acknowledgement slip PDF (two copies; heading and footer variants)
-- [ ] "Save + print slip" and "Save + PDF slip" on New Inward
-- [ ] Daily Register PDF
-- [ ] Pending Actions PDF with unit filter
-- [ ] PDFs for I1, I2 and I3 render correctly (para 10(3) vs general heading; registration vs general footer)
-- [ ] Daily Registers for 20 Nov 2026 and 2 Dec 2026 list the right items
+## Phase 5: Slips and reports ✅
+- [x] Acknowledgement slip PDF (two copies; heading and footer variants)
+- [x] "Save + print slip" and "Save + PDF slip" on New Inward
+- [x] Daily Register PDF
+- [x] Pending Actions PDF with unit filter
+- [x] PDFs for I1, I2 and I3 render correctly (para 10(3) vs general heading; registration vs general footer)
+- [x] Daily Registers for 20 Nov 2026 and 2 Dec 2026 list the right items (`docs/PHASE5_REPORT.md`)
 
 ## Phase 6: File Desk
 - [ ] File Index, File Movement, new file

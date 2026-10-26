@@ -80,6 +80,10 @@ tests/        Vitest tests that are not next to a source file
 e2e/          Playwright tests
 ```
 
+## Printing
+
+Slips, the Daily Register and Pending Actions are PDFs made on the server. Put the OGSERC logo in `assets/logo.png` (or `.jpg`) and they print it; without it they print a text heading. The fonts in `assets/fonts/` (DejaVu Sans, free licence included) are embedded so `₦` and `✂` print correctly.
+
 ## Time zone
 
 Every "today", deemed-receipt and working-day calculation uses **Africa/Lagos**, whatever the server's time zone. Unit tests run under `TZ=UTC` to catch mistakes. In development, `APP_NOW` (in `.env`) fixes the clock for testing cut-offs and overdue rules.
