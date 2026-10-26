@@ -10,8 +10,8 @@ Updated at the end of each phase. Phases and "done when" criteria come from `CLA
 | 3 | Auth, users and roles | `phase-3` | ✅ Done, pushed: awaiting review |
 | 4 | Inward and outward workflows | `phase-4` | ✅ Done, pushed: awaiting review |
 | 5 | Slips and reports (PDF) | `phase-5` | ✅ Done, pushed: awaiting review |
-| 6 | File Desk | `phase-6` | ✅ Done: awaiting review |
-| 7 | Dashboard (+ optional attachments) | | ⬜ Not started |
+| 6 | File Desk | `phase-6` | ✅ Done: awaiting review (not pushed) |
+| 7 | Dashboard (+ optional attachments) | `phase-7` | ✅ Done: awaiting review |
 | 8 | Hardening and go-live | | ⬜ Not started |
 
 Nothing is merged to `main` yet.
@@ -70,12 +70,12 @@ Nothing is merged to `main` yet.
 - [x] "Still out — issue anyway?" confirmation
 - [x] Fixtures F1 and F2 pass through the UI (`docs/PHASE6_REPORT.md`)
 
-## Phase 7: Dashboard (+ optional attachments)
-- [ ] Dashboard per SPEC §8.4, one definition of "pending" (R12)
-- [ ] Breakdowns: unit, category, month, correspondent, type, LGA
-- [ ] Scheduled jobs, audit log viewer, workbook import (STACK)
-- [ ] Optional, only if Q8 is confirmed: scanned letter uploads
-- [ ] Dashboard numbers for 10 Dec 2026 match SPEC §12.2
+## Phase 7: Dashboard (+ optional attachments) ✅
+- [x] Dashboard per SPEC §8.4, one definition of "pending" (R12)
+- [x] Breakdowns: unit, category, month, correspondent, type, LGA
+- [x] Scheduled jobs, audit log viewer, workbook import (STACK)
+- [ ] Optional, only if Q8 is confirmed: scanned letter uploads (not built: Q8 open)
+- [x] Dashboard numbers for 10 Dec 2026 match SPEC §12.2 (`docs/PHASE7_REPORT.md`)
 
 ## Phase 8: Hardening and go-live
 - [ ] Admin screens: settings, types, lists, holidays (with the 30-day estimated-holiday warning)

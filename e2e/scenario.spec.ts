@@ -534,3 +534,28 @@ test("Save + PDF slip downloads the new item's slip", async ({ page }) => {
     "Slip OGSERC-ACK-2026-00004.pdf",
   );
 });
+
+// ---- Phase 7: jobs and audit log ------------------------------------------
+
+test("admin runs the holiday check; the Head of Registry reads the audit log", async ({
+  page,
+}) => {
+  await signInAs(page, "admin@example.invalid");
+  await page.goto("/admin/jobs");
+  await page
+    .locator("section:visible", { hasText: "Holiday check" })
+    .getByRole("button", { name: "Run now" })
+    .click();
+  await expect(status(page)).toContainText(
+    "Boxing Day holiday (substitute) (2026-12-28)",
+  );
+  await page.getByRole("button", { name: "Sign out" }).click();
+
+  await signInAs(page, "head.registry@example.invalid");
+  await expect(page.locator("[role=note]:visible")).toContainText(
+    "Public holidays to confirm",
+  );
+  await page.goto("/admin/audit?q=OGSERC/GOV/001");
+  await expect(page.locator("main:visible")).toContainText("issue");
+  await expect(page.locator("main:visible")).toContainText("Legal Adviser");
+});

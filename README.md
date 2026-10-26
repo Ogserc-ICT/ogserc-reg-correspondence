@@ -32,6 +32,7 @@ npx playwright install chromium  # once, for end-to-end tests
 | `npm run db:seed` | Reference data from `seed-data.json` (fills empty tables only; safe to re-run) |
 | `npm run db:seed -- --example` | Also the SPEC §12.2 example items and one dev login per role (dev/test only; refused in production) |
 | `npm run db:seed -- --logins --files` | Dev logins and the two example files only, with empty registers (what the e2e tests use) |
+| `npm run import:workbook -- --file <xlsm> --as <email>` | Import the workbook (dry run unless `--commit`) |
 | `npm run admin:create -- --email <email> --name "<name>"` | First admin account on a new database; prints a temporary password once |
 | `npm test` | Vitest: domain rules, plus integration tests against a fresh local test database |
 | `npm run test:e2e` | Playwright browser tests on a fresh, seeded e2e database (starts it and the dev server itself) |
@@ -79,6 +80,24 @@ scripts/      local tooling (embedded PostgreSQL)
 tests/        Vitest tests that are not next to a source file
 e2e/          Playwright tests
 ```
+
+## Scheduled jobs
+
+Admins see the jobs on **Jobs** (`/admin/jobs`) and can run them there. To run them on a schedule, set `CRON_SECRET` and have the server's scheduler call, e.g. nightly at 00:30 Lagos time:
+
+```sh
+curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/jobs/refresh-status
+curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/jobs/holiday-check
+```
+
+## Importing the workbook (parallel run)
+
+```sh
+npm run import:workbook -- --file <workbook.xlsm> --as <head-of-registry email>            # dry run
+npm run import:workbook -- --file <workbook.xlsm> --as <head-of-registry email> --commit   # save
+```
+
+A dry run changes nothing and reports what would be imported, skipped, and any problems. Numbers are kept, links resolved, and re-running never duplicates. See `docs/PHASE7_REPORT.md`.
 
 ## Printing
 
