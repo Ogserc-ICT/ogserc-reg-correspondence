@@ -83,3 +83,32 @@ export function isPhone(s: string): boolean {
   const digits = s.replace(/\D/g, "").length;
   return digits >= 7 && digits <= 20;
 }
+
+/** File Index dates (SPEC §6.1). */
+export function fileDateProblems(
+  d: { dateOpened: IsoDate; dateClosedOrArchived?: IsoDate | null },
+  today: IsoDate,
+): string[] {
+  const p: string[] = [];
+  if (after(d.dateOpened, today)) p.push("Date opened can't be in the future.");
+  if (d.dateClosedOrArchived) {
+    if (before(d.dateClosedOrArchived, d.dateOpened))
+      p.push("Date closed / archived can't be before the date opened.");
+    if (after(d.dateClosedOrArchived, today))
+      p.push("Date closed / archived can't be in the future.");
+  }
+  return p;
+}
+
+/** A file can't come back before it went out, or in the future (R10). */
+export function fileReturnProblems(
+  d: { outDate: IsoDate; dateReturned: IsoDate },
+  today: IsoDate,
+): string[] {
+  const p: string[] = [];
+  if (before(d.dateReturned, d.outDate))
+    p.push("Date returned can't be before the date the file went out.");
+  if (after(d.dateReturned, today))
+    p.push("Date returned can't be in the future.");
+  return p;
+}
