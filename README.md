@@ -28,8 +28,10 @@ npx playwright install chromium  # once, for end-to-end tests
 | `npm run dev` | App at http://localhost:3000 |
 | `npm run db` | Local PostgreSQL on port 5443 (leave it running in its own terminal) |
 | `npm run db:test` / `npm run db:e2e` | Separate test databases on ports 5444 / 5445 |
-| `npm run db:migrate` | Apply Prisma migrations to the dev database (from Phase 2) |
-| `npm test` | Vitest: domain rules and integration tests |
+| `npm run db:migrate` | Apply Prisma migrations to the dev database |
+| `npm run db:seed` | Reference data from `seed-data.json` (fills empty tables only; safe to re-run) |
+| `npm run db:seed -- --example` | Also the SPEC §12.2 example items (dev/test only; refused in production) |
+| `npm test` | Vitest: domain rules, plus integration tests against a fresh local test database |
 | `npm run test:e2e` | Playwright browser tests (starts the dev server itself) |
 | `npm run lint` | ESLint (also stops `src/domain` reading the clock or the database) |
 | `npm run typecheck` | TypeScript strict check |
@@ -37,6 +39,18 @@ npx playwright install chromium  # once, for end-to-end tests
 | `npm run check` | Everything above that CI runs, plus a production build |
 
 Embedded database files live in `.pgdata/` (git-ignored). Delete a folder there to start that database from scratch.
+
+### First run of the dev database
+
+```sh
+npm run db                        # terminal 1: leave running
+npm run db:migrate                # terminal 2
+npm run db:seed -- --example      # reference data + the workbook example
+```
+
+### Integration tests
+
+`npm test` needs no database running. If nothing answers on `DATABASE_URL_TEST`, it starts the local test cluster (port 5444) itself, and stops it again at the end. Each run drops and recreates the test database, then applies the migrations. The test setup refuses any database that is not on localhost or whose name does not end in `_test`.
 
 ## Layout
 
