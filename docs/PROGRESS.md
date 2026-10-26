@@ -1,0 +1,109 @@
+# Build progress
+
+Updated at the end of each phase. Phases and "done when" criteria come from `CLAUDE.md`. Each phase is on its own branch, stacked on the one before, and stops for review.
+
+| # | Phase | Branch | Status |
+|---|---|---|---|
+| 0 | Scaffold and questions | `phase-0` | ✅ Done, pushed: awaiting review |
+| 1 | Domain engine + tests | `phase-1` | ✅ Done, pushed: awaiting review |
+| 2 | Data model, migrations, seed, number service | `phase-2` | ✅ Done, pushed: awaiting review |
+| 3 | Auth, users and roles | `phase-3` | 🔨 In progress |
+| 4 | Inward and outward workflows | | ⬜ Not started |
+| 5 | Slips and reports (PDF) | | ⬜ Not started |
+| 6 | File Desk | | ⬜ Not started |
+| 7 | Dashboard (+ optional attachments) | | ⬜ Not started |
+| 8 | Hardening and go-live | | ⬜ Not started |
+
+Nothing is merged to `main` yet.
+
+---
+
+## Phase 0: Scaffold and questions ✅
+- [x] Next.js + TypeScript + Tailwind, Prisma + PostgreSQL, Vitest, Playwright, ESLint/Prettier
+- [x] `.env.example` and README with setup steps
+- [x] `npm run dev`, `npm test` and `npm run lint` work on a fresh clone
+- [x] Report: models, route map, spec issues, open questions (`docs/PHASE0_REPORT.md`)
+
+## Phase 1: Domain engine + tests ✅
+- [x] Date engine (§2): working days, Lagos clock, deemed receipt, registration deadline
+- [x] Numbering format (§3.1)
+- [x] Inward, outward, file and movement derived fields, statuses and flags (§4–§6)
+- [x] Fixtures pass: §12.1 (D1–D13), §12.2, N1, N2, N5 (`docs/PHASE1_REPORT.md`)
+
+## Phase 2: Data model, migrations, seed, number service ✅
+- [x] Tables for all SPEC §1 entities, settings, holidays, counters, voids, audit log
+- [x] Database protections (no deletes, fixed numbers, append-only audit, single settings row)
+- [x] Seed from `seed-data.json`; §12.2 example in dev/test only
+- [x] `nextNumber(series, year, tx)` with the prefix from settings
+- [x] Migrations run on a fresh DB; N3 (concurrency) and N4 (void) pass (`docs/PHASE2_REPORT.md`)
+
+## Phase 3: Auth, users and roles 🔨
+- [ ] Login with email + password, sessions in the DB, no public sign-up
+- [ ] Admin creates and manages users; roles and capabilities per SPEC §10
+- [ ] Password rules, session expiry, lockout after repeated failures (admin can unlock)
+- [ ] Server-side permission checks on every action and query (deny by default)
+- [ ] Tests: unit officer can't read another unit's items or write anything
+- [ ] Tests: only Head of Registry can void; only Admin manages users and settings
+
+## Phase 4: Inward and outward workflows
+- [ ] Registry Desk (tiles + buttons)
+- [ ] New Inward, New Outward
+- [ ] Item detail and update (inward and outward)
+- [ ] One-click actions: Forwarded today, Close today, Dispatched today, Delivered today
+- [ ] Void (Head of Registry, reason required)
+- [ ] Registers with filters, search and CSV export
+- [ ] Linked items and audit history on each item
+- [ ] Validation per SPEC §9 R10; messages per TEMPLATES §4
+- [ ] The full §12.2 scenario can be entered through the UI and matches the fixtures
+
+## Phase 5: Slips and reports
+- [ ] Acknowledgement slip PDF (two copies; heading and footer variants)
+- [ ] "Save + print slip" and "Save + PDF slip" on New Inward
+- [ ] Daily Register PDF
+- [ ] Pending Actions PDF with unit filter
+- [ ] PDFs for I1, I2 and I3 render correctly (para 10(3) vs general heading; registration vs general footer)
+- [ ] Daily Registers for 20 Nov 2026 and 2 Dec 2026 list the right items
+
+## Phase 6: File Desk
+- [ ] File Index, File Movement, new file
+- [ ] Issue / Return, "currently with", overdue returns
+- [ ] "Still out — issue anyway?" confirmation
+- [ ] Fixtures F1 and F2 pass through the UI
+
+## Phase 7: Dashboard (+ optional attachments)
+- [ ] Dashboard per SPEC §8.4, one definition of "pending" (R12)
+- [ ] Breakdowns: unit, category, month, correspondent, type, LGA
+- [ ] Scheduled jobs, audit log viewer, workbook import (STACK)
+- [ ] Optional, only if Q8 is confirmed: scanned letter uploads
+- [ ] Dashboard numbers for 10 Dec 2026 match SPEC §12.2
+
+## Phase 8: Hardening and go-live
+- [ ] Admin screens: settings, types, lists, holidays (with the 30-day estimated-holiday warning)
+- [ ] Backup and restore notes (restore tested)
+- [ ] User guide for registry staff
+- [ ] Dev seed data cannot reach production
+- [ ] Hosting notes (Node server + PostgreSQL)
+- [ ] Parallel week with the workbook; daily counts match
+
+---
+
+## Open questions
+
+These need an answer from you or the Commission. Until then, the default in brackets applies.
+
+| Q | Question | Needed by | Status |
+|---|---|---|---|
+| Q1 | Registration deadline rollover; gazetted Effective Date *(no rollover; 2 Nov 2026)* | Go-live | Open |
+| Q2 | ACK serial: yearly restart or one sequence *(yearly)* | Go-live | Open |
+| Q3 | 17:00 cut-off for hand delivery/courier too? *(email and portal only)* | Go-live | Open |
+| Q4 | Which types get the registration slip footer *(REG-01, OUN-01, Deficiency response, Licence/permit, Renewal)* | Phase 5 | Open |
+| Q5 | Do unit officers record anything themselves? *(read-only)* | Phase 3 | Open |
+| Q6 | Confirm response target days per type *(seed values)* | Go-live | Open |
+| Q7 | Real staff list, Secretary's name, who holds each role | Go-live | Open |
+| Q8 | Store scanned letters? Size limit, retention *(not built)* | Phase 7 | Open |
+| Q-A | OGSERC logo file in `assets/` | Phase 5 | Open |
+| Q-B | Official green and gold hex codes | Phase 4 | Open |
+| Q-C | Daily Register sign-off in the app, or printed only? | Phase 5 | Open |
+| Q-D | May the Head of Registry void items they logged? *(no)* | Phase 3 | Open |
+| Q-E | Add the multi-State tick for REG-01? | Phase 4 | Open |
+| P1 | Keep "Not forwarded within target" on closed items? *(yes, Excel)* | Phase 4 | Open |
