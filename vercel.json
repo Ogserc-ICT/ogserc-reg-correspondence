@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["lhr1"],
+  "crons": [
+    { "path": "/api/jobs/refresh-status", "schedule": "30 23 * * *" },
+    { "path": "/api/jobs/holiday-check", "schedule": "0 6 * * *" }
+  ]
+}

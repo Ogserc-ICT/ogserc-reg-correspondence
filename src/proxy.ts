@@ -11,6 +11,9 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except the sign-in page, the cron route and static assets.
-  matcher: ["/((?!login|api/jobs|_next/static|_next/image|favicon.ico).*)"],
+  // Everything except the sign-in page, the cron route, robots.txt and
+  // static assets.
+  matcher: [
+    "/((?!login|api/jobs|robots.txt|_next/static|_next/image|favicon.ico).*)",
+  ],
 };

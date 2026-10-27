@@ -24,6 +24,18 @@ export function verifyPassword(data: {
   return verify(data.hash, data.password).catch(() => false);
 }
 
+/**
+ * The app's public address. On Vercel with no custom domain, the production
+ * *.vercel.app address is used unless BETTER_AUTH_URL says otherwise.
+ */
+export function appBaseURL(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  if (env.BETTER_AUTH_URL?.trim()) return env.BETTER_AUTH_URL.trim();
+  const vercel = env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
+  return vercel ? `https://${vercel}` : undefined;
+}
+
 export function createAuth(
   db: Db,
   opts: { secret?: string; baseURL?: string; nextCookies?: boolean } = {},
@@ -31,7 +43,7 @@ export function createAuth(
   return betterAuth({
     database: prismaAdapter(db, { provider: "postgresql" }),
     secret: opts.secret ?? process.env.BETTER_AUTH_SECRET,
-    baseURL: opts.baseURL ?? process.env.BETTER_AUTH_URL,
+    baseURL: opts.baseURL ?? appBaseURL(),
     emailAndPassword: {
       enabled: true,
       disableSignUp: true,

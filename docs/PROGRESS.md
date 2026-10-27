@@ -83,6 +83,8 @@ Nothing is merged to `main` yet.
 - [x] User guide for registry staff
 - [x] Dev seed data cannot reach production
 - [x] Hosting notes (Node server + PostgreSQL)
+- [x] Vercel hosting (`*.vercel.app`, Neon PostgreSQL, Vercel Cron); Docker/VPS kept as the alternative (`docs/OPERATIONS.md` §3)
+- [ ] NDPA sign-off for data held outside Nigeria (Vercel/Neon have no Nigerian region)
 - [ ] Parallel week with the workbook; daily counts match (`docs/PARALLEL_RUN.md`, `npm run compare:workbook`; your team runs it)
 
 ---

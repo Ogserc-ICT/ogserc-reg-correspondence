@@ -1,5 +1,6 @@
-// Cron entry point: POST /api/jobs/<job> with "Authorization: Bearer
-// $CRON_SECRET". Runs in Lagos time via the app clock.
+// Cron entry point: /api/jobs/<job> with "Authorization: Bearer $CRON_SECRET".
+// POST for any scheduler; GET for Vercel Cron, which calls with GET and sends
+// the project's CRON_SECRET as the bearer token. Runs in Lagos time.
 import { timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
 import { appNow } from "@/server/clock";
@@ -16,10 +17,10 @@ function authorised(request: NextRequest): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: RouteContext<"/api/jobs/[job]">,
-) {
+/** A full status refresh can take a while on a large register. */
+export const maxDuration = 300;
+
+async function handle(request: NextRequest, job: string) {
   if (!process.env.CRON_SECRET?.trim())
     return Response.json(
       { error: "CRON_SECRET is not configured." },
@@ -27,7 +28,6 @@ export async function POST(
     );
   if (!authorised(request))
     return Response.json({ error: "Unauthorised." }, { status: 401 });
-  const { job } = await params;
   if (!isJobName(job))
     return Response.json({ error: `No job called ${job}.` }, { status: 404 });
   const run = await runJob(getDb(), job, appNow(), null);
@@ -35,4 +35,18 @@ export async function POST(
     { job, ok: run.ok, summary: run.summary },
     { status: run.ok ? 200 : 500 },
   );
+}
+
+export async function POST(
+  request: NextRequest,
+  { params }: RouteContext<"/api/jobs/[job]">,
+) {
+  return handle(request, (await params).job);
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: RouteContext<"/api/jobs/[job]">,
+) {
+  return handle(request, (await params).job);
 }

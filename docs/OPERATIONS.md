@@ -20,7 +20,8 @@ Shared cPanel-style hosting can't run it: it needs a long-running Node server an
 |---|---|---|
 | `DATABASE_URL` | yes | PostgreSQL connection, e.g. `postgresql://user:pass@db:5432/ogserc_registry` |
 | `BETTER_AUTH_SECRET` | yes | 32+ random characters; signs sign-in sessions. Changing it signs everyone out |
-| `BETTER_AUTH_URL` | yes | The public HTTPS address, e.g. `https://registry.ogserc.gov.ng` |
+| `DATABASE_URL_UNPOOLED` | Vercel + Neon | Direct connection used by migrations and seeding (set by the Neon integration). Elsewhere leave unset |
+| `BETTER_AUTH_URL` | yes (not on Vercel) | The public HTTPS address, e.g. `https://registry.ogserc.gov.ng`. On Vercel, if unset, the production `*.vercel.app` address is used |
 | `CRON_SECRET` | for scheduled jobs | Random secret the scheduler sends to `/api/jobs/<job>` |
 | `BACKUP_DIR` | for backups | Folder `scripts/backup-db.sh` writes to and the Backup check job reads |
 | `BACKUP_KEEP_DAYS` | no | Days of backups kept on the server (default 30) |
@@ -57,6 +58,31 @@ npm run build
 NODE_ENV=production npx next start -p 3000      # run under systemd or pm2
 ```
 
+### On Vercel (chosen hosting: `*.vercel.app` address, no custom domain)
+
+Vercel runs the app; the database is a managed PostgreSQL from the Vercel Marketplace (Neon). Use a **Pro** team in the Commission's name, not Hobby.
+
+> **Data location:** Vercel and Neon have no Nigerian region. `vercel.json` pins the functions to London (`lhr1`); create the Neon database in the nearest EU region too (e.g. Frankfurt or London). Records then sit outside Nigeria. Get sign-off under the NDPA from the Commission's legal adviser / DPO before go-live.
+
+1. Import the repo into Vercel (framework: Next.js). Add the Neon integration to the project: it sets `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct).
+2. Project › Settings › Environment Variables (Production): `BETTER_AUTH_SECRET` and `CRON_SECRET`. Leave `BETTER_AUTH_URL` unset to use the production `*.vercel.app` address. Never set `APP_NOW`, `APP_NOW_FILE` or `DEV_SEED_PASSWORD`.
+3. Deploy. The build (`npm run vercel-build`) runs `prisma migrate deploy`, then `next build`. Migrations run **only for production deployments**; preview builds skip them, so a preview can never change the live database. A preview with its own Neon branch can set `MIGRATE_ON_BUILD=1`.
+4. Seed and create the first admin once, from a trusted machine, against the production database:
+
+   ```sh
+   vercel env pull .env.production.local --environment=production
+   npx tsx --env-file=.env.production.local prisma/seed.ts
+   npx tsx --env-file=.env.production.local scripts/create-admin.ts --email it@ogserc.gov.ng --name "IT Officer"
+   rm .env.production.local
+   ```
+
+5. Restrict preview deployments with Vercel Deployment Protection (Standard Protection is enough), so only team members can open them.
+
+Notes:
+- The address is public. The app's own sign-in is what protects it. The app sends `X-Robots-Tag: noindex` and a `robots.txt` that disallows everything, so search engines don't list it.
+- The Vercel cron jobs (refresh status, holiday check) are in `vercel.json` and use `CRON_SECRET` automatically (see §4).
+- Nothing is written to the local disk at run time. The PDF fonts and logo in `assets/` are bundled into the PDF functions, so after adding `assets/logo.png` you must redeploy.
+
 ### Then, in the app
 
 1. **Admin › Settings:** the Secretary to the Commission's name, the Effective Date (Q1), the closing time and the slip footers.
@@ -81,12 +107,16 @@ curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://<host>/api/job
 
 Every run is recorded under **Jobs**, and a failed run shows there in red. An admin can also run any job from that screen.
 
+**On Vercel**, `vercel.json` schedules the two app jobs. Vercel Cron runs in UTC, so the times there are one hour earlier than Lagos time (`30 23 * * *` is 00:30 Lagos, `0 6 * * *` is 07:00 Lagos). Vercel calls them with `GET` and the project's `CRON_SECRET`. The backup script and Backup check job aren't scheduled there: see §5.
+
 ## 5. Backups and restore
 
 **Backup:**
 - `scripts/backup-db.sh` writes `registry-<UTC time>.dump` (compressed `pg_dump --format=custom`) to `BACKUP_DIR` and deletes files older than `BACKUP_KEEP_DAYS`.
 - With `BACKUP_UPLOAD_CMD` set, it also copies each file off the server, e.g. `aws s3 cp --only-show-errors {} s3://ogserc-registry-backups/`.
 - Keep the off-site copies in the same jurisdiction, with their own retention: 30 daily + 12 monthly is a sensible start.
+
+**On Vercel + Neon:** Neon keeps point-in-time restore history (its length depends on the plan; choose at least 7 days). That alone isn't an off-site backup. Also run `scripts/backup-db.sh` nightly from a machine the Commission controls, with `DATABASE_URL` set to the `DATABASE_URL_UNPOOLED` value and `BACKUP_UPLOAD_CMD` set. A Neon restore goes to a new branch first; check it as below before you promote it.
 
 **Restore** (to a new, empty database first, never straight over the live one):
 

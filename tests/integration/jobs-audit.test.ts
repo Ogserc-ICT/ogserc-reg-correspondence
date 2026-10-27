@@ -1,7 +1,7 @@
 // Scheduled jobs (refresh statuses, holiday check), the cron route's
 // secret, and the audit log viewer.
 import { NextRequest } from "next/server";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { seedExample, type ExampleIds } from "../../prisma/seed/example";
 import { instantIn } from "@/domain/clock";
 import { ForbiddenError } from "@/server/errors";
@@ -12,6 +12,12 @@ import { connectTestDb, resetDb } from "./helpers";
 
 const db = connectTestDb();
 let ids: ExampleIds;
+
+// The cron route uses the app's client; point it at the test database.
+vi.mock("@/server/db", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/db")>()),
+  getDb: () => db,
+}));
 
 beforeEach(async () => {
   await resetDb(db);
@@ -96,6 +102,19 @@ describe("cron route", () => {
     expect((await call("Bearer wrong")).status).toBe(401);
     process.env.CRON_SECRET = "";
     expect((await call("Bearer s3cret-value-for-tests")).status).toBe(503);
+  });
+
+  it("runs a job for Vercel Cron's GET with the bearer secret", async () => {
+    process.env.CRON_SECRET = "s3cret-value-for-tests";
+    const { GET } = await import("@/app/api/jobs/[job]/route");
+    const req = new NextRequest("http://localhost/api/jobs/holiday-check", {
+      headers: { authorization: "Bearer s3cret-value-for-tests" },
+    });
+    const res = await GET(req, {
+      params: Promise.resolve({ job: "holiday-check" }),
+    });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ job: "holiday-check", ok: true });
   });
 });
 
