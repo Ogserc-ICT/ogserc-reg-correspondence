@@ -1,7 +1,7 @@
 // Vercel hosting: public address without a custom domain, and migrations
 // only on production builds.
 import { describe, expect, it } from "vitest";
-import { shouldMigrate } from "../scripts/vercel-build.mjs";
+import { hasDatabaseUrl, shouldMigrate } from "../scripts/vercel-build.mjs";
 import { appBaseURL } from "@/server/auth";
 
 const env = (o: Record<string, string>) => o as unknown as NodeJS.ProcessEnv;
@@ -30,5 +30,14 @@ describe("Vercel hosting", () => {
     expect(
       shouldMigrate({ VERCEL_ENV: "preview", MIGRATE_ON_BUILD: "1" }),
     ).toBe(true);
+  });
+
+  it("knows when the deployment has no database to migrate", () => {
+    expect(hasDatabaseUrl({})).toBe(false);
+    expect(hasDatabaseUrl({ DATABASE_URL: " " })).toBe(false);
+    expect(hasDatabaseUrl({ DATABASE_URL: "postgresql://x" })).toBe(true);
+    expect(hasDatabaseUrl({ DATABASE_URL_UNPOOLED: "postgresql://x" })).toBe(
+      true,
+    );
   });
 });

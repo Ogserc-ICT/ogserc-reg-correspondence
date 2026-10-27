@@ -9,10 +9,14 @@ import { getAuth } from "./auth";
 import { getDb } from "./db";
 import { sessionUser, type SessionUser } from "./session";
 
-/** Once per request. */
-export const getCurrentUser = cache(async (): Promise<SessionUser | null> =>
-  sessionUser(getDb(), getAuth(), await headers()),
-);
+/**
+ * Once per request. headers() comes first: it marks the render as dynamic, so
+ * a build never prerenders this far or opens the database.
+ */
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
+  const h = await headers();
+  return sessionUser(getDb(), getAuth(), h);
+});
 
 /**
  * Redirects to /login without a session, and to /account/password while a
