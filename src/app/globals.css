@@ -1,26 +1,110 @@
 @import "tailwindcss";
 
 /*
- * OGSERC brand tokens. PLACEHOLDER values: replace with the official green and
- * gold hex codes (STACK, Core stack > Styling) before Phase 4.
- * Status colours follow the workbook's Guide: red = overdue, amber = awaiting
- * action, green = closed, peach = flagged. Always show the status text as well.
+ * Design tokens (dark theme, reference/ui/). Components use these names only;
+ * no hex values outside this file. Every text/background pair below is at
+ * least 4.5:1 (lowest: text-faint on surface-raised, 5.5:1).
+ * Status colours: red = overdue, amber = awaiting action, green = closed,
+ * blue = dispatched / info, violet = flagged. Never colour alone: the status
+ * text is always shown too.
  */
 @theme {
-  --color-brand-green: #1f6b3a;
-  --color-brand-gold: #c9a227;
+  --color-bg: #0a0c0f;
+  --color-sidebar: #0e1115;
+  --color-surface: #13171c;
+  --color-surface-raised: #1a1f26;
+  --color-input: #0e1115;
 
-  --color-status-overdue: #fde2e1;
-  --color-status-awaiting: #fdf0c7;
-  --color-status-closed: #dff3e4;
-  --color-status-flagged: #fde5d4;
+  --color-border: #252b33;
+  --color-border-subtle: #1e232a;
 
-  --font-sans:
-    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial,
-    sans-serif;
+  --color-text: #eceef1;
+  --color-text-muted: #a3acb8;
+  --color-text-faint: #8c96a3;
+
+  --color-accent: #3dd68c;
+  --color-on-accent: #06140c;
+  --color-gold: #e9b949;
+
+  --color-overdue: #ff8a7a;
+  --color-awaiting: #f5b544;
+  --color-closed: #3dd68c;
+  --color-info: #7cb4ff;
+  --color-flagged: #b9a3ff;
+
+  /* Pill / row backgrounds: the status colour at 12%. */
+  --color-status-overdue: color-mix(
+    in srgb,
+    var(--color-overdue) 12%,
+    transparent
+  );
+  --color-status-awaiting: color-mix(
+    in srgb,
+    var(--color-awaiting) 12%,
+    transparent
+  );
+  --color-status-closed: color-mix(
+    in srgb,
+    var(--color-closed) 12%,
+    transparent
+  );
+  --color-status-info: color-mix(in srgb, var(--color-info) 12%, transparent);
+  --color-status-flagged: color-mix(
+    in srgb,
+    var(--color-flagged) 12%,
+    transparent
+  );
+  --color-status-gold: color-mix(in srgb, var(--color-gold) 12%, transparent);
+
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-panel: 16px;
+}
+
+@theme inline {
+  --font-sans: var(--font-geist-sans), system-ui, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, Consolas, monospace;
+}
+
+/*
+ * LEGACY BRIDGE. Screens not yet restyled still use the light palette names.
+ * They are remapped onto the dark tokens so those screens stay legible.
+ * Delete this block once every screen uses the tokens above.
+ */
+@theme {
+  --color-white: var(--color-surface);
+  --color-brand-green: var(--color-accent);
+  --color-brand-gold: var(--color-gold);
+  --color-neutral-50: var(--color-surface-raised);
+  --color-neutral-100: var(--color-border-subtle);
+  --color-neutral-200: var(--color-border);
+  --color-neutral-300: var(--color-border);
+  --color-neutral-400: var(--color-text-faint);
+  --color-neutral-500: var(--color-text-faint);
+  --color-neutral-600: var(--color-text-muted);
+  --color-neutral-700: var(--color-text-muted);
+  --color-neutral-800: var(--color-text);
+  --color-neutral-900: var(--color-text);
+  --color-red-50: var(--color-status-overdue);
+  --color-red-300: var(--color-overdue);
+  --color-red-800: var(--color-overdue);
+  --color-red-900: var(--color-overdue);
+  --color-green-50: var(--color-status-closed);
+  --color-green-300: var(--color-closed);
+  --color-green-900: var(--color-closed);
+}
+
+:root {
+  color-scheme: dark;
 }
 
 body {
-  background: #ffffff;
-  color: #171717;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/* Visible focus everywhere, keyboard only. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
