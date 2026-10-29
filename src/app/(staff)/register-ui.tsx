@@ -2,6 +2,7 @@
 // form (so filters live in the URL and the CSV export can reuse them),
 // sortable column headers and paging.
 import Link from "next/link";
+import { buttonClass } from "@/app/_components/ui/button";
 import { inputClass } from "@/app/_components/ui/input";
 
 export type Params = Record<string, string | undefined>;
@@ -13,6 +14,10 @@ export function query(params: Params, changes: Params = {}): string {
   const s = qs.toString();
   return s ? `?${s}` : "";
 }
+
+/** CSV export of what the register shows (every page). */
+export const exportHref = (base: string, params: Params) =>
+  `${base}/export${query(params, { page: undefined, item: undefined })}`;
 
 export function flatParams(
   sp: Record<string, string | string[] | undefined>,
@@ -30,6 +35,7 @@ export function FilterBar({
   types,
   dateLabel,
   searchHint,
+  exportLink = true,
 }: {
   base: string;
   params: Params;
@@ -38,16 +44,19 @@ export function FilterBar({
   types: readonly { id: string; label: string }[];
   dateLabel: string;
   searchHint: string;
+  /** Off when the page shows Export CSV in its header instead. */
+  exportLink?: boolean;
 }) {
-  const small = `${inputClass} py-1.5`;
+  const small = inputClass;
+  const label = "block pb-1.5 text-xs text-text-muted";
   return (
     <form
       action={base}
       method="get"
-      className="mb-4 grid gap-3 rounded border border-neutral-200 p-3 text-sm sm:grid-cols-3 lg:grid-cols-6"
+      className="grid gap-4 text-sm sm:grid-cols-3 lg:grid-cols-6"
     >
       <label className="sm:col-span-2">
-        <span className="block text-xs text-neutral-600">Search</span>
+        <span className={label}>Search</span>
         <input
           name="q"
           defaultValue={params.q}
@@ -56,7 +65,7 @@ export function FilterBar({
         />
       </label>
       <label>
-        <span className="block text-xs text-neutral-600">Status</span>
+        <span className={label}>Status</span>
         <select
           name="status"
           defaultValue={params.status ?? ""}
@@ -71,7 +80,7 @@ export function FilterBar({
         </select>
       </label>
       <label>
-        <span className="block text-xs text-neutral-600">Unit</span>
+        <span className={label}>Unit</span>
         <select name="unit" defaultValue={params.unit ?? ""} className={small}>
           <option value="">All units</option>
           {units.map((u) => (
@@ -82,7 +91,7 @@ export function FilterBar({
         </select>
       </label>
       <label>
-        <span className="block text-xs text-neutral-600">Type</span>
+        <span className={label}>Type</span>
         <select name="type" defaultValue={params.type ?? ""} className={small}>
           <option value="">All types</option>
           {types.map((t) => (
@@ -92,7 +101,7 @@ export function FilterBar({
           ))}
         </select>
       </label>
-      <label className="flex items-end gap-2 pb-1.5">
+      <label className="flex min-h-11 items-center gap-2 self-end">
         <input
           type="checkbox"
           name="flagged"
@@ -102,7 +111,7 @@ export function FilterBar({
         Flagged only
       </label>
       <label>
-        <span className="block text-xs text-neutral-600">{dateLabel} from</span>
+        <span className={label}>{dateLabel} from</span>
         <input
           type="date"
           name="from"
@@ -111,7 +120,7 @@ export function FilterBar({
         />
       </label>
       <label>
-        <span className="block text-xs text-neutral-600">to</span>
+        <span className={label}>to</span>
         <input
           type="date"
           name="to"
@@ -120,21 +129,20 @@ export function FilterBar({
         />
       </label>
       <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
-        <button
-          type="submit"
-          className="bg-brand-green rounded px-4 py-1.5 text-white"
-        >
+        <button type="submit" className={buttonClass("primary")}>
           Apply
         </button>
-        <Link href={base} className="px-2 py-1.5 text-neutral-700 underline">
+        <Link href={base} className={buttonClass("ghost")}>
           Reset
         </Link>
-        <a
-          href={`${base}/export${query(params, { page: undefined })}`}
-          className="ml-auto px-2 py-1.5 underline"
-        >
-          Export CSV
-        </a>
+        {exportLink && (
+          <a
+            href={exportHref(base, params)}
+            className={buttonClass("secondary", "ml-auto")}
+          >
+            Export CSV
+          </a>
+        )}
       </div>
     </form>
   );
@@ -153,7 +161,8 @@ export function SortHeader({
   const dir = active && params.dir === "asc" ? "desc" : "asc";
   return (
     <th
-      className="py-2 pr-3 text-left font-medium"
+      scope="col"
+      className="text-text-faint px-5 py-3 text-left text-xs font-semibold tracking-wider whitespace-nowrap uppercase"
       aria-sort={
         active
           ? params.dir === "desc"
@@ -164,7 +173,7 @@ export function SortHeader({
     >
       <Link
         href={query(params, { sort, dir, page: undefined })}
-        className="hover:underline"
+        className="hover:text-text rounded"
       >
         {label}
         {active ? (params.dir === "desc" ? " ↓" : " ↑") : ""}
@@ -185,14 +194,17 @@ export function Paging({
   total: number;
 }) {
   return (
-    <nav className="mt-4 flex items-center gap-4 text-sm" aria-label="Pages">
-      <span className="text-neutral-600">
+    <nav
+      className="text-text-muted mt-4 flex flex-wrap items-center gap-4 text-sm"
+      aria-label="Pages"
+    >
+      <span>
         {total} item{total === 1 ? "" : "s"}
       </span>
       {page > 1 && (
         <Link
           href={query(params, { page: String(page - 1) })}
-          className="underline"
+          className="text-accent hover:underline"
         >
           ← Previous
         </Link>
@@ -203,11 +215,56 @@ export function Paging({
       {page < pages && (
         <Link
           href={query(params, { page: String(page + 1) })}
-          className="underline"
+          className="text-accent hover:underline"
         >
           Next →
         </Link>
       )}
     </nav>
+  );
+}
+
+/** Quick status filters with counts ("All · 3", "Overdue · 0"). */
+export function StatusChips({
+  params,
+  chips,
+}: {
+  params: Params;
+  chips: { label: string; count: number; status?: string; flagged?: boolean }[];
+}) {
+  const reset = {
+    status: undefined,
+    flagged: undefined,
+    page: undefined,
+    item: undefined,
+  };
+  return (
+    <ul className="flex flex-wrap gap-2" aria-label="Filter by status">
+      {chips.map((c) => {
+        const active = c.flagged
+          ? params.flagged === "1"
+          : (params.status ?? "") === (c.status ?? "") &&
+            params.flagged !== "1";
+        return (
+          <li key={c.label}>
+            <Link
+              href={query(params, {
+                ...reset,
+                status: c.status,
+                flagged: c.flagged ? "1" : undefined,
+              })}
+              aria-current={active ? "true" : undefined}
+              className={`inline-flex h-10 items-center rounded-full border px-4 text-sm transition-colors ${
+                active
+                  ? "border-text bg-text text-bg font-semibold"
+                  : "border-border bg-surface text-text hover:border-text-faint"
+              }`}
+            >
+              {c.label} · {c.count}
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

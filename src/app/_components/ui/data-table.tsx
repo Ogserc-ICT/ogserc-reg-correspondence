@@ -28,7 +28,7 @@ export function DataTable<T>({
   if (rows.length === 0)
     return <p className="text-text-muted px-[22px] pb-5 text-sm">{empty}</p>;
   return (
-    <section aria-label={label} className="overflow-x-auto">
+    <section aria-label={label} className="relative overflow-x-auto">
       <table className="w-full text-sm" style={{ minWidth }}>
         <thead>
           <tr className="border-border-subtle border-y text-left">

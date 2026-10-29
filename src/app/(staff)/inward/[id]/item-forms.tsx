@@ -51,8 +51,8 @@ export function InwardActions({
           </form>
         )}
         {canClose && (
-          <details className="rounded border border-neutral-300 px-3 py-2 text-sm">
-            <summary className="cursor-pointer font-medium">
+          <details className="rounded-control border-border w-full border px-4 py-2.5 text-sm">
+            <summary className="text-text-muted hover:text-text cursor-pointer text-center font-medium">
               Close today…
             </summary>
             <form
@@ -65,7 +65,7 @@ export function InwardActions({
                 )
                   e.preventDefault();
               }}
-              className="mt-2 w-80 space-y-2"
+              className="mt-3 space-y-3"
             >
               <TextArea
                 name="closingNote"
@@ -78,8 +78,8 @@ export function InwardActions({
           </details>
         )}
         {canVoid && (
-          <details className="rounded border border-red-300 px-3 py-2 text-sm">
-            <summary className="cursor-pointer font-medium text-red-800">
+          <details className="rounded-control border-overdue/40 border px-4 py-2.5 text-sm">
+            <summary className="text-overdue cursor-pointer font-medium">
               Void…
             </summary>
             <form
