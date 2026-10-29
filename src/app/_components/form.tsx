@@ -3,6 +3,7 @@
 // (STACK rule 17); values typed before an error are kept by the caller.
 import type { ReactNode } from "react";
 import { useFormStatus } from "react-dom";
+import { buttonClass } from "./ui/button";
 
 /** What every form action returns. */
 export type FormState = {
@@ -27,11 +28,11 @@ export function Messages({ state }: { state: FormState }) {
     return (
       <div
         role="alert"
-        className="mb-4 rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900"
+        className="rounded-card border-overdue/40 bg-status-overdue text-text mb-4 border p-4 text-sm"
       >
         {state.missing?.length ? (
           <>
-            <p className="font-medium">Please complete:</p>
+            <p className="text-overdue font-semibold">Please complete:</p>
             <ul className="mt-1 mb-2 list-disc pl-5">
               {state.missing.map((m) => (
                 <li key={m}>{m}</li>
@@ -41,7 +42,7 @@ export function Messages({ state }: { state: FormState }) {
         ) : null}
         {state.errors?.length ? (
           <>
-            <p className="font-medium">
+            <p className="text-overdue font-semibold">
               {state.missing?.length
                 ? "Also fix:"
                 : "Please fix the following:"}
@@ -59,13 +60,16 @@ export function Messages({ state }: { state: FormState }) {
     return (
       <p
         role="status"
-        className="mb-4 rounded border border-green-300 bg-green-50 p-3 text-sm text-green-900"
+        className="rounded-card border-closed/40 bg-status-closed text-text mb-4 border p-4 text-sm"
       >
         {state.message}
         {state.link && (
           <>
             {" "}
-            <a href={state.link.href} className="font-medium underline">
+            <a
+              href={state.link.href}
+              className="text-accent font-semibold underline"
+            >
               {state.link.label}
             </a>
           </>
@@ -86,15 +90,14 @@ export function Field({
 }) {
   return (
     <label className="block text-sm">
-      <span className="font-medium text-neutral-800">{label}</span>
-      {hint && <span className="block text-xs text-neutral-500">{hint}</span>}
-      <span className="mt-1 block">{children}</span>
+      <span className="text-text-muted">{label}</span>
+      {hint && <span className="text-text-faint block text-xs">{hint}</span>}
+      <span className="mt-2 block">{children}</span>
     </label>
   );
 }
 
-export const inputClass =
-  "w-full rounded border border-neutral-300 px-3 py-2 text-sm focus:border-brand-green focus:ring-1 focus:ring-brand-green focus:outline-none";
+export { inputClass } from "./ui/input";
 
 export function SubmitButton({
   children,
@@ -108,17 +111,13 @@ export function SubmitButton({
   variant?: "primary" | "secondary";
 }) {
   const { pending } = useFormStatus();
-  const style =
-    variant === "primary"
-      ? "bg-brand-green text-white hover:opacity-90"
-      : "border border-neutral-300 bg-white text-neutral-800 hover:bg-neutral-50";
   return (
     <button
       type="submit"
       name={name}
       value={value}
       disabled={pending}
-      className={`rounded px-4 py-2 text-sm font-medium disabled:opacity-50 ${style}`}
+      className={buttonClass(variant)}
     >
       {pending ? "Working…" : children}
     </button>

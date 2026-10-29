@@ -2,7 +2,7 @@
 // screen, then print or save the PDF for sign-off.
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { inputClass } from "@/app/_components/form";
+import { inputClass } from "@/app/_components/ui/input";
 import { isIsoDate } from "@/domain/calendar";
 import { todayIn } from "@/domain/clock";
 import { formatDate, formatTime } from "@/domain/format";

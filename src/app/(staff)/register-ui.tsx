@@ -2,7 +2,7 @@
 // form (so filters live in the URL and the CSV export can reuse them),
 // sortable column headers and paging.
 import Link from "next/link";
-import { inputClass } from "@/app/_components/form";
+import { inputClass } from "@/app/_components/ui/input";
 
 export type Params = Record<string, string | undefined>;
 

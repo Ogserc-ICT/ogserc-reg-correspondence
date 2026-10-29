@@ -2,7 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { inputClass } from "@/app/_components/form";
+import { inputClass } from "@/app/_components/ui/input";
 import { statusTone } from "@/app/_components/status";
 import type { MovementStatus } from "@/domain/files";
 import { formatDate, formatDateTime } from "@/domain/format";
