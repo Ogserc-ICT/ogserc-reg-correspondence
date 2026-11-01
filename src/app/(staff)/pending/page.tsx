@@ -3,8 +3,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { inputClass } from "@/app/_components/ui/input";
 import { StatusBadge } from "@/app/_components/status";
+import { buttonClass } from "@/app/_components/ui/button";
+import { DataTable } from "@/app/_components/ui/data-table";
+import { inputClass } from "@/app/_components/ui/input";
+import { PageHeader } from "@/app/_components/ui/page-header";
+import { Panel } from "@/app/_components/ui/panel";
+import { StatTile } from "@/app/_components/ui/stat-tile";
 import { formatDate } from "@/domain/format";
 import { appNow } from "@/server/clock";
 import { requireCan } from "@/server/current-user";
@@ -17,9 +22,17 @@ export const metadata: Metadata = {
 
 export default function PendingPage({ searchParams }: PageProps<"/pending">) {
   return (
-    <main>
-      <h1 className="mb-4 text-2xl font-semibold">Pending Actions</h1>
-      <Suspense fallback={<p className="text-neutral-500">Loading…</p>}>
+    <main className="mx-auto w-full max-w-[1200px]">
+      <Suspense
+        fallback={
+          <>
+            <h1 className="text-[28px] font-semibold tracking-tight">
+              Pending Actions
+            </h1>
+            <p className="text-text-muted mt-2">Loading…</p>
+          </>
+        }
+      >
         <Pending searchParams={searchParams} />
       </Suspense>
     </main>
@@ -43,12 +56,32 @@ async function Pending({
 
   return (
     <>
+      <PageHeader
+        title="Pending Actions"
+        intro="Inward items still open, overdue or waiting to be forwarded, oldest first."
+        actions={
+          <>
+            <a href={`${pdf}${join}download=1`} className={buttonClass()}>
+              Save PDF
+            </a>
+            <a
+              href={pdf}
+              target="_blank"
+              rel="noopener"
+              className={buttonClass("primary")}
+            >
+              Print
+            </a>
+          </>
+        }
+      />
+
       <form
         method="get"
-        className="mb-4 flex flex-wrap items-end gap-3 text-sm"
+        className="rounded-card border-border-subtle bg-surface mt-6 flex flex-wrap items-end gap-3 border p-4"
       >
-        <label>
-          <span className="block text-xs text-neutral-600">Unit</span>
+        <label className="min-w-56 flex-1 text-sm sm:flex-none">
+          <span className="text-text-muted block pb-1.5 text-xs">Unit</span>
           <select
             name="unit"
             defaultValue={unitId ?? ""}
@@ -62,80 +95,93 @@ async function Pending({
             ))}
           </select>
         </label>
-        <button
-          type="submit"
-          className="rounded border border-neutral-300 px-4 py-2"
-        >
+        <button type="submit" className={buttonClass()}>
           Show
         </button>
-        <a
-          href={pdf}
-          target="_blank"
-          rel="noopener"
-          className="bg-brand-green rounded px-4 py-2 text-white"
-        >
-          Print
-        </a>
-        <a
-          href={`${pdf}${join}download=1`}
-          className="rounded border border-neutral-300 px-4 py-2"
-        >
-          Save PDF
-        </a>
       </form>
 
-      <p className="mb-4 text-sm">
-        {p.unit} · Pending: {p.counts.pending} · Overdue: {p.counts.overdue} ·
-        Awaiting forwarding: {p.counts.awaitingForwarding}
-      </p>
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatTile
+          label="Pending"
+          value={p.counts.pending}
+          sub={p.unit}
+          tone={p.counts.pending ? "awaiting" : undefined}
+        />
+        <StatTile
+          label="Overdue"
+          value={p.counts.overdue}
+          sub="Past their response date"
+          tone={p.counts.overdue ? "overdue" : undefined}
+        />
+        <StatTile
+          label="Awaiting forwarding"
+          value={p.counts.awaitingForwarding}
+          sub="Still at the Registry"
+          tone={p.counts.awaitingForwarding ? "awaiting" : undefined}
+        />
+      </div>
 
-      {p.rows.length === 0 ? (
-        <p className="text-sm text-neutral-600">Nothing is pending.</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="border-b border-neutral-300 text-left text-neutral-600">
-              <tr>
-                <th className="py-1 pr-3 font-medium">Inward No.</th>
-                <th className="py-1 pr-3 font-medium">Deemed receipt</th>
-                <th className="py-1 pr-3 font-medium">Sender</th>
-                <th className="py-1 pr-3 font-medium">Subject</th>
-                <th className="py-1 pr-3 font-medium">Unit</th>
-                <th className="py-1 pr-3 font-medium">Response due</th>
-                <th className="py-1 pr-3 font-medium">Days open</th>
-                <th className="py-1 pr-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {p.rows.map((r) => (
-                <tr key={r.id} className="border-b border-neutral-100">
-                  <td className="py-1 pr-3 font-mono">
-                    <Link href={`/inward/${r.id}`} className="underline">
-                      {r.number}
-                    </Link>
-                  </td>
-                  <td className="py-1 pr-3">
-                    {formatDate(r.derived.deemedReceiptDate)}
-                  </td>
-                  <td className="py-1 pr-3">{r.sender}</td>
-                  <td className="py-1 pr-3">{r.subject}</td>
-                  <td className="py-1 pr-3">{r.routedUnit.name}</td>
-                  <td className="py-1 pr-3">
-                    {formatDate(r.derived.responseDue)}
-                  </td>
-                  <td className="py-1 pr-3">{r.derived.workingDaysOpen}</td>
-                  <td className="py-1 pr-3">
-                    <StatusBadge
-                      status={r.derived.status}
-                      flags={r.derived.flags}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Panel title={`Pending items · ${p.unit}`} className="mt-5">
+        <DataTable
+          label="Pending items"
+          rows={p.rows}
+          rowKey={(r) => r.id}
+          empty="Nothing is pending."
+          minWidth="56rem"
+          columns={[
+            {
+              header: "Inward No.",
+              className: "whitespace-nowrap",
+              cell: (r) => (
+                <Link
+                  href={`/inward/${r.id}`}
+                  className="hover:text-accent font-mono text-[13px] font-medium hover:underline"
+                >
+                  {r.number}
+                </Link>
+              ),
+            },
+            {
+              header: "Deemed receipt",
+              className: "whitespace-nowrap",
+              cell: (r) => formatDate(r.derived.deemedReceiptDate),
+            },
+            {
+              header: "Sender · Subject",
+              cell: (r) => (
+                <>
+                  <span className="block font-semibold">{r.sender}</span>
+                  <span className="text-text-muted block">{r.subject}</span>
+                </>
+              ),
+            },
+            {
+              header: "Unit",
+              className: "text-text-muted",
+              cell: (r) => r.routedUnit.name,
+            },
+            {
+              header: "Due",
+              className: "whitespace-nowrap",
+              cell: (r) => formatDate(r.derived.responseDue),
+            },
+            {
+              header: "Days open",
+              className: "font-mono tabular-nums",
+              cell: (r) => r.derived.workingDaysOpen,
+            },
+            {
+              header: "Status",
+              cell: (r) => (
+                <StatusBadge
+                  status={r.derived.status}
+                  flags={r.derived.flags}
+                />
+              ),
+            },
+          ]}
+        />
+      </Panel>
     </>
   );
 }

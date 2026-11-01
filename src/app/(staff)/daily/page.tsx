@@ -1,9 +1,14 @@
 // Daily Register (SPEC §8.2): pick a date (default today), check it on
 // screen, then print or save the PDF for sign-off.
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
+import { buttonClass } from "@/app/_components/ui/button";
+import { DataTable } from "@/app/_components/ui/data-table";
 import { inputClass } from "@/app/_components/ui/input";
-import { isIsoDate } from "@/domain/calendar";
+import { PageHeader } from "@/app/_components/ui/page-header";
+import { Panel } from "@/app/_components/ui/panel";
+import { addDays, isIsoDate } from "@/domain/calendar";
 import { todayIn } from "@/domain/clock";
 import { formatDate, formatTime } from "@/domain/format";
 import { appNow } from "@/server/clock";
@@ -15,14 +20,31 @@ export const metadata: Metadata = { title: "Daily Register · OGSERC Registry" }
 
 export default function DailyPage({ searchParams }: PageProps<"/daily">) {
   return (
-    <main>
-      <h1 className="mb-4 text-2xl font-semibold">Daily Register</h1>
-      <Suspense fallback={<p className="text-neutral-500">Loading…</p>}>
+    <main className="mx-auto w-full max-w-[1200px]">
+      <Suspense
+        fallback={
+          <>
+            <h1 className="text-[28px] font-semibold tracking-tight">
+              Daily Register
+            </h1>
+            <p className="text-text-muted mt-2">Loading…</p>
+          </>
+        }
+      >
         <Daily searchParams={searchParams} />
       </Suspense>
     </main>
   );
 }
+
+const numberLink = (href: string, number: string) => (
+  <Link
+    href={href}
+    className="hover:text-accent font-mono text-[13px] font-medium hover:underline"
+  >
+    {number}
+  </Link>
+);
 
 async function Daily({
   searchParams,
@@ -31,114 +53,139 @@ async function Daily({
 }) {
   const user = await requireCan("reports.print");
   const sp = await searchParams;
+  const today = todayIn(appNow());
   const asked = typeof sp.date === "string" ? sp.date : "";
-  const date = isIsoDate(asked) ? asked : todayIn(appNow());
+  const date = isIsoDate(asked) ? asked : today;
   const d = await dailyRegister(getDb(), user, date);
   const pdf = `/daily/pdf?date=${date}`;
+  const step = (n: number) => `/daily?date=${addDays(date, n)}`;
 
   return (
     <>
-      <form
-        method="get"
-        className="mb-4 flex flex-wrap items-end gap-3 text-sm"
-      >
-        <label>
-          <span className="block text-xs text-neutral-600">Date</span>
-          <input
-            type="date"
-            name="date"
-            defaultValue={date}
-            className={inputClass}
-          />
-        </label>
-        <button
-          type="submit"
-          className="rounded border border-neutral-300 px-4 py-2"
-        >
-          Show
-        </button>
-        <a
-          href={pdf}
-          target="_blank"
-          rel="noopener"
-          className="bg-brand-green rounded px-4 py-2 text-white"
-        >
-          Print
-        </a>
-        <a
-          href={`${pdf}&download=1`}
-          className="rounded border border-neutral-300 px-4 py-2"
-        >
-          Save PDF
-        </a>
-      </form>
+      <PageHeader
+        title="Daily Register"
+        intro="Everything received and dispatched on one day, for sign-off."
+        actions={
+          <>
+            <a href={`${pdf}&download=1`} className={buttonClass()}>
+              Save PDF
+            </a>
+            <a
+              href={pdf}
+              target="_blank"
+              rel="noopener"
+              className={buttonClass("primary")}
+            >
+              Print
+            </a>
+          </>
+        }
+      />
 
-      <p className="mb-4 text-sm">
-        <strong>{formatDate(date)}</strong> · Items received:{" "}
-        {d.received.length} · Items dispatched: {d.dispatched.length}
+      <div className="rounded-card border-border-subtle bg-surface mt-6 flex flex-wrap items-end justify-between gap-4 border p-4">
+        <form method="get" className="flex flex-wrap items-end gap-3">
+          <label className="text-sm">
+            <span className="text-text-muted block pb-1.5 text-xs">Date</span>
+            <input
+              type="date"
+              name="date"
+              defaultValue={date}
+              className={inputClass}
+            />
+          </label>
+          <button type="submit" className={buttonClass()}>
+            Show
+          </button>
+        </form>
+        <nav aria-label="Day" className="flex gap-2">
+          <Link href={step(-1)} className={buttonClass("ghost")}>
+            ← Previous day
+          </Link>
+          {date !== today && (
+            <Link href="/daily" className={buttonClass("ghost")}>
+              Today
+            </Link>
+          )}
+          <Link href={step(1)} className={buttonClass("ghost")}>
+            Next day →
+          </Link>
+        </nav>
+      </div>
+
+      <p className="text-text-muted mt-5 text-sm">
+        <strong className="text-text text-base">{formatDate(date)}</strong> ·
+        Items received: {d.received.length} · Items dispatched:{" "}
+        {d.dispatched.length}
       </p>
 
-      <h2 className="mt-6 mb-2 font-semibold">Received</h2>
-      {d.received.length === 0 ? (
-        <p className="text-sm text-neutral-600">None.</p>
-      ) : (
-        <table className="w-full text-sm">
-          <thead className="border-b border-neutral-300 text-left text-neutral-600">
-            <tr>
-              <th className="py-1 pr-3 font-medium">#</th>
-              <th className="py-1 pr-3 font-medium">Inward No.</th>
-              <th className="py-1 pr-3 font-medium">Time</th>
-              <th className="py-1 pr-3 font-medium">Mode</th>
-              <th className="py-1 pr-3 font-medium">Sender</th>
-              <th className="py-1 pr-3 font-medium">Subject</th>
-              <th className="py-1 pr-3 font-medium">Forward to</th>
-            </tr>
-          </thead>
-          <tbody>
-            {d.received.map((r, i) => (
-              <tr key={r.id} className="border-b border-neutral-100">
-                <td className="py-1 pr-3">{i + 1}</td>
-                <td className="py-1 pr-3 font-mono">{r.number}</td>
-                <td className="py-1 pr-3">{formatTime(r.receivedAt)}</td>
-                <td className="py-1 pr-3">{r.mode.label}</td>
-                <td className="py-1 pr-3">{r.sender}</td>
-                <td className="py-1 pr-3">{r.subject}</td>
-                <td className="py-1 pr-3">{r.routedUnit.name}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <Panel title={`Received · ${d.received.length}`} className="mt-4">
+        <DataTable
+          label="Items received"
+          rows={d.received}
+          rowKey={(r) => r.id}
+          empty="Nothing received on this day."
+          columns={[
+            { header: "#", cell: (r) => d.received.indexOf(r) + 1 },
+            {
+              header: "Inward No.",
+              className: "whitespace-nowrap",
+              cell: (r) => numberLink(`/inward/${r.id}`, r.number),
+            },
+            {
+              header: "Time",
+              className: "whitespace-nowrap",
+              cell: (r) => formatTime(r.receivedAt),
+            },
+            { header: "Mode", cell: (r) => r.mode.label },
+            {
+              header: "Sender · Subject",
+              cell: (r) => (
+                <>
+                  <span className="block font-semibold">{r.sender}</span>
+                  <span className="text-text-muted block">{r.subject}</span>
+                </>
+              ),
+            },
+            {
+              header: "Forward to",
+              className: "text-text-muted",
+              cell: (r) => r.routedUnit.name,
+            },
+          ]}
+        />
+      </Panel>
 
-      <h2 className="mt-6 mb-2 font-semibold">Dispatched</h2>
-      {d.dispatched.length === 0 ? (
-        <p className="text-sm text-neutral-600">None.</p>
-      ) : (
-        <table className="w-full text-sm">
-          <thead className="border-b border-neutral-300 text-left text-neutral-600">
-            <tr>
-              <th className="py-1 pr-3 font-medium">#</th>
-              <th className="py-1 pr-3 font-medium">Outward No.</th>
-              <th className="py-1 pr-3 font-medium">Addressee</th>
-              <th className="py-1 pr-3 font-medium">Subject</th>
-              <th className="py-1 pr-3 font-medium">Dispatch mode</th>
-              <th className="py-1 pr-3 font-medium">Originating unit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {d.dispatched.map((r, i) => (
-              <tr key={r.id} className="border-b border-neutral-100">
-                <td className="py-1 pr-3">{i + 1}</td>
-                <td className="py-1 pr-3 font-mono">{r.number}</td>
-                <td className="py-1 pr-3">{r.addressee}</td>
-                <td className="py-1 pr-3">{r.subject}</td>
-                <td className="py-1 pr-3">{r.dispatchMode.label}</td>
-                <td className="py-1 pr-3">{r.originatingUnit.name}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <Panel title={`Dispatched · ${d.dispatched.length}`} className="mt-5">
+        <DataTable
+          label="Items dispatched"
+          rows={d.dispatched}
+          rowKey={(r) => r.id}
+          empty="Nothing dispatched on this day."
+          columns={[
+            { header: "#", cell: (r) => d.dispatched.indexOf(r) + 1 },
+            {
+              header: "Outward No.",
+              className: "whitespace-nowrap",
+              cell: (r) => numberLink(`/outward/${r.id}`, r.number),
+            },
+            {
+              header: "Addressee · Subject",
+              cell: (r) => (
+                <>
+                  <span className="block font-semibold">{r.addressee}</span>
+                  <span className="text-text-muted block">{r.subject}</span>
+                </>
+              ),
+            },
+            { header: "Dispatch mode", cell: (r) => r.dispatchMode.label },
+            {
+              header: "Originating unit",
+              className: "text-text-muted",
+              cell: (r) => r.originatingUnit.name,
+            },
+          ]}
+        />
+      </Panel>
     </>
   );
 }
