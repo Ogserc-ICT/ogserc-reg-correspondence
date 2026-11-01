@@ -21,18 +21,38 @@ import { inwardDetail } from "@/server/read/items";
 import { nameMap } from "@/server/read/names";
 import { formOptions } from "@/server/read/options";
 import { INWARD_LABELS } from "@/server/workflows/inward";
-import { Detail, Flags, History, Panel } from "../../item-ui";
+import { buttonClass } from "@/app/_components/ui/button";
+import { DetailList } from "@/app/_components/ui/detail-drawer";
+import { PageHeader } from "@/app/_components/ui/page-header";
+import {
+  Detail,
+  Flags,
+  History,
+  Panel,
+  SubHeading,
+  VoidedNote,
+} from "../../item-ui";
+import { InwardTimeline } from "../inward-timeline";
 import { EditInwardForm, InwardActions, UpdateInwardForm } from "./item-forms";
 
 export const metadata: Metadata = { title: "Inward item · OGSERC Registry" };
 
 export default function InwardItemPage({ params }: PageProps<"/inward/[id]">) {
   return (
-    <main>
-      <Link href="/inward" className="text-sm text-neutral-600 hover:underline">
-        ← Inward register
-      </Link>
-      <Suspense fallback={<p className="mt-4 text-neutral-500">Loading…</p>}>
+    <main className="mx-auto w-full max-w-[1200px]">
+      <Suspense
+        fallback={
+          <>
+            <Link
+              href="/inward"
+              className="text-accent rounded text-sm hover:underline"
+            >
+              ← Inward Register
+            </Link>
+            <p className="text-text-muted mt-4">Loading…</p>
+          </>
+        }
+      >
         <Item params={params} />
       </Suspense>
     </main>
@@ -105,226 +125,342 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
     closingNote: row.closingNote ?? "",
   };
 
+  const slipLinks = can(user, "reports.print") && (
+    <>
+      <a
+        href={`/inward/${row.id}/slip`}
+        target="_blank"
+        rel="noopener"
+        className={buttonClass("secondary")}
+      >
+        Print slip
+      </a>
+      <a
+        href={`/inward/${row.id}/slip?download=1`}
+        className={buttonClass("ghost")}
+      >
+        Save slip PDF
+      </a>
+    </>
+  );
+
   return (
-    <div className="mt-2 space-y-6">
-      <header>
-        <p className="text-sm text-neutral-600">Inward / Ack. No.</p>
-        <h1 className="flex flex-wrap items-center gap-3 font-mono text-2xl font-semibold">
-          {row.number}
-          <StatusBadge status={derived.status} flags={derived.flags} />
-        </h1>
-        {voided && (
-          <p className="mt-2 rounded bg-neutral-100 p-3 text-sm">
-            Voided {formatDateTime(row.voidedAt)} by {row.voidedBy?.name}:{" "}
-            {row.voidReason}
-          </p>
-        )}
+    <>
+      <PageHeader
+        back={{ href: "/inward", label: "Inward Register" }}
+        title={<span className="font-mono">{row.number}</span>}
+        intro={`${row.type.name} · ${row.sender}`}
+        actions={slipLinks || undefined}
+      />
+      <div className="mt-4 flex flex-wrap gap-2">
+        <StatusBadge status={derived.status} flags={derived.flags} />
         <Flags flags={derived.flags} />
-        {can(user, "reports.print") && (
-          <p className="mt-3 flex gap-4 text-sm">
-            <a
-              href={`/inward/${row.id}/slip`}
-              target="_blank"
-              rel="noopener"
-              className="underline"
-            >
-              Print acknowledgement slip
-            </a>
-            <a href={`/inward/${row.id}/slip?download=1`} className="underline">
-              Save slip PDF
-            </a>
-          </p>
-        )}
-      </header>
-
-      {writable && (
-        <InwardActions
-          id={row.id}
-          number={row.number}
-          canForward={!row.dateForwarded && derived.status !== "Closed"}
-          canClose={derived.status !== "Closed"}
-          canVoid={canVoid(
-            user,
-            { createdById: row.createdById, voided },
-            settings.headMayVoidOwnItems,
-          )}
-        />
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Registered details">
-          <dl>
-            <Detail label="Date & time received">
-              {formatDateTime(row.receivedAt)}
-            </Detail>
-            <Detail label="Deemed receipt date">
-              {formatDate(derived.deemedReceiptDate)}
-            </Detail>
-            <Detail label="Mode of receipt">{row.mode.label}</Detail>
-            <Detail label="Type">{row.type.name}</Detail>
-            <Detail label="Category">{text(derived.category)}</Detail>
-            <Detail label="Order reference">{text(derived.orderRef)}</Detail>
-            <Detail label="Sender">{row.sender}</Detail>
-            <Detail label="Sender category">{row.senderCategory.label}</Detail>
-            <Detail label="Subject">{row.subject}</Detail>
-            <Detail label="Sender's ref. no.">{text(row.senderRef)}</Detail>
-            <Detail label="Date of the letter">
-              {formatDate(fromDbDate(row.documentDate))}
-            </Detail>
-            <Detail label="Related OGSERC No.">
-              {text(row.relatedOgsercNo)}
-            </Detail>
-            <Detail label="In response to our ref.">
-              {row.inResponseToOutward &&
-              names.has(row.inResponseToOutward.id) ? (
-                <Link
-                  href={`/outward/${row.inResponseToOutward.id}`}
-                  className="font-mono underline"
-                >
-                  {row.inResponseToOutward.number}
-                </Link>
-              ) : (
-                BLANK
-              )}
-            </Detail>
-            <Detail label="CAC No.">{text(row.cacNo)}</Detail>
-            <Detail label="Principal LGA">
-              {text(row.principalLga?.label)}
-            </Detail>
-            <Detail label="Contact">
-              {[row.contactPerson, row.phone, row.email]
-                .filter(Boolean)
-                .join(" · ") || BLANK}
-            </Detail>
-            <Detail label="Delivered / sent by">{text(row.deliveredBy)}</Detail>
-            <Detail label="Files / volumes">{row.volumes ?? BLANK}</Detail>
-            <Detail label="Schedule 2 documents">
-              {row.schedule2DocsAttached ?? BLANK}
-            </Detail>
-            <Detail label="Fee evidence attached">
-              {formatYesNo(row.feeEvidenceAttached)}
-            </Detail>
-            <Detail label="Payment reference">{text(row.paymentRef)}</Detail>
-            <Detail label="Amount shown">
-              {formatNaira(row.amountShownKobo)}
-            </Detail>
-            <Detail label="Received by">{row.receivedBy.name}</Detail>
-            <Detail label="File">
-              {d.file ? `${d.file.reference} — ${d.file.title}` : BLANK}
-            </Detail>
-          </dl>
-        </Panel>
-
-        <Panel title="Handling and status">
-          <dl>
-            <Detail label="Forward to">{row.routedUnit.name}</Detail>
-            <Detail label="Acknowledgement issued via">
-              {row.ackIssuedVia.label}
-            </Detail>
-            <Detail label="Action required">{row.actionRequired.label}</Detail>
-            <Detail label="Priority">{row.priority?.label ?? "Normal"}</Detail>
-            <Detail label="Action officer">{text(row.actionOfficer)}</Detail>
-            <Detail label="Date forwarded">
-              {formatDate(fromDbDate(row.dateForwarded))}
-            </Detail>
-            <Detail label="Received in unit by">
-              {text(row.receivedByUnitOfficer)}
-            </Detail>
-            <Detail label="Response due">
-              {formatDate(derived.responseDue)}
-            </Detail>
-            <Detail label="Closed on">
-              {formatDate(derived.closedOn)}
-              {derived.replyOutward && ` (by ${derived.replyOutward.number})`}
-              {row.dateClosedManual &&
-                row.closingNote &&
-                ` — ${row.closingNote}`}
-            </Detail>
-            <Detail label="Working days at Registry">
-              {derived.workingDaysAtRegistry}
-            </Detail>
-            <Detail label="Working days open">{derived.workingDaysOpen}</Detail>
-            <Detail label="Closed on time">
-              {formatYesNo(derived.closedOnTime)}
-            </Detail>
-            {derived.filedAfterRegistrationDeadline !== null && (
-              <Detail label="Filed after registration deadline">
-                {formatYesNo(derived.filedAfterRegistrationDeadline)}
-              </Detail>
-            )}
-            <Detail label="Remarks">{text(row.remarks)}</Detail>
-          </dl>
-        </Panel>
       </div>
-
-      <Panel title="Replies and linked letters">
-        {d.replies.length === 0 ? (
-          <p className="text-sm text-neutral-600">
-            No outward letter quotes this item yet.
-          </p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="text-left text-neutral-600">
-              <tr>
-                <th className="py-1 pr-3 font-medium">Outward No.</th>
-                <th className="py-1 pr-3 font-medium">Type</th>
-                <th className="py-1 pr-3 font-medium">Subject</th>
-                <th className="py-1 pr-3 font-medium">Closes this item?</th>
-                <th className="py-1 pr-3 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {d.replies.map((r) => (
-                <tr key={r.id} className="border-t border-neutral-100">
-                  <td className="py-1 pr-3 font-mono">
-                    <Link href={`/outward/${r.id}`} className="underline">
-                      {r.number}
-                    </Link>
-                  </td>
-                  <td className="py-1 pr-3">{r.type}</td>
-                  <td className="py-1 pr-3">{r.subject}</td>
-                  <td className="py-1 pr-3">
-                    {r.closesInwardItem
-                      ? "Yes, once dispatched"
-                      : "No (holding reply)"}
-                  </td>
-                  <td className="py-1 pr-3">{r.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Panel>
-
-      {writable && options && (
-        <Panel title="Update item">
-          <UpdateInwardForm id={row.id} options={options} values={values} />
-        </Panel>
+      {voided && (
+        <div className="mt-4">
+          <VoidedNote
+            at={row.voidedAt}
+            by={row.voidedBy?.name}
+            reason={row.voidReason}
+          />
+        </div>
       )}
 
-      {writable && options && can(user, "items.editAny") && (
-        <details className="rounded border border-neutral-200 p-4">
-          <summary className="cursor-pointer text-base font-semibold">
-            Edit registered details (Head of Registry)
-          </summary>
-          <div className="mt-4">
-            <EditInwardForm id={row.id} options={options} values={values} />
-          </div>
-        </details>
-      )}
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <aside className="space-y-5 lg:order-2">
+          <section className="rounded-panel border-border bg-surface border p-[22px]">
+            <DetailList
+              items={[
+                {
+                  label: "Deemed receipt",
+                  value: formatDate(derived.deemedReceiptDate),
+                  tone: derived.afterHoursOrNonWorkingDay
+                    ? "text-gold"
+                    : undefined,
+                },
+                {
+                  label: "Response due",
+                  value: formatDate(derived.responseDue),
+                  tone:
+                    derived.status === "Overdue" ? "text-overdue" : undefined,
+                },
+                { label: "Route to", value: row.routedUnit.name },
+                {
+                  label: "Priority",
+                  value: row.priority?.label ?? "Normal",
+                },
+              ]}
+            />
+            {writable && (
+              <div className="border-border-subtle mt-5 border-t pt-5">
+                <InwardActions
+                  id={row.id}
+                  number={row.number}
+                  canForward={!row.dateForwarded && derived.status !== "Closed"}
+                  canClose={derived.status !== "Closed"}
+                  canVoid={canVoid(
+                    user,
+                    { createdById: row.createdById, voided },
+                    settings.headMayVoidOwnItems,
+                  )}
+                />
+              </div>
+            )}
+          </section>
+          <section className="rounded-panel border-border-subtle bg-surface border p-[22px]">
+            <SubHeading>Timeline</SubHeading>
+            <InwardTimeline
+              row={row}
+              derived={derived}
+              forwarded={fromDbDate(row.dateForwarded)}
+              forwardingTargetDays={settings.registryForwardingTargetDays}
+            />
+          </section>
+        </aside>
 
-      <Panel title="History">
-        <History
-          entries={d.history}
-          labels={{
-            ...INWARD_LABELS,
-            voidedAt: "Voided",
-            voidedById: "Voided by",
-            voidReason: "Void reason",
-          }}
-          names={names}
-        />
-      </Panel>
-    </div>
+        <div className="min-w-0 space-y-5 lg:order-1">
+          <Panel title="Registered details">
+            <dl>
+              <Detail label="Date & time received">
+                {formatDateTime(row.receivedAt)}
+              </Detail>
+              <Detail label="Deemed receipt date">
+                {formatDate(derived.deemedReceiptDate)}
+              </Detail>
+              <Detail label="Mode of receipt">{row.mode.label}</Detail>
+              <Detail label="Type">{row.type.name}</Detail>
+              <Detail label="Category">{text(derived.category)}</Detail>
+              <Detail label="Order reference">{text(derived.orderRef)}</Detail>
+              <Detail label="Sender">{row.sender}</Detail>
+              <Detail label="Sender category">
+                {row.senderCategory.label}
+              </Detail>
+              <Detail label="Subject">{row.subject}</Detail>
+              <Detail label="Sender's ref. no.">{text(row.senderRef)}</Detail>
+              <Detail label="Date of the letter">
+                {formatDate(fromDbDate(row.documentDate))}
+              </Detail>
+              <Detail label="Related OGSERC No.">
+                {text(row.relatedOgsercNo)}
+              </Detail>
+              <Detail label="In response to our ref.">
+                {row.inResponseToOutward &&
+                names.has(row.inResponseToOutward.id) ? (
+                  <Link
+                    href={`/outward/${row.inResponseToOutward.id}`}
+                    className="text-accent font-mono text-[13px] hover:underline"
+                  >
+                    {row.inResponseToOutward.number}
+                  </Link>
+                ) : (
+                  BLANK
+                )}
+              </Detail>
+              <Detail label="CAC No.">{text(row.cacNo)}</Detail>
+              <Detail label="Principal LGA">
+                {text(row.principalLga?.label)}
+              </Detail>
+              <Detail label="Contact">
+                {[row.contactPerson, row.phone, row.email]
+                  .filter(Boolean)
+                  .join(" · ") || BLANK}
+              </Detail>
+              <Detail label="Delivered / sent by">
+                {text(row.deliveredBy)}
+              </Detail>
+              <Detail label="Files / volumes">{row.volumes ?? BLANK}</Detail>
+              <Detail label="Schedule 2 documents">
+                {row.schedule2DocsAttached ?? BLANK}
+              </Detail>
+              <Detail label="Fee evidence attached">
+                {formatYesNo(row.feeEvidenceAttached)}
+              </Detail>
+              <Detail label="Payment reference">{text(row.paymentRef)}</Detail>
+              <Detail label="Amount shown">
+                {formatNaira(row.amountShownKobo)}
+              </Detail>
+              <Detail label="Received by">{row.receivedBy.name}</Detail>
+              <Detail label="File">
+                {d.file ? (
+                  <Link
+                    href={`/files/${d.file.id}`}
+                    className="text-accent hover:underline"
+                  >
+                    <span className="font-mono text-[13px]">
+                      {d.file.reference}
+                    </span>{" "}
+                    — {d.file.title}
+                  </Link>
+                ) : (
+                  BLANK
+                )}
+              </Detail>
+            </dl>
+          </Panel>
+
+          <Panel title="Handling and status">
+            <dl>
+              <Detail label="Forward to">{row.routedUnit.name}</Detail>
+              <Detail label="Acknowledgement issued via">
+                {row.ackIssuedVia.label}
+              </Detail>
+              <Detail label="Action required">
+                {row.actionRequired.label}
+              </Detail>
+              <Detail label="Priority">
+                {row.priority?.label ?? "Normal"}
+              </Detail>
+              <Detail label="Action officer">{text(row.actionOfficer)}</Detail>
+              <Detail label="Date forwarded">
+                {formatDate(fromDbDate(row.dateForwarded))}
+              </Detail>
+              <Detail label="Received in unit by">
+                {text(row.receivedByUnitOfficer)}
+              </Detail>
+              <Detail label="Response due">
+                {formatDate(derived.responseDue)}
+              </Detail>
+              <Detail label="Closed on">
+                {formatDate(derived.closedOn)}
+                {derived.replyOutward && ` (by ${derived.replyOutward.number})`}
+                {row.dateClosedManual &&
+                  row.closingNote &&
+                  ` — ${row.closingNote}`}
+              </Detail>
+              <Detail label="Working days at Registry">
+                {derived.workingDaysAtRegistry}
+              </Detail>
+              <Detail label="Working days open">
+                {derived.workingDaysOpen}
+              </Detail>
+              <Detail label="Closed on time">
+                {formatYesNo(derived.closedOnTime)}
+              </Detail>
+              {derived.filedAfterRegistrationDeadline !== null && (
+                <Detail label="Filed after registration deadline">
+                  {formatYesNo(derived.filedAfterRegistrationDeadline)}
+                </Detail>
+              )}
+              <Detail label="Remarks">{text(row.remarks)}</Detail>
+            </dl>
+          </Panel>
+
+          <Panel title="Replies and linked letters">
+            {d.replies.length === 0 ? (
+              <p className="text-text-muted text-sm">
+                No outward letter quotes this item yet.
+              </p>
+            ) : (
+              <div className="-mx-[22px] overflow-x-auto">
+                <table className="w-full min-w-[36rem] text-sm">
+                  <thead className="text-text-faint border-border-subtle border-b text-left text-xs tracking-wider uppercase">
+                    <tr>
+                      <th
+                        scope="col"
+                        className="px-[22px] py-2.5 font-semibold"
+                      >
+                        Outward No.
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-[22px] py-2.5 font-semibold"
+                      >
+                        Type
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-[22px] py-2.5 font-semibold"
+                      >
+                        Subject
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-[22px] py-2.5 font-semibold"
+                      >
+                        Closes this item?
+                      </th>
+                      <th
+                        scope="col"
+                        className="px-[22px] py-2.5 font-semibold"
+                      >
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.replies.map((r) => (
+                      <tr
+                        key={r.id}
+                        className="border-border-subtle border-b last:border-b-0"
+                      >
+                        <td className="px-[22px] py-3 font-mono text-[13px] whitespace-nowrap">
+                          <Link
+                            href={`/outward/${r.id}`}
+                            className="text-accent hover:underline"
+                          >
+                            {r.number}
+                          </Link>
+                        </td>
+                        <td className="px-[22px] py-3">{r.type}</td>
+                        <td className="px-[22px] py-3">{r.subject}</td>
+                        <td className="px-[22px] py-3">
+                          {r.closesInwardItem
+                            ? "Yes, once dispatched"
+                            : "No (holding reply)"}
+                        </td>
+                        <td className="px-[22px] py-3">
+                          <StatusBadge status={r.status} flags={[]} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Panel>
+
+          {writable && options && (
+            <Panel title="Update item">
+              <UpdateInwardForm id={row.id} options={options} values={values} />
+            </Panel>
+          )}
+
+          {writable && options && can(user, "items.editAny") && (
+            <details className="group rounded-panel border-border-subtle bg-surface border">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-[22px] py-3">
+                <span className="font-semibold">
+                  Edit registered details{" "}
+                  <span className="text-text-muted font-normal">
+                    (Head of Registry)
+                  </span>
+                </span>
+                <span
+                  aria-hidden
+                  className="text-text-muted text-lg transition-transform group-open:rotate-45"
+                >
+                  +
+                </span>
+              </summary>
+              <div className="px-[22px] pb-[22px]">
+                <EditInwardForm id={row.id} options={options} values={values} />
+              </div>
+            </details>
+          )}
+
+          <Panel title="History">
+            <History
+              entries={d.history}
+              labels={{
+                ...INWARD_LABELS,
+                voidedAt: "Voided",
+                voidedById: "Voided by",
+                voidReason: "Void reason",
+              }}
+              names={names}
+            />
+          </Panel>
+        </div>
+      </div>
+    </>
   );
 }

@@ -44,15 +44,15 @@ export function InwardActions({
       <Messages state={fwd} />
       <Messages state={cls} />
       <Messages state={vd} />
-      <div className="flex flex-wrap items-start gap-3">
+      <div className="flex flex-col gap-3">
         {canForward && (
-          <form action={forward}>
+          <form action={forward} className="[&>button]:w-full">
             <SubmitButton>Forwarded today</SubmitButton>
           </form>
         )}
         {canClose && (
           <details className="rounded-control border-border w-full border px-4 py-2.5 text-sm">
-            <summary className="text-text-muted hover:text-text cursor-pointer text-center font-medium">
+            <summary className="text-text-muted hover:text-text cursor-pointer list-none text-center font-medium">
               Close today…
             </summary>
             <form
@@ -78,8 +78,8 @@ export function InwardActions({
           </details>
         )}
         {canVoid && (
-          <details className="rounded-control border-overdue/40 border px-4 py-2.5 text-sm">
-            <summary className="text-overdue cursor-pointer font-medium">
+          <details className="rounded-control border-overdue/40 w-full border px-4 py-2.5 text-sm">
+            <summary className="text-overdue cursor-pointer list-none text-center font-medium">
               Void…
             </summary>
             <form
@@ -92,7 +92,7 @@ export function InwardActions({
                 )
                   e.preventDefault();
               }}
-              className="mt-2 w-80 space-y-2"
+              className="mt-3 space-y-3"
             >
               <TextArea name="voidReason" label="Reason" required />
               <SubmitButton variant="secondary">Void this item</SubmitButton>
@@ -127,7 +127,7 @@ export function UpdateInwardForm({
       className="space-y-4"
     >
       <Messages state={state} />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
         <TextInput
           name="dateForwarded"
           type="date"
@@ -185,14 +185,14 @@ export function UpdateInwardForm({
           label="Date closed (without letter)"
           defaultValue={val("dateClosedManual")}
         />
-        <div className="sm:col-span-2 lg:col-span-3">
+        <div className="sm:col-span-2">
           <TextArea
             name="closingNote"
             label="Closing note"
             defaultValue={val("closingNote")}
           />
         </div>
-        <div className="sm:col-span-2 lg:col-span-3">
+        <div className="sm:col-span-2">
           <TextArea
             name="remarks"
             label="Remarks"
@@ -226,7 +226,7 @@ export function EditInwardForm({
       className="space-y-4"
     >
       <Messages state={state} />
-      <p className="text-sm text-neutral-600">
+      <p className="text-text-muted text-sm">
         The number never changes. A new receipt time or mode recalculates the
         deemed receipt date; a new type takes that type&apos;s current rules.
       </p>
