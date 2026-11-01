@@ -42,20 +42,22 @@ export function OutwardActions({
       <Messages state={ds} />
       <Messages state={dl} />
       <Messages state={vd} />
-      <div className="flex flex-wrap items-start gap-3">
+      <div className="flex flex-col gap-3">
         {canDispatch && (
-          <form action={dispatch}>
+          <form action={dispatch} className="[&>button]:w-full">
             <SubmitButton>Dispatched today</SubmitButton>
           </form>
         )}
         {canDeliver && (
-          <form action={deliver}>
-            <SubmitButton variant="secondary">Delivered today</SubmitButton>
+          <form action={deliver} className="[&>button]:w-full">
+            <SubmitButton variant={canDispatch ? "secondary" : "primary"}>
+              Delivered today
+            </SubmitButton>
           </form>
         )}
         {canVoid && (
-          <details className="rounded border border-red-300 px-3 py-2 text-sm">
-            <summary className="cursor-pointer font-medium text-red-800">
+          <details className="rounded-control border-overdue/40 w-full border px-4 py-2.5 text-sm">
+            <summary className="text-overdue cursor-pointer list-none text-center font-medium">
               Void…
             </summary>
             <form
@@ -68,7 +70,7 @@ export function OutwardActions({
                 )
                   e.preventDefault();
               }}
-              className="mt-2 w-80 space-y-2"
+              className="mt-3 space-y-3"
             >
               <TextArea name="voidReason" label="Reason" required />
               <SubmitButton variant="secondary">Void this item</SubmitButton>
@@ -103,7 +105,7 @@ export function UpdateOutwardForm({
       className="space-y-4"
     >
       <Messages state={state} />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
         <TextInput
           name="dateDispatched"
           type="date"
@@ -150,7 +152,7 @@ export function UpdateOutwardForm({
           label="Response due (override)"
           defaultValue={val("responseDueOverride")}
         />
-        <div className="sm:col-span-2 lg:col-span-3">
+        <div className="sm:col-span-2">
           <TextArea
             name="remarks"
             label="Remarks"
@@ -184,7 +186,7 @@ export function EditOutwardForm({
       className="space-y-4"
     >
       <Messages state={state} />
-      <p className="text-sm text-neutral-600">
+      <p className="text-text-muted text-sm">
         The number never changes. A new document type takes that type&apos;s
         current rules.
       </p>

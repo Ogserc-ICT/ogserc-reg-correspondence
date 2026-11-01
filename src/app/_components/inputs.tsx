@@ -125,7 +125,7 @@ export function Segmented({
         {options.map((o) => (
           <label
             key={o.value || "blank"}
-            className="border-border bg-surface text-text has-[:checked]:border-text has-[:checked]:bg-text has-[:checked]:text-bg has-[:focus-visible]:outline-accent inline-flex h-11 cursor-pointer items-center rounded-full border px-4 font-medium transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2"
+            className="border-border bg-surface text-text has-[:checked]:border-text has-[:checked]:bg-text has-[:checked]:text-bg has-[:focus-visible]:outline-accent relative inline-flex h-11 cursor-pointer items-center rounded-full border px-4 font-medium transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2"
           >
             <input
               type="radio"

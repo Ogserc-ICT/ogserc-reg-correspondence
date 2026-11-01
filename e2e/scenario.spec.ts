@@ -11,20 +11,52 @@ import { DEV_PASSWORD, setClock } from "./env";
 const field = (page: Page, name: string) =>
   page.locator(`[name="${name}"]:visible`);
 
+/** Opens the forms' fold-out groups so every field can be filled. */
+async function openFolds(page: Page) {
+  await page.evaluate(() =>
+    document.querySelectorAll("main form details").forEach((d) => {
+      (d as HTMLDetailsElement).open = true;
+    }),
+  );
+}
+
 async function fill(page: Page, values: Record<string, string>) {
-  for (const [name, value] of Object.entries(values))
+  await openFolds(page);
+  // New Inward takes the date and time received in one picker.
+  const { receivedDate, receivedTime, ...rest } = values;
+  if (receivedDate || receivedTime) {
+    const when = page.locator('input[type="datetime-local"]:visible');
+    const [date, time] = (await when.inputValue()).split("T");
+    await when.fill(`${receivedDate ?? date}T${receivedTime ?? time}`);
+  }
+  for (const [name, value] of Object.entries(rest))
     await field(page, name).fill(value);
 }
 
 async function choose(page: Page, values: Record<string, string>) {
-  for (const [name, label] of Object.entries(values))
-    await field(page, name).selectOption({ label });
+  await openFolds(page);
+  for (const [name, label] of Object.entries(values)) {
+    const control = field(page, name).first();
+    if ((await control.getAttribute("type")) === "radio")
+      // Priority is a row of buttons (labels around hidden radios).
+      await page
+        .locator("label:visible", {
+          has: page.locator(`input[name="${name}"]`),
+          hasText: new RegExp(`^${label}$`),
+        })
+        .click();
+    else await control.selectOption({ label });
+  }
 }
 
 async function pick(page: Page, label: string, search: string, result: RegExp) {
+  await openFolds(page);
   await page.getByRole("searchbox", { name: `Search ${label}` }).fill(search);
   await page.getByRole("option").getByRole("button", { name: result }).click();
 }
+
+const flagList = (page: Page) =>
+  page.getByRole("list", { name: "Flags" }).filter({ visible: true });
 
 const status = (page: Page) => page.locator("[role=status]:visible");
 
@@ -227,7 +259,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   );
   await expect(detail(page, "Working days open")).toHaveText("3");
   await expect(detail(page, "Amount shown")).toHaveText("₦250,000");
-  await expect(page.locator("ul.bg-status-flagged")).toHaveCount(0);
+  await expect(flagList(page)).toHaveCount(0);
 
   // I2: 7 working days at the Registry, flagged.
   await page.goto("/inward");
@@ -262,7 +294,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await expect(detail(page, "Response expected")).toHaveText("No");
   await expect(detail(page, "Working days to dispatch")).toHaveText("1");
   await expect(detail(page, "Signed by")).toContainText("Chairman");
-  await expect(page.locator("ul.bg-status-flagged")).toHaveCount(0);
+  await expect(flagList(page)).toHaveCount(0);
 
   // Registry Desk on 10 Dec.
   await page.goto("/");
@@ -451,9 +483,7 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
     await expect(page.locator("main header:visible")).toContainText(
       "Currently with: PA to Chairman (Office of the Chairman) since 02-Dec-2026 (6 working days)",
     );
-    await expect(page.locator("ul.bg-status-flagged:visible")).toContainText(
-      "Out beyond return date",
-    );
+    await expect(flagList(page)).toContainText("Out beyond return date");
     const m2 = page.locator("tr:visible", {
       hasText: "PA to Chairman (Office of the Chairman)",
     });

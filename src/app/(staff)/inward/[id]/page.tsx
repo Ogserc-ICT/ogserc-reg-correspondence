@@ -148,14 +148,20 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
     <>
       <PageHeader
         back={{ href: "/inward", label: "Inward Register" }}
-        title={<span className="font-mono">{row.number}</span>}
+        title={
+          <span className="flex flex-wrap items-center gap-3">
+            <span className="font-mono">{row.number}</span>
+            <StatusBadge status={derived.status} flags={derived.flags} />
+          </span>
+        }
         intro={`${row.type.name} · ${row.sender}`}
         actions={slipLinks || undefined}
       />
-      <div className="mt-4 flex flex-wrap gap-2">
-        <StatusBadge status={derived.status} flags={derived.flags} />
-        <Flags flags={derived.flags} />
-      </div>
+      {derived.flags.length > 0 && (
+        <div className="mt-4">
+          <Flags flags={derived.flags} />
+        </div>
+      )}
       {voided && (
         <div className="mt-4">
           <VoidedNote
@@ -172,23 +178,19 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
             <DetailList
               items={[
                 {
-                  label: "Deemed receipt",
+                  label: "Deemed received",
                   value: formatDate(derived.deemedReceiptDate),
                   tone: derived.afterHoursOrNonWorkingDay
                     ? "text-gold"
                     : undefined,
                 },
                 {
-                  label: "Response due",
+                  label: "Due",
                   value: formatDate(derived.responseDue),
                   tone:
                     derived.status === "Overdue" ? "text-overdue" : undefined,
                 },
-                { label: "Route to", value: row.routedUnit.name },
-                {
-                  label: "Priority",
-                  value: row.priority?.label ?? "Normal",
-                },
+                { label: "Routed to", value: row.routedUnit.name },
               ]}
             />
             {writable && (

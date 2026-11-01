@@ -1,23 +1,19 @@
 "use client";
-// The New Outward fields (SPEC §5.1). Also used by the Head of Registry's
-// "edit registered details".
-import type { ReactNode } from "react";
+// The New Outward fields (SPEC §5.1): Document, Recipient, Signature and
+// Dispatch, as on the New Inward screen. Also used by the Head of
+// Registry's "edit registered details".
 import { Field, inputClass } from "@/app/_components/form";
 import { Select, TextArea, TextInput, YesNo } from "@/app/_components/inputs";
 import { Picker } from "@/app/_components/picker";
+import {
+  FoldSection,
+  FormSection,
+  Wide,
+} from "@/app/_components/ui/form-section";
 import type { FormOptions } from "@/server/read/options";
 import { searchFilesAction, searchInwardAction } from "../search-actions";
 
 export type Values = Record<string, string | undefined>;
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <fieldset className="rounded border border-neutral-200 p-4">
-      <legend className="px-1 text-sm font-semibold">{title}</legend>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
-    </fieldset>
-  );
-}
 
 export function OutwardFields({
   options,
@@ -29,9 +25,10 @@ export function OutwardFields({
   dispatch?: boolean;
 }) {
   const v = (k: string) => values[k] ?? "";
+  const has = (keys: string[]) => keys.some((k) => v(k));
   return (
     <div className="space-y-5">
-      <Section title="Document">
+      <FormSection title="Document">
         <TextInput
           name="documentDate"
           type="date"
@@ -46,6 +43,14 @@ export function OutwardFields({
           options={options.outgoingTypes}
           defaultValue={v("typeId")}
         />
+        <Wide>
+          <TextInput
+            name="subject"
+            label="Subject"
+            required
+            defaultValue={v("subject")}
+          />
+        </Wide>
         <Select
           name="originatingUnitId"
           label="Originating unit"
@@ -53,14 +58,14 @@ export function OutwardFields({
           options={options.units}
           defaultValue={v("originatingUnitId")}
         />
-        <div className="sm:col-span-2 lg:col-span-3">
-          <TextInput
-            name="subject"
-            label="Subject"
-            required
-            defaultValue={v("subject")}
-          />
-        </div>
+        <TextInput
+          name="preparedBy"
+          label="Prepared by"
+          defaultValue={v("preparedBy")}
+        />
+      </FormSection>
+
+      <FormSection title="Recipient">
         <TextInput
           name="addressee"
           label="Addressee"
@@ -74,11 +79,13 @@ export function OutwardFields({
           options={options.partyCategories}
           defaultValue={v("recipientCategoryId")}
         />
-        <TextInput
-          name="recipientContact"
-          label="Address / email"
-          defaultValue={v("recipientContact")}
-        />
+        <Wide>
+          <TextInput
+            name="recipientContact"
+            label="Address / email"
+            defaultValue={v("recipientContact")}
+          />
+        </Wide>
         <Picker
           name="inReplyToInwardId"
           label="In reply to"
@@ -100,14 +107,9 @@ export function OutwardFields({
           defaultId={values.fileId || undefined}
           defaultLabel={values.fileIdLabel}
         />
-        <TextInput
-          name="preparedBy"
-          label="Prepared by"
-          defaultValue={v("preparedBy")}
-        />
-      </Section>
+      </FormSection>
 
-      <Section title="Signature">
+      <FormSection title="Signature">
         <Select
           name="signedById"
           label="Signed by"
@@ -125,56 +127,66 @@ export function OutwardFields({
             className={inputClass}
           />
         </Field>
-      </Section>
+      </FormSection>
 
       {dispatch && (
-        <Section title="Dispatch">
-          <Select
-            name="dispatchModeId"
-            label="Dispatch mode"
-            required
-            options={options.receiptModes}
-            defaultValue={v("dispatchModeId")}
-          />
-          <TextInput
-            name="dateDispatched"
-            type="date"
-            label="Date dispatched"
-            hint="Leave blank if not yet sent."
-            defaultValue={v("dateDispatched")}
-          />
-          <Select
-            name="dispatchedById"
-            label="Dispatched by"
-            hint="Cleared if there is no dispatch date."
-            options={options.registryUsers}
-            defaultValue={v("dispatchedById")}
-          />
-          <TextInput
-            name="trackingRef"
-            label="Tracking ref."
-            defaultValue={v("trackingRef")}
-          />
-          <YesNo
-            name="responseExpectedOverride"
-            label="Response expected"
-            blankLabel="Type default"
-            defaultValue={v("responseExpectedOverride")}
-          />
-          <TextInput
-            name="responseDueOverride"
-            type="date"
-            label="Response due (override)"
-            defaultValue={v("responseDueOverride")}
-          />
-          <div className="sm:col-span-2 lg:col-span-3">
-            <TextArea
-              name="remarks"
-              label="Remarks"
-              defaultValue={v("remarks")}
+        <>
+          <FormSection title="Dispatch">
+            <Select
+              name="dispatchModeId"
+              label="Dispatch mode"
+              required
+              options={options.receiptModes}
+              defaultValue={v("dispatchModeId")}
             />
-          </div>
-        </Section>
+            <TextInput
+              name="dateDispatched"
+              type="date"
+              label="Date dispatched"
+              hint="Leave blank if not yet sent."
+              defaultValue={v("dateDispatched")}
+            />
+            <Select
+              name="dispatchedById"
+              label="Dispatched by"
+              hint="Cleared if there is no dispatch date."
+              options={options.registryUsers}
+              defaultValue={v("dispatchedById")}
+            />
+            <TextInput
+              name="trackingRef"
+              label="Tracking ref."
+              defaultValue={v("trackingRef")}
+            />
+            <Wide>
+              <TextArea
+                name="remarks"
+                label="Remarks"
+                rows={3}
+                defaultValue={v("remarks")}
+              />
+            </Wide>
+          </FormSection>
+
+          <FoldSection
+            title="Response"
+            summary="Only to override the document type's default"
+            open={has(["responseExpectedOverride", "responseDueOverride"])}
+          >
+            <YesNo
+              name="responseExpectedOverride"
+              label="Response expected"
+              blankLabel="Type default"
+              defaultValue={v("responseExpectedOverride")}
+            />
+            <TextInput
+              name="responseDueOverride"
+              type="date"
+              label="Response due (override)"
+              defaultValue={v("responseDueOverride")}
+            />
+          </FoldSection>
+        </>
       )}
     </div>
   );

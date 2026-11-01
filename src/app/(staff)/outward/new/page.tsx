@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { PageHeader } from "@/app/_components/ui/page-header";
 import { appNow } from "@/server/clock";
 import { requireCan } from "@/server/current-user";
 import { getDb } from "@/server/db";
@@ -11,13 +12,13 @@ export const metadata: Metadata = { title: "New outward · OGSERC Registry" };
 
 export default function NewOutwardPage() {
   return (
-    <main>
-      <h1 className="mb-1 text-2xl font-semibold">New outward item</h1>
-      <p className="mb-6 text-sm text-neutral-600">
-        Log the letter before it is signed, then quote its number on the
-        document.
-      </p>
-      <Suspense fallback={<p className="text-neutral-500">Loading…</p>}>
+    <main className="mx-auto w-full max-w-[1200px]">
+      <PageHeader
+        back={{ href: "/outward", label: "Outward Register" }}
+        title="Log outward item"
+        intro="Fields marked * are required. The number is issued when you save."
+      />
+      <Suspense fallback={<p className="text-text-muted mt-6">Loading…</p>}>
         <Form />
       </Suspense>
     </main>
@@ -28,9 +29,11 @@ async function Form() {
   const user = await requireCan("registers.write");
   const options = await formOptions(getDb());
   return (
-    <NewOutwardForm
-      options={options}
-      defaults={newOutwardDefaults(options, user, appNow())}
-    />
+    <div className="mt-6">
+      <NewOutwardForm
+        options={options}
+        defaults={newOutwardDefaults(options, user, appNow())}
+      />
+    </div>
   );
 }

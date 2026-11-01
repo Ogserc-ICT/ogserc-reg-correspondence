@@ -1,6 +1,7 @@
 "use client";
 import { useActionState, useState } from "react";
 import { Messages, SubmitButton, type FormState } from "@/app/_components/form";
+import { buttonClass } from "@/app/_components/ui/button";
 import type { FormOptions } from "@/server/read/options";
 import { logOutwardAction } from "../actions";
 import { OutwardFields } from "../outward-fields";
@@ -21,25 +22,10 @@ export function NewOutwardForm({
   const key = `${state.message ?? ""}-${state.attempt ?? ""}-${cleared}`;
   const values =
     cleared && !state.values ? defaults : (state.values ?? defaults);
+  const issued = state.ok && state.link ? state.link : null;
 
   return (
-    <>
-      {state.ok && state.link && (
-        // Log before signature, then quote the number (SPEC §5.1).
-        <div
-          role="status"
-          className="border-brand-green mb-6 rounded border-2 bg-green-50 p-4"
-        >
-          <p className="text-sm text-neutral-700">Outward number</p>
-          <p className="font-mono text-3xl font-semibold">{state.link.label}</p>
-          <p className="mt-1 text-sm">
-            Quote it on the document.{" "}
-            <a href={state.link.href} className="underline">
-              Open the record
-            </a>
-          </p>
-        </div>
-      )}
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <form
         key={key}
         action={(fd) => {
@@ -47,12 +33,11 @@ export function NewOutwardForm({
           return action(fd);
         }}
         onInput={() => setDirty(true)}
-        className="space-y-5"
+        className="min-w-0 space-y-5"
       >
         {!state.ok && <Messages state={state} />}
         <OutwardFields options={options} values={values} />
-        <div className="flex flex-wrap gap-3">
-          <SubmitButton>Save &amp; get number</SubmitButton>
+        <div className="flex flex-wrap justify-end gap-3">
           <button
             type="button"
             onClick={() => {
@@ -64,13 +49,55 @@ export function NewOutwardForm({
               setDirty(false);
               setCleared((n) => n + 1);
             }}
-            className="rounded border border-neutral-300 px-4 py-2 text-sm hover:bg-neutral-50"
+            className={buttonClass()}
           >
             Clear form
           </button>
+          <SubmitButton>Save &amp; get number</SubmitButton>
         </div>
-        <p className="text-xs text-neutral-500">* required.</p>
       </form>
-    </>
+
+      <aside className="lg:sticky lg:top-6 lg:self-start">
+        {/* Log before signature, then quote the number (SPEC §5.1). */}
+        <section
+          role="status"
+          className={`rounded-panel border p-[22px] ${
+            issued
+              ? "border-accent/50 bg-status-closed"
+              : "border-border bg-surface"
+          }`}
+        >
+          <h2 className="text-text-faint text-xs font-semibold tracking-wider uppercase">
+            Outward number
+          </h2>
+          {issued ? (
+            <>
+              <p className="mt-3 font-mono text-xl font-semibold break-all">
+                {issued.label}
+              </p>
+              <p className="text-text-muted mt-2 text-sm">
+                Quote it on the document before it is signed.
+              </p>
+              <a
+                href={issued.href}
+                className={buttonClass("secondary", "mt-4 w-full")}
+              >
+                Open the record
+              </a>
+            </>
+          ) : (
+            <>
+              <p className="text-text-muted mt-3 font-mono text-xl font-semibold">
+                OGSERC/OUT/…
+              </p>
+              <p className="text-text-muted mt-2 text-sm">
+                Issued when you save. Log the letter before it is signed, then
+                quote the number on it.
+              </p>
+            </>
+          )}
+        </section>
+      </aside>
+    </div>
   );
 }

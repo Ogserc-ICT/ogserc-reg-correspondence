@@ -3,12 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { StatusBadge } from "@/app/_components/status";
-import {
-  BLANK,
-  formatDate,
-  formatDateTime,
-  formatYesNo,
-} from "@/domain/format";
+import { BLANK, formatDate, formatYesNo } from "@/domain/format";
 import { can, canVoid } from "@/domain/permissions";
 import { appNow } from "@/server/clock";
 import { requireUser } from "@/server/current-user";
@@ -18,7 +13,18 @@ import { outwardDetail } from "@/server/read/items";
 import { nameMap } from "@/server/read/names";
 import { formOptions } from "@/server/read/options";
 import { OUTWARD_LABELS } from "@/server/workflows/outward";
-import { Detail, Flags, History, Panel } from "../../item-ui";
+import { DetailList } from "@/app/_components/ui/detail-drawer";
+import { PageHeader } from "@/app/_components/ui/page-header";
+import { loadRules } from "@/server/rules";
+import {
+  Detail,
+  Flags,
+  History,
+  Panel,
+  SubHeading,
+  VoidedNote,
+} from "../../item-ui";
+import { OutwardTimeline } from "../outward-timeline";
 import {
   EditOutwardForm,
   OutwardActions,
@@ -31,14 +37,20 @@ export default function OutwardItemPage({
   params,
 }: PageProps<"/outward/[id]">) {
   return (
-    <main>
-      <Link
-        href="/outward"
-        className="text-sm text-neutral-600 hover:underline"
+    <main className="mx-auto w-full max-w-[1200px]">
+      <Suspense
+        fallback={
+          <>
+            <Link
+              href="/outward"
+              className="text-accent rounded text-sm hover:underline"
+            >
+              ← Outward Register
+            </Link>
+            <p className="text-text-muted mt-4">Loading…</p>
+          </>
+        }
       >
-        ← Outward register
-      </Link>
-      <Suspense fallback={<p className="mt-4 text-neutral-500">Loading…</p>}>
         <Item params={params} />
       </Suspense>
     </main>
@@ -91,172 +103,269 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
     receivedByRecipient: row.receivedByRecipient ?? "",
   };
 
+  const rules = await loadRules(db);
+
   return (
-    <div className="mt-2 space-y-6">
-      <header>
-        <p className="text-sm text-neutral-600">Outward No.</p>
-        <h1 className="flex flex-wrap items-center gap-3 font-mono text-2xl font-semibold">
-          {row.number}
-          <StatusBadge status={derived.status} flags={derived.flags} />
-        </h1>
-        {voided && (
-          <p className="mt-2 rounded bg-neutral-100 p-3 text-sm">
-            Voided {formatDateTime(row.voidedAt)} by {row.voidedBy?.name}:{" "}
-            {row.voidReason}
-          </p>
-        )}
-        <Flags flags={derived.flags} />
-      </header>
-
-      {writable && (
-        <OutwardActions
-          id={row.id}
-          number={row.number}
-          canDispatch={!row.dateDispatched}
-          canDeliver={!row.deliveryConfirmed}
-          canVoid={canVoid(
-            user,
-            { createdById: row.createdById, voided },
-            settings.headMayVoidOwnItems,
-          )}
-        />
+    <>
+      <PageHeader
+        back={{ href: "/outward", label: "Outward Register" }}
+        title={
+          <span className="flex flex-wrap items-center gap-3">
+            <span className="font-mono">{row.number}</span>
+            <StatusBadge status={derived.status} flags={derived.flags} />
+          </span>
+        }
+        intro={`${row.type.name} · ${row.addressee}`}
+      />
+      {derived.flags.length > 0 && (
+        <div className="mt-4">
+          <Flags flags={derived.flags} />
+        </div>
+      )}
+      {voided && (
+        <div className="mt-4">
+          <VoidedNote
+            at={row.voidedAt}
+            by={row.voidedBy?.name}
+            reason={row.voidReason}
+          />
+        </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Registered details">
-          <dl>
-            <Detail label="Date of document">
-              {formatDate(fromDbDate(row.documentDate))}
-            </Detail>
-            <Detail label="Document type">{row.type.name}</Detail>
-            <Detail label="Subject">{row.subject}</Detail>
-            <Detail label="Addressee">{row.addressee}</Detail>
-            <Detail label="Recipient category">
-              {row.recipientCategory.label}
-            </Detail>
-            <Detail label="Address / email">
-              {text(row.recipientContact)}
-            </Detail>
-            <Detail label="In reply to">
-              {d.inReplyTo ? (
-                <>
+      <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <aside className="space-y-5 lg:order-2">
+          <section className="rounded-panel border-border bg-surface border p-[22px]">
+            <DetailList
+              items={[
+                {
+                  label: "Dated",
+                  value: formatDate(fromDbDate(row.documentDate)),
+                },
+                {
+                  label: "Sent",
+                  value: formatDate(fromDbDate(row.dateDispatched)),
+                },
+                { label: "From unit", value: row.originatingUnit.name },
+                {
+                  label: "Reply due",
+                  value: formatDate(derived.responseDue),
+                  tone:
+                    derived.status === "Response overdue"
+                      ? "text-overdue"
+                      : undefined,
+                },
+              ]}
+            />
+            {writable && (
+              <div className="border-border-subtle mt-5 border-t pt-5">
+                <OutwardActions
+                  id={row.id}
+                  number={row.number}
+                  canDispatch={!row.dateDispatched}
+                  canDeliver={!row.deliveryConfirmed}
+                  canVoid={canVoid(
+                    user,
+                    { createdById: row.createdById, voided },
+                    settings.headMayVoidOwnItems,
+                  )}
+                />
+              </div>
+            )}
+          </section>
+          <section className="rounded-panel border-border-subtle bg-surface border p-[22px]">
+            <SubHeading>Timeline</SubHeading>
+            <OutwardTimeline
+              row={{
+                documentDate: fromDbDate(row.documentDate),
+                dateDispatched: fromDbDate(row.dateDispatched),
+                dateDelivered: fromDbDate(row.dateDelivered),
+                deliveryConfirmed: row.deliveryConfirmed,
+                dispatchMode: row.dispatchMode,
+                dispatchedBy: row.dispatchedBy,
+                signer: row.signedBy?.name ?? row.signedByText ?? BLANK,
+                voided,
+              }}
+              derived={derived}
+              dispatchTargetDays={rules.dispatchTargetDays}
+              needsDeliveryProof={
+                !rules.noDeliveryConfirmationModes.includes(row.dispatchModeId)
+              }
+            />
+          </section>
+        </aside>
+
+        <div className="min-w-0 space-y-5 lg:order-1">
+          <Panel title="Registered details">
+            <dl>
+              <Detail label="Date of document">
+                {formatDate(fromDbDate(row.documentDate))}
+              </Detail>
+              <Detail label="Document type">{row.type.name}</Detail>
+              <Detail label="Subject">{row.subject}</Detail>
+              <Detail label="Addressee">{row.addressee}</Detail>
+              <Detail label="Recipient category">
+                {row.recipientCategory.label}
+              </Detail>
+              <Detail label="Address / email">
+                {text(row.recipientContact)}
+              </Detail>
+              <Detail label="In reply to">
+                {d.inReplyTo ? (
+                  <>
+                    <Link
+                      href={`/inward/${d.inReplyTo.id}`}
+                      className="text-accent font-mono text-[13px] hover:underline"
+                    >
+                      {d.inReplyTo.number}
+                    </Link>{" "}
+                    <span className="text-text-muted">
+                      (from {d.inReplyTo.sender})
+                    </span>
+                  </>
+                ) : (
+                  BLANK
+                )}
+              </Detail>
+              <Detail label="Related OGSERC No.">
+                {text(row.relatedOgsercNo)}
+              </Detail>
+              <Detail label="File">
+                {d.file ? (
                   <Link
-                    href={`/inward/${d.inReplyTo.id}`}
-                    className="font-mono underline"
+                    href={`/files/${d.file.id}`}
+                    className="text-accent hover:underline"
                   >
-                    {d.inReplyTo.number}
-                  </Link>{" "}
-                  <span className="text-neutral-600">
-                    (from {d.inReplyTo.sender})
+                    <span className="font-mono text-[13px]">
+                      {d.file.reference}
+                    </span>{" "}
+                    — {d.file.title}
+                  </Link>
+                ) : (
+                  BLANK
+                )}
+              </Detail>
+              <Detail label="Originating unit">
+                {row.originatingUnit.name}
+              </Detail>
+              <Detail label="Prepared by">{text(row.preparedBy)}</Detail>
+              <Detail label="Signed by">
+                {row.signedBy?.name ?? row.signedByText ?? BLANK} —{" "}
+                {row.signatoryDesignation}
+              </Detail>
+            </dl>
+          </Panel>
+
+          <Panel title="Dispatch, delivery and response">
+            <dl>
+              <Detail label="Dispatch mode">{row.dispatchMode.label}</Detail>
+              <Detail label="Date dispatched">
+                {formatDate(fromDbDate(row.dateDispatched))}
+              </Detail>
+              <Detail label="Dispatched by">
+                {text(row.dispatchedBy?.name)}
+              </Detail>
+              <Detail label="Tracking ref.">{text(row.trackingRef)}</Detail>
+              <Detail label="Delivery confirmed">
+                {formatYesNo(row.deliveryConfirmed)}
+              </Detail>
+              <Detail label="Date delivered">
+                {formatDate(fromDbDate(row.dateDelivered))}
+              </Detail>
+              <Detail label="Received by (recipient)">
+                {text(row.receivedByRecipient)}
+              </Detail>
+              <Detail label="Response expected">
+                {formatYesNo(derived.responseExpected)}
+              </Detail>
+              <Detail label="Response due">
+                {formatDate(derived.responseDue)}
+              </Detail>
+              <Detail label="Response received">
+                {derived.responseInward
+                  ? `${derived.responseInward.number} on ${formatDate(derived.responseReceivedOn)}`
+                  : BLANK}
+              </Detail>
+              <Detail label="Working days to dispatch">
+                {derived.workingDaysToDispatch}
+              </Detail>
+              <Detail label="Remarks">{text(row.remarks)}</Detail>
+            </dl>
+          </Panel>
+
+          <Panel title="Responses received">
+            {d.responses.length === 0 ? (
+              <p className="text-text-muted text-sm">
+                No inward item quotes this letter yet.
+              </p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {d.responses.map((r) => (
+                  <li key={r.id}>
+                    <Link
+                      href={`/inward/${r.id}`}
+                      className="text-accent font-mono text-[13px] hover:underline"
+                    >
+                      {r.number}
+                    </Link>{" "}
+                    from {r.sender}, deemed received{" "}
+                    {formatDate(fromDbDate(r.deemedReceiptDate))}
+                    {r.voidedAt && " (void)"}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+
+          {writable && options && (
+            <Panel title="Update item">
+              <UpdateOutwardForm
+                id={row.id}
+                options={options}
+                values={values}
+              />
+            </Panel>
+          )}
+
+          {writable && options && can(user, "items.editAny") && (
+            <details className="group rounded-panel border-border-subtle bg-surface border">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-[22px] py-3">
+                <span className="font-semibold">
+                  Edit registered details{" "}
+                  <span className="text-text-muted font-normal">
+                    (Head of Registry)
                   </span>
-                </>
-              ) : (
-                BLANK
-              )}
-            </Detail>
-            <Detail label="Related OGSERC No.">
-              {text(row.relatedOgsercNo)}
-            </Detail>
-            <Detail label="File">
-              {d.file ? `${d.file.reference} — ${d.file.title}` : BLANK}
-            </Detail>
-            <Detail label="Originating unit">{row.originatingUnit.name}</Detail>
-            <Detail label="Prepared by">{text(row.preparedBy)}</Detail>
-            <Detail label="Signed by">
-              {row.signedBy?.name ?? row.signedByText ?? BLANK} —{" "}
-              {row.signatoryDesignation}
-            </Detail>
-          </dl>
-        </Panel>
+                </span>
+                <span
+                  aria-hidden
+                  className="text-text-muted text-lg transition-transform group-open:rotate-45"
+                >
+                  +
+                </span>
+              </summary>
+              <div className="px-[22px] pb-[22px]">
+                <EditOutwardForm
+                  id={row.id}
+                  options={options}
+                  values={values}
+                />
+              </div>
+            </details>
+          )}
 
-        <Panel title="Dispatch, delivery and response">
-          <dl>
-            <Detail label="Dispatch mode">{row.dispatchMode.label}</Detail>
-            <Detail label="Date dispatched">
-              {formatDate(fromDbDate(row.dateDispatched))}
-            </Detail>
-            <Detail label="Dispatched by">
-              {text(row.dispatchedBy?.name)}
-            </Detail>
-            <Detail label="Tracking ref.">{text(row.trackingRef)}</Detail>
-            <Detail label="Delivery confirmed">
-              {formatYesNo(row.deliveryConfirmed)}
-            </Detail>
-            <Detail label="Date delivered">
-              {formatDate(fromDbDate(row.dateDelivered))}
-            </Detail>
-            <Detail label="Received by (recipient)">
-              {text(row.receivedByRecipient)}
-            </Detail>
-            <Detail label="Response expected">
-              {formatYesNo(derived.responseExpected)}
-            </Detail>
-            <Detail label="Response due">
-              {formatDate(derived.responseDue)}
-            </Detail>
-            <Detail label="Response received">
-              {derived.responseInward
-                ? `${derived.responseInward.number} on ${formatDate(derived.responseReceivedOn)}`
-                : BLANK}
-            </Detail>
-            <Detail label="Working days to dispatch">
-              {derived.workingDaysToDispatch}
-            </Detail>
-            <Detail label="Remarks">{text(row.remarks)}</Detail>
-          </dl>
-        </Panel>
+          <Panel title="History">
+            <History
+              entries={d.history}
+              labels={{
+                ...OUTWARD_LABELS,
+                voidedAt: "Voided",
+                voidedById: "Voided by",
+                voidReason: "Void reason",
+              }}
+              names={names}
+            />
+          </Panel>
+        </div>
       </div>
-
-      <Panel title="Responses received">
-        {d.responses.length === 0 ? (
-          <p className="text-sm text-neutral-600">
-            No inward item quotes this letter yet.
-          </p>
-        ) : (
-          <ul className="text-sm">
-            {d.responses.map((r) => (
-              <li key={r.id}>
-                <Link href={`/inward/${r.id}`} className="font-mono underline">
-                  {r.number}
-                </Link>{" "}
-                from {r.sender}, deemed received{" "}
-                {formatDate(fromDbDate(r.deemedReceiptDate))}
-                {r.voidedAt && " (void)"}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Panel>
-
-      {writable && options && (
-        <Panel title="Update item">
-          <UpdateOutwardForm id={row.id} options={options} values={values} />
-        </Panel>
-      )}
-
-      {writable && options && can(user, "items.editAny") && (
-        <details className="rounded border border-neutral-200 p-4">
-          <summary className="cursor-pointer text-base font-semibold">
-            Edit registered details (Head of Registry)
-          </summary>
-          <div className="mt-4">
-            <EditOutwardForm id={row.id} options={options} values={values} />
-          </div>
-        </details>
-      )}
-
-      <Panel title="History">
-        <History
-          entries={d.history}
-          labels={{
-            ...OUTWARD_LABELS,
-            voidedAt: "Voided",
-            voidedById: "Voided by",
-            voidReason: "Void reason",
-          }}
-          names={names}
-        />
-      </Panel>
-    </div>
+    </>
   );
 }
