@@ -76,7 +76,7 @@ export function NewOutwardForm({
                 {issued.label}
               </p>
               <p className="text-text-muted mt-2 text-sm">
-                Quote it on the document before it is signed.
+                Quote it on the document.
               </p>
               <a
                 href={issued.href}

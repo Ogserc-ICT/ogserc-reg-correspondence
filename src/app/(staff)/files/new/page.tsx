@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { PageHeader } from "@/app/_components/ui/page-header";
 import { todayIn } from "@/domain/clock";
 import { appNow } from "@/server/clock";
 import { requireCan } from "@/server/current-user";
@@ -11,10 +12,16 @@ export const metadata: Metadata = { title: "New file · OGSERC Registry" };
 
 export default function NewFilePage() {
   return (
-    <main>
-      <h1 className="mb-6 text-2xl font-semibold">Add to File Index</h1>
-      <Suspense fallback={<p className="text-neutral-500">Loading…</p>}>
-        <Form />
+    <main className="mx-auto w-full max-w-[900px]">
+      <PageHeader
+        back={{ href: "/files", label: "File Desk" }}
+        title="New file"
+        intro="Add a physical file to the File Index. Fields marked * are required."
+      />
+      <Suspense fallback={<p className="text-text-muted mt-6">Loading…</p>}>
+        <div className="rounded-panel border-border-subtle bg-surface mt-6 border p-[22px]">
+          <Form />
+        </div>
       </Suspense>
     </main>
   );

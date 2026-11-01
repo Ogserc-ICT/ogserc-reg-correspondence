@@ -2,6 +2,7 @@
 // New file, Update file, Issue and Record return (SPEC §6, §7).
 import { useActionState } from "react";
 import { Messages, SubmitButton, type FormState } from "@/app/_components/form";
+import { buttonClass } from "@/app/_components/ui/button";
 import { Select, TextArea, TextInput } from "@/app/_components/inputs";
 import type { FormOptions } from "@/server/read/options";
 import {
@@ -24,7 +25,7 @@ function FileFields({
 }) {
   const v = (k: string) => values[k] ?? "";
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
       {isNew && (
         <TextInput
           name="reference"
@@ -34,7 +35,7 @@ function FileFields({
           defaultValue={v("reference")}
         />
       )}
-      <div className={isNew ? "lg:col-span-2" : "sm:col-span-2 lg:col-span-3"}>
+      <div className={isNew ? "" : "sm:col-span-2"}>
         <TextInput
           name="title"
           label="Title"
@@ -176,7 +177,7 @@ export function IssueFileForm({
         action={action}
         role="alertdialog"
         aria-label="Confirm issue"
-        className="bg-status-awaiting rounded p-3 text-sm"
+        className="rounded-card border-awaiting/40 bg-status-awaiting border p-4 text-sm"
       >
         {Object.entries(v)
           .filter(([k]) => k !== "confirmStillOut")
@@ -185,12 +186,9 @@ export function IssueFileForm({
           ))}
         <input type="hidden" name="confirmStillOut" value="1" />
         <p className="font-medium">{state.confirm}</p>
-        <div className="mt-2 flex gap-3">
+        <div className="mt-3 flex flex-wrap gap-3">
           <SubmitButton>Issue anyway</SubmitButton>
-          <a
-            href={`/files/${id}`}
-            className="rounded border border-neutral-300 px-4 py-2"
-          >
+          <a href={`/files/${id}`} className={buttonClass()}>
             Cancel
           </a>
         </div>
@@ -203,7 +201,7 @@ export function IssueFileForm({
       className="space-y-4"
     >
       <Messages state={state} />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2 lg:grid-cols-1">
         <TextInput
           name="issuedTo"
           label="Issued to"
@@ -261,7 +259,7 @@ export function ReturnFileForm({
     <div className="space-y-3">
       <Messages state={state} />
       {holder ? (
-        <form action={action} className="flex flex-wrap items-end gap-3">
+        <form action={action} className="space-y-4 [&>button]:w-full">
           <TextInput
             name="dateReturned"
             type="date"
@@ -271,7 +269,7 @@ export function ReturnFileForm({
           <SubmitButton>Record return from {holder}</SubmitButton>
         </form>
       ) : (
-        <p className="text-sm text-neutral-600">
+        <p className="text-text-muted text-sm">
           {reference} is with the Registry.
         </p>
       )}
