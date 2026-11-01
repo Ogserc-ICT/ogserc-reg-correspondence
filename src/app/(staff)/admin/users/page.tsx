@@ -14,9 +14,9 @@ export const metadata: Metadata = { title: "Users · OGSERC Registry" };
 
 export default function UsersPage() {
   return (
-    <main>
-      <h1 className="text-2xl font-semibold">Users</h1>
-      <Suspense fallback={<p className="mt-4 text-neutral-500">Loading…</p>}>
+    <main className="mx-auto w-full max-w-[1200px]">
+      <h1 className="text-[28px] font-semibold tracking-tight">Users</h1>
+      <Suspense fallback={<p className="text-text-faint mt-4">Loading…</p>}>
         <Users />
       </Suspense>
     </main>
@@ -36,15 +36,28 @@ async function Users() {
 
   return (
     <>
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-neutral-300 text-neutral-600">
+      <section
+        aria-label="Users"
+        className="rounded-panel border-border-subtle bg-surface mt-6 overflow-x-auto border p-[22px]"
+      >
+        <table className="w-full min-w-[44rem] text-left text-sm">
+          <thead className="border-border-subtle text-text-faint border-b text-left text-xs tracking-wider uppercase">
             <tr>
-              <th className="py-2 pr-4">Name</th>
-              <th className="py-2 pr-4">Email</th>
-              <th className="py-2 pr-4">Role</th>
-              <th className="py-2 pr-4">Unit</th>
-              <th className="py-2 pr-4">Status</th>
+              <th scope="col" className="py-2.5 pr-4 font-semibold">
+                Name
+              </th>
+              <th scope="col" className="py-2.5 pr-4 font-semibold">
+                Email
+              </th>
+              <th scope="col" className="py-2.5 pr-4 font-semibold">
+                Role
+              </th>
+              <th scope="col" className="py-2.5 pr-4 font-semibold">
+                Unit
+              </th>
+              <th scope="col" className="py-2.5 pr-4 font-semibold">
+                Status
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -57,28 +70,33 @@ async function Users() {
                     ? "Must change password"
                     : "Active";
               return (
-                <tr key={u.id} className="border-b border-neutral-100">
-                  <td className="py-2 pr-4">
+                <tr
+                  key={u.id}
+                  className="border-border-subtle border-b last:border-b-0"
+                >
+                  <td className="py-3 pr-4">
                     <Link
                       href={`/admin/users/${u.id}`}
-                      className="text-brand-green underline"
+                      className="text-accent hover:underline"
                     >
                       {u.name}
                     </Link>
                   </td>
-                  <td className="py-2 pr-4">{u.email}</td>
-                  <td className="py-2 pr-4">{ROLE_LABELS[u.role]}</td>
-                  <td className="py-2 pr-4">{u.unit?.name ?? "—"}</td>
-                  <td className="py-2 pr-4">{status}</td>
+                  <td className="py-3 pr-4">{u.email}</td>
+                  <td className="py-3 pr-4">{ROLE_LABELS[u.role]}</td>
+                  <td className="py-3 pr-4">{u.unit?.name ?? "—"}</td>
+                  <td className="py-3 pr-4">{status}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-      </div>
+      </section>
 
-      <h2 className="mt-10 mb-4 text-lg font-semibold">Add a user</h2>
-      <CreateUserForm units={units} suggestedPassword={temporaryPassword()} />
+      <section className="rounded-panel border-border-subtle bg-surface mt-5 border p-[22px]">
+        <h2 className="mb-4 text-lg font-semibold">Add a user</h2>
+        <CreateUserForm units={units} suggestedPassword={temporaryPassword()} />
+      </section>
     </>
   );
 }

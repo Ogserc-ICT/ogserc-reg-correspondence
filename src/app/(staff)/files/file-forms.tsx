@@ -259,7 +259,10 @@ export function ReturnFileForm({
     <div className="space-y-3">
       <Messages state={state} />
       {holder ? (
-        <form action={action} className="space-y-4 [&>button]:w-full">
+        <form
+          action={action}
+          className="space-y-4 [&>button]:h-auto [&>button]:min-h-11 [&>button]:w-full [&>button]:py-2.5 [&>button]:text-center [&>button]:whitespace-normal"
+        >
           <TextInput
             name="dateReturned"
             type="date"

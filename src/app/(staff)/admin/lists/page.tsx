@@ -14,10 +14,12 @@ export const metadata: Metadata = { title: "Lists · OGSERC Registry" };
 
 export default function ListsPage() {
   return (
-    <main>
-      <h1 className="mb-4 text-2xl font-semibold">Reference data</h1>
+    <main className="mx-auto w-full max-w-[1200px]">
+      <h1 className="mb-6 text-[28px] font-semibold tracking-tight">
+        Reference data
+      </h1>
       <Tabs />
-      <Suspense fallback={<p className="text-neutral-500">Loading…</p>}>
+      <Suspense fallback={<p className="text-text-faint">Loading…</p>}>
         <Lists />
       </Suspense>
     </main>
@@ -30,8 +32,8 @@ async function Lists() {
 
   return (
     <div className="space-y-10">
-      <section>
-        <h2 className="text-lg font-semibold">Units</h2>
+      <section className="rounded-panel border-border-subtle bg-surface border p-[22px]">
+        <h2 className="mb-2 text-lg font-semibold">Units</h2>
         <div className="mt-3 space-y-2">
           {ref.units.map((u) => (
             <Editor
@@ -39,7 +41,7 @@ async function Lists() {
               action={saveUnitAction.bind(null, u.id)}
               summary={
                 <span
-                  className={u.active ? "" : "text-neutral-500 line-through"}
+                  className={u.active ? "" : "text-text-faint line-through"}
                 >
                   {u.name}
                 </span>
@@ -81,10 +83,13 @@ async function Lists() {
         const items = ref.listItems.filter((i) => i.list === kind);
         const modes = kind === "RECEIPT_MODE";
         return (
-          <section key={kind}>
-            <h2 className="text-lg font-semibold">{title}</h2>
+          <section
+            key={kind}
+            className="rounded-panel border-border-subtle bg-surface border p-[22px]"
+          >
+            <h2 className="mb-2 text-lg font-semibold">{title}</h2>
             {modes && (
-              <p className="text-sm text-neutral-600">
+              <p className="text-text-muted text-sm">
                 &ldquo;After-hours cut-off&rdquo; marks the modes deemed
                 received the next working day at or after the closing time (para
                 10(3), Q3).
@@ -97,13 +102,11 @@ async function Lists() {
                   action={saveListItemAction.bind(null, kind, i.id)}
                   summary={
                     <span
-                      className={
-                        i.active ? "" : "text-neutral-500 line-through"
-                      }
+                      className={i.active ? "" : "text-text-faint line-through"}
                     >
                       {i.label}
                       {i.systemKey && (
-                        <span className="ml-2 text-xs text-neutral-500">
+                        <span className="text-text-faint ml-2 text-xs">
                           used by the rules
                         </span>
                       )}

@@ -16,14 +16,14 @@ export default function EditUserPage({
   params,
 }: PageProps<"/admin/users/[id]">) {
   return (
-    <main>
+    <main className="mx-auto w-full max-w-[1200px]">
       <Link
         href="/admin/users"
-        className="text-sm text-neutral-600 hover:underline"
+        className="text-accent rounded text-sm hover:underline"
       >
         ← Users
       </Link>
-      <Suspense fallback={<p className="mt-4 text-neutral-500">Loading…</p>}>
+      <Suspense fallback={<p className="text-text-faint mt-4">Loading…</p>}>
         <EditUser params={params} />
       </Suspense>
     </main>
@@ -47,44 +47,53 @@ async function EditUser({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <>
-      <h1 className="mt-2 mb-6 text-2xl font-semibold">{user.name}</h1>
-      <EditUserForm
-        id={user.id}
-        units={units}
-        values={{
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          unitId: user.unitId ?? "",
-          isSignatory: user.isSignatory,
-          designation: user.designation ?? "",
-          active: user.active,
-        }}
-      />
+      <h1 className="mt-2 mb-6 text-[28px] font-semibold tracking-tight">
+        {user.name}
+      </h1>
+      <section className="rounded-panel border-border-subtle bg-surface border p-[22px]">
+        <EditUserForm
+          id={user.id}
+          units={units}
+          values={{
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            unitId: user.unitId ?? "",
+            isSignatory: user.isSignatory,
+            designation: user.designation ?? "",
+            active: user.active,
+          }}
+        />
+      </section>
 
-      <h2 className="mt-10 mb-2 text-lg font-semibold">Sign-in</h2>
-      {locked ? (
-        <form action={unlockAction.bind(null, user.id)} className="mb-6">
-          <p className="bg-status-overdue mb-2 rounded p-3 text-sm">
-            Locked after repeated failed sign-ins until{" "}
-            {user.lockedUntil!.toLocaleTimeString("en-GB", {
-              timeZone: "Africa/Lagos",
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-            .
-          </p>
-          <button
-            type="submit"
-            className="rounded border border-neutral-300 px-4 py-2 text-sm hover:bg-neutral-50"
-          >
-            Unlock now
-          </button>
-        </form>
-      ) : (
-        <p className="mb-6 text-sm text-neutral-600">Not locked.</p>
-      )}
-      <ResetPasswordForm id={user.id} suggestedPassword={temporaryPassword()} />
+      <section className="rounded-panel border-border-subtle bg-surface mt-5 border p-[22px]">
+        <h2 className="mb-3 text-lg font-semibold">Sign-in</h2>
+        {locked ? (
+          <form action={unlockAction.bind(null, user.id)} className="mb-6">
+            <p className="rounded-card border-overdue/40 bg-status-overdue mb-3 border p-4 text-sm">
+              Locked after repeated failed sign-ins until{" "}
+              {user.lockedUntil!.toLocaleTimeString("en-GB", {
+                timeZone: "Africa/Lagos",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+              .
+            </p>
+            <button
+              type="submit"
+              className="rounded-control border-border bg-surface text-text hover:bg-surface-raised inline-flex h-11 items-center justify-center border px-4 text-sm font-semibold"
+            >
+              Unlock now
+            </button>
+          </form>
+        ) : (
+          <p className="text-text-muted mb-6 text-sm">Not locked.</p>
+        )}
+        <ResetPasswordForm
+          id={user.id}
+          suggestedPassword={temporaryPassword()}
+        />
+      </section>
     </>
   );
 }

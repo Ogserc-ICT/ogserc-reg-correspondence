@@ -281,7 +281,7 @@ async function Dashboard() {
         <Stat label="Files with flags" tone="flagged" value={f.withFlags} />
       </Group>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-2">
         <MonthlyChart data={b.byMonth} />
         <PendingByUnitChart
           data={b.byUnit.map((u) => ({
@@ -292,7 +292,7 @@ async function Dashboard() {
         />
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-2">
         <Table
           title="By unit"
           rows={b.byUnit}

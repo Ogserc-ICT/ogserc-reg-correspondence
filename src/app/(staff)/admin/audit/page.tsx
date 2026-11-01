@@ -14,9 +14,11 @@ export const metadata: Metadata = { title: "Audit log · OGSERC Registry" };
 
 export default function AuditPage({ searchParams }: PageProps<"/admin/audit">) {
   return (
-    <main>
-      <h1 className="mb-4 text-2xl font-semibold">Audit log</h1>
-      <Suspense fallback={<p className="text-neutral-500">Loading…</p>}>
+    <main className="mx-auto w-full max-w-[1200px]">
+      <h1 className="mb-6 text-[28px] font-semibold tracking-tight">
+        Audit log
+      </h1>
+      <Suspense fallback={<p className="text-text-faint">Loading…</p>}>
         <Audit searchParams={searchParams} />
       </Suspense>
     </main>
@@ -48,16 +50,16 @@ async function Audit({
     <>
       <form
         method="get"
-        className="mb-4 flex flex-wrap items-end gap-3 text-sm"
+        className="rounded-card border-border-subtle bg-surface mb-4 flex flex-wrap items-end gap-3 border p-4 text-sm"
       >
         <label>
-          <span className="block text-xs text-neutral-600">
+          <span className="text-text-muted block text-xs">
             Number or file reference
           </span>
           <input name="q" defaultValue={params.q} className={small} />
         </label>
         <label>
-          <span className="block text-xs text-neutral-600">Record</span>
+          <span className="text-text-muted block text-xs">Record</span>
           <select
             name="type"
             defaultValue={params.type ?? ""}
@@ -72,7 +74,7 @@ async function Audit({
           </select>
         </label>
         <label>
-          <span className="block text-xs text-neutral-600">Action</span>
+          <span className="text-text-muted block text-xs">Action</span>
           <select
             name="action"
             defaultValue={params.action ?? ""}
@@ -87,7 +89,7 @@ async function Audit({
           </select>
         </label>
         <label>
-          <span className="block text-xs text-neutral-600">By</span>
+          <span className="text-text-muted block text-xs">By</span>
           <select
             name="user"
             defaultValue={params.user ?? ""}
@@ -102,7 +104,7 @@ async function Audit({
           </select>
         </label>
         <label>
-          <span className="block text-xs text-neutral-600">From</span>
+          <span className="text-text-muted block text-xs">From</span>
           <input
             type="date"
             name="from"
@@ -111,7 +113,7 @@ async function Audit({
           />
         </label>
         <label>
-          <span className="block text-xs text-neutral-600">To</span>
+          <span className="text-text-muted block text-xs">To</span>
           <input
             type="date"
             name="to"
@@ -121,24 +123,27 @@ async function Audit({
         </label>
         <button
           type="submit"
-          className="bg-brand-green rounded px-4 py-1.5 text-white"
+          className="rounded-control bg-accent text-on-accent inline-flex h-11 items-center justify-center px-4 text-sm font-semibold hover:brightness-110"
         >
           Apply
         </button>
-        <Link href="/admin/audit" className="px-2 py-1.5 underline">
+        <Link
+          href="/admin/audit"
+          className="text-text-muted hover:text-text rounded-control inline-flex h-11 items-center px-3 text-sm font-semibold"
+        >
           Reset
         </Link>
       </form>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="border-b border-neutral-300 text-left text-neutral-600">
+      <div className="rounded-panel border-border-subtle bg-surface overflow-x-auto border p-[22px]">
+        <table className="w-full min-w-[56rem] text-sm">
+          <thead className="border-border-subtle text-text-faint border-b text-left text-xs tracking-wider uppercase">
             <tr>
-              <th className="py-2 pr-3 font-medium">When</th>
-              <th className="py-2 pr-3 font-medium">Who</th>
-              <th className="py-2 pr-3 font-medium">Action</th>
-              <th className="py-2 pr-3 font-medium">Record</th>
-              <th className="py-2 pr-3 font-medium">Changes</th>
+              <th className="py-2 pr-3 font-semibold">When</th>
+              <th className="py-2 pr-3 font-semibold">Who</th>
+              <th className="py-2 pr-3 font-semibold">Action</th>
+              <th className="py-2 pr-3 font-semibold">Record</th>
+              <th className="py-2 pr-3 font-semibold">Changes</th>
             </tr>
           </thead>
           <tbody>
@@ -149,7 +154,7 @@ async function Audit({
               return (
                 <tr
                   key={String(r.id)}
-                  className="border-b border-neutral-100 align-top"
+                  className="border-border-subtle border-b align-top"
                 >
                   <td className="py-2 pr-3 whitespace-nowrap">
                     {formatDateTime(r.at)}
@@ -157,13 +162,13 @@ async function Audit({
                   <td className="py-2 pr-3">{r.user?.name ?? "System"}</td>
                   <td className="py-2 pr-3">{r.action}</td>
                   <td className="py-2 pr-3">
-                    <span className="text-xs text-neutral-500">
+                    <span className="text-text-faint text-xs">
                       {r.entityType}
                     </span>{" "}
                     {r.target.href ? (
                       <Link
                         href={r.target.href}
-                        className="font-mono underline"
+                        className="text-accent font-mono hover:underline"
                       >
                         {r.target.text}
                       </Link>
@@ -183,7 +188,7 @@ async function Audit({
                       </ul>
                     )}
                     {r.note && (
-                      <p className="text-neutral-600">Note: {r.note}</p>
+                      <p className="text-text-muted">Note: {r.note}</p>
                     )}
                   </td>
                 </tr>
@@ -193,11 +198,11 @@ async function Audit({
         </table>
       </div>
       <nav className="mt-4 flex items-center gap-4 text-sm" aria-label="Pages">
-        <span className="text-neutral-600">{total} entries</span>
+        <span className="text-text-muted">{total} entries</span>
         {f.page > 1 && (
           <Link
             href={query(params, { page: String(f.page - 1) })}
-            className="underline"
+            className="text-accent hover:underline"
           >
             ← Newer
           </Link>
@@ -208,7 +213,7 @@ async function Audit({
         {f.page < pages && (
           <Link
             href={query(params, { page: String(f.page + 1) })}
-            className="underline"
+            className="text-accent hover:underline"
           >
             Older →
           </Link>

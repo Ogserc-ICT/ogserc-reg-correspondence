@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { Messages, type FormState } from "@/app/_components/form";
+import { buttonClass } from "@/app/_components/ui/button";
 
 type Action = (prev: FormState, form: FormData) => Promise<FormState>;
 
@@ -41,7 +42,7 @@ function Submit({
     <button
       type="submit"
       disabled={pending}
-      className={`rounded px-4 py-2 text-sm font-medium disabled:opacity-50 ${quiet ? "border border-neutral-300 bg-white hover:bg-neutral-50" : "bg-brand-green text-white hover:opacity-90"}`}
+      className={buttonClass(quiet ? "secondary" : "primary")}
     >
       {pending ? "Working…" : children}
     </button>
@@ -54,7 +55,11 @@ export function Tabs() {
     <Link
       href={href}
       aria-current={path === href ? "page" : undefined}
-      className={`rounded px-3 py-1.5 text-sm ${path === href ? "bg-neutral-800 text-white" : "border border-neutral-300"}`}
+      className={`inline-flex h-10 items-center rounded-full border px-4 text-sm transition-colors ${
+        path === href
+          ? "border-text bg-text text-bg font-semibold"
+          : "border-border bg-surface text-text hover:border-text-faint"
+      }`}
     >
       {label}
     </Link>
@@ -84,9 +89,11 @@ export function Editor({
 }) {
   const { state, onSubmit, pending } = useSubmit(action);
   return (
-    <details className="rounded border border-neutral-200 open:bg-neutral-50">
-      <summary className="cursor-pointer px-3 py-2 text-sm">{summary}</summary>
-      <div className="space-y-3 border-t border-neutral-200 p-3">
+    <details className="rounded-control border-border-subtle open:bg-surface-raised/50 border">
+      <summary className="hover:bg-surface-raised/50 flex min-h-11 cursor-pointer items-center px-3.5 py-2 text-sm">
+        {summary}
+      </summary>
+      <div className="border-border-subtle space-y-3 border-t p-3.5">
         <form
           key={state.ok ? state.message : "edit"}
           onSubmit={onSubmit}
@@ -119,7 +126,7 @@ export function AddForm({
     <form
       key={state.ok ? state.message : "add"}
       onSubmit={onSubmit}
-      className="mt-3 space-y-3 rounded border border-dashed border-neutral-300 p-3"
+      className="rounded-control border-border mt-4 space-y-3 border border-dashed p-3.5"
     >
       <Messages state={state} />
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{children}</div>
@@ -149,7 +156,10 @@ export function ConfirmButton({
       }}
     >
       <Messages state={state} />
-      <button type="submit" className="text-sm text-red-800 underline">
+      <button
+        type="submit"
+        className="text-overdue min-h-11 rounded text-sm hover:underline"
+      >
         {label}
       </button>
     </form>
@@ -166,8 +176,13 @@ export function Check({
   defaultChecked?: boolean;
 }) {
   return (
-    <label className="flex items-center gap-2 text-sm">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} />
+    <label className="flex min-h-11 items-center gap-2 text-sm">
+      <input
+        type="checkbox"
+        name={name}
+        defaultChecked={defaultChecked}
+        className="accent-accent h-4 w-4"
+      />
       {label}
     </label>
   );

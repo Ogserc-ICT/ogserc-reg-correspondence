@@ -83,12 +83,6 @@ export const TONES: Record<Tone, { pill: string; dot: string; text: string }> =
     },
   };
 
-/** Row / box tint for a status (kept for screens not yet restyled). */
-export function statusTone(status: string, flagged: boolean): string {
-  const tone = toneOf(status, flagged);
-  return tone === "none" ? "" : TONES[tone].pill;
-}
-
 export function StatusPill({
   children,
   tone,

@@ -9,14 +9,14 @@ export const metadata: Metadata = { title: "Settings · OGSERC Registry" };
 
 export default function SettingsPage() {
   return (
-    <main>
-      <h1 className="text-2xl font-semibold">Settings</h1>
-      <p className="mt-1 mb-6 max-w-2xl text-sm text-neutral-600">
+    <main className="mx-auto w-full max-w-[1200px]">
+      <h1 className="text-[28px] font-semibold tracking-tight">Settings</h1>
+      <p className="text-text-muted mt-1 mb-6 max-w-2xl text-sm">
         Rules the Commission may still change. Every change is recorded in the
         audit log with its old and new value. The time zone is always
         Africa/Lagos.
       </p>
-      <Suspense fallback={<p className="text-neutral-500">Loading…</p>}>
+      <Suspense fallback={<p className="text-text-faint">Loading…</p>}>
         <Settings />
       </Suspense>
     </main>

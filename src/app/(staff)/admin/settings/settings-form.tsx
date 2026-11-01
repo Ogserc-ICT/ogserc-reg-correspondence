@@ -13,7 +13,7 @@ type Values = Record<string, string | number | boolean>;
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <fieldset className="rounded border border-neutral-200 p-4">
+    <fieldset className="rounded-panel border-border-subtle bg-surface border p-[22px]">
       <legend className="px-1 text-sm font-semibold">{title}</legend>
       <div className="grid gap-4 sm:grid-cols-2">{children}</div>
     </fieldset>

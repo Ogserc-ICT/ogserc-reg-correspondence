@@ -32,10 +32,12 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function HolidaysPage() {
   return (
-    <main>
-      <h1 className="mb-4 text-2xl font-semibold">Reference data</h1>
+    <main className="mx-auto w-full max-w-[1200px]">
+      <h1 className="mb-6 text-[28px] font-semibold tracking-tight">
+        Reference data
+      </h1>
       <Tabs />
-      <Suspense fallback={<p className="text-neutral-500">Loading…</p>}>
+      <Suspense fallback={<p className="text-text-faint">Loading…</p>}>
         <Holidays />
       </Suspense>
     </main>
@@ -54,7 +56,7 @@ async function Holidays() {
 
   return (
     <>
-      <p className="mb-4 max-w-3xl text-sm text-neutral-600">
+      <p className="text-text-muted mb-4 max-w-3xl text-sm">
         Holidays are non-working days for every deadline and the para 10(3)
         deemed receipt date. Adding, moving or removing one recalculates open
         deadlines immediately. Add any State-declared holidays too.
@@ -64,7 +66,7 @@ async function Holidays() {
           role="note"
           className="bg-status-awaiting mb-4 rounded p-3 text-sm"
         >
-          <p className="font-medium">To confirm in the next 30 days</p>
+          <p className="font-semibold">To confirm in the next 30 days</p>
           <ul className="list-disc pl-5">
             {soon.map((h) => (
               <li key={h.date}>

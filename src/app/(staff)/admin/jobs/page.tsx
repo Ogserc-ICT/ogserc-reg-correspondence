@@ -11,9 +11,11 @@ export const metadata: Metadata = { title: "Jobs · OGSERC Registry" };
 
 export default function JobsPage() {
   return (
-    <main>
-      <h1 className="mb-4 text-2xl font-semibold">Scheduled jobs</h1>
-      <Suspense fallback={<p className="text-neutral-500">Loading…</p>}>
+    <main className="mx-auto w-full max-w-[1200px]">
+      <h1 className="mb-6 text-[28px] font-semibold tracking-tight">
+        Scheduled jobs
+      </h1>
+      <Suspense fallback={<p className="text-text-faint">Loading…</p>}>
         <Jobs />
       </Suspense>
     </main>
@@ -43,11 +45,11 @@ async function Jobs() {
           return (
             <section
               key={name}
-              className="rounded border border-neutral-200 p-4"
+              className="rounded-panel border-border-subtle bg-surface border p-[22px]"
             >
               <h2 className="font-semibold">{job.title}</h2>
-              <p className="mt-1 text-sm text-neutral-700">{job.description}</p>
-              <p className="mt-2 text-xs text-neutral-600">
+              <p className="text-text-muted mt-1 text-sm">{job.description}</p>
+              <p className="text-text-muted mt-2 text-xs">
                 Last run: {outcome}
               </p>
               <div className="mt-3">
@@ -58,7 +60,7 @@ async function Jobs() {
         })}
       </div>
 
-      <section className="mt-6 rounded border border-neutral-200 p-4 text-sm">
+      <section className="rounded-panel border-border-subtle bg-surface mt-6 border p-[22px] text-sm">
         <h2 className="mb-2 font-semibold">Running them on a schedule</h2>
         {configured ? (
           <p>
@@ -71,44 +73,49 @@ async function Jobs() {
             the server&apos;s environment first.
           </p>
         )}
-        <pre className="mt-2 overflow-x-auto rounded bg-neutral-100 p-2 text-xs">
+        <pre className="rounded-control border-border bg-input mt-2 overflow-x-auto border p-3 text-xs">
           {CRON_EXAMPLE}
         </pre>
       </section>
 
-      <h2 className="mt-6 mb-2 font-semibold">Recent runs</h2>
-      <table className="w-full text-sm">
-        <thead className="border-b border-neutral-300 text-left text-neutral-600">
-          <tr>
-            <th className="py-1 pr-3 font-medium">Started</th>
-            <th className="py-1 pr-3 font-medium">Job</th>
-            <th className="py-1 pr-3 font-medium">By</th>
-            <th className="py-1 pr-3 font-medium">Result</th>
-          </tr>
-        </thead>
-        <tbody>
-          {runs.map((r) => (
-            <tr key={r.id} className="border-b border-neutral-100 align-top">
-              <td className="py-1 pr-3 whitespace-nowrap">
-                {formatDateTime(r.startedAt)}
-              </td>
-              <td className="py-1 pr-3">{r.job}</td>
-              <td className="py-1 pr-3">
-                {r.triggeredBy?.name ?? "Scheduler"}
-              </td>
-              <td
-                className={`py-1 pr-3 ${r.ok === false ? "text-red-800" : ""}`}
-              >
-                {r.ok === false ? "FAILED: " : ""}
-                {r.summary ?? "…"}
-              </td>
+      <section className="rounded-panel border-border-subtle bg-surface mt-6 overflow-x-auto border p-[22px]">
+        <h2 className="mb-3 font-semibold">Recent runs</h2>
+        <table className="w-full min-w-[40rem] text-sm">
+          <thead className="border-border-subtle text-text-faint border-b text-left text-xs tracking-wider uppercase">
+            <tr>
+              <th className="py-1 pr-3 font-semibold">Started</th>
+              <th className="py-1 pr-3 font-semibold">Job</th>
+              <th className="py-1 pr-3 font-semibold">By</th>
+              <th className="py-1 pr-3 font-semibold">Result</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      {runs.length === 0 && (
-        <p className="py-4 text-sm text-neutral-600">No runs yet.</p>
-      )}
+          </thead>
+          <tbody>
+            {runs.map((r) => (
+              <tr
+                key={r.id}
+                className="border-border-subtle border-b align-top"
+              >
+                <td className="py-1 pr-3 whitespace-nowrap">
+                  {formatDateTime(r.startedAt)}
+                </td>
+                <td className="py-1 pr-3">{r.job}</td>
+                <td className="py-1 pr-3">
+                  {r.triggeredBy?.name ?? "Scheduler"}
+                </td>
+                <td
+                  className={`py-1 pr-3 ${r.ok === false ? "text-overdue" : ""}`}
+                >
+                  {r.ok === false ? "FAILED: " : ""}
+                  {r.summary ?? "…"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {runs.length === 0 && (
+          <p className="text-text-muted py-4 text-sm">No runs yet.</p>
+        )}
+      </section>
     </>
   );
 }

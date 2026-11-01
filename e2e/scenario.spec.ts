@@ -13,6 +13,8 @@ const field = (page: Page, name: string) =>
 
 /** Opens the forms' fold-out groups so every field can be filled. */
 async function openFolds(page: Page) {
+  // The form streams in after the page shell; wait for it first.
+  await page.locator("main form").first().waitFor();
   await page.evaluate(() =>
     document.querySelectorAll("main form details").forEach((d) => {
       (d as HTMLDetailsElement).open = true;

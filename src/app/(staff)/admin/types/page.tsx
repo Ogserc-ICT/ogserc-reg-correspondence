@@ -26,10 +26,12 @@ const FOOTERS = [
 
 export default function TypesPage() {
   return (
-    <main>
-      <h1 className="mb-4 text-2xl font-semibold">Reference data</h1>
+    <main className="mx-auto w-full max-w-[1200px]">
+      <h1 className="mb-6 text-[28px] font-semibold tracking-tight">
+        Reference data
+      </h1>
       <Tabs />
-      <Suspense fallback={<p className="text-neutral-500">Loading…</p>}>
+      <Suspense fallback={<p className="text-text-faint">Loading…</p>}>
         <Types />
       </Suspense>
     </main>
@@ -181,9 +183,9 @@ async function Types() {
 
   return (
     <div className="space-y-10">
-      <section>
-        <h2 className="text-lg font-semibold">Incoming types</h2>
-        <p className="mb-3 text-sm text-neutral-600">
+      <section className="rounded-panel border-border-subtle bg-surface border p-[22px]">
+        <h2 className="mb-2 text-lg font-semibold">Incoming types</h2>
+        <p className="text-text-muted mb-3 text-sm">
           Items already logged keep the rules they were saved with; changes
           apply to items logged from now on.
         </p>
@@ -194,7 +196,7 @@ async function Types() {
               action={saveIncomingTypeAction.bind(null, t.id)}
               summary={
                 <span
-                  className={t.active ? "" : "text-neutral-500 line-through"}
+                  className={t.active ? "" : "text-text-faint line-through"}
                 >
                   <strong>{t.name}</strong> · {t.category} ·{" "}
                   {t.defaultUnit.name} ·{" "}
@@ -216,9 +218,9 @@ async function Types() {
         </AddForm>
       </section>
 
-      <section>
-        <h2 className="text-lg font-semibold">Outgoing document types</h2>
-        <p className="mb-3 text-sm text-neutral-600">
+      <section className="rounded-panel border-border-subtle bg-surface border p-[22px]">
+        <h2 className="mb-2 text-lg font-semibold">Outgoing document types</h2>
+        <p className="text-text-muted mb-3 text-sm">
           Untick &ldquo;Closes the inward item&rdquo; for holding replies (SPEC
           §9 R4).
         </p>
@@ -229,7 +231,7 @@ async function Types() {
               action={saveOutgoingTypeAction.bind(null, t.id)}
               summary={
                 <span
-                  className={t.active ? "" : "text-neutral-500 line-through"}
+                  className={t.active ? "" : "text-text-faint line-through"}
                 >
                   <strong>{t.name}</strong>
                   {t.responseExpected
