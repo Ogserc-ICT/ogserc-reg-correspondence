@@ -16,7 +16,7 @@ export function PasswordForm() {
     {},
   );
   return (
-    <form action={action} className="max-w-sm space-y-4">
+    <form action={action} className="space-y-5">
       <Messages state={state} />
       <Field label="Current password">
         <input

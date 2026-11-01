@@ -12,7 +12,7 @@ import { loginAction } from "./actions";
 export function LoginForm() {
   const [state, action] = useActionState<FormState, FormData>(loginAction, {});
   return (
-    <form action={action} className="space-y-4" noValidate>
+    <form action={action} className="space-y-5 [&>button]:w-full" noValidate>
       <Messages state={state} />
       <Field label="Email address">
         <input

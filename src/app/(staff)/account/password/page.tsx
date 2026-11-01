@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { PageHeader } from "@/app/_components/ui/page-header";
 import { requireUser } from "@/server/current-user";
 import { PasswordForm } from "./password-form";
 
@@ -9,12 +10,17 @@ export const metadata: Metadata = {
 
 export default function PasswordPage() {
   return (
-    <main>
-      <h1 className="mb-6 text-2xl font-semibold">Change your password</h1>
+    <main className="mx-auto w-full max-w-[560px]">
+      <PageHeader
+        title="Change your password"
+        intro="Other sessions on your account are signed out when you change it."
+      />
       <Suspense fallback={null}>
         <Notice />
       </Suspense>
-      <PasswordForm />
+      <div className="rounded-panel border-border-subtle bg-surface mt-6 border p-[22px]">
+        <PasswordForm />
+      </div>
     </main>
   );
 }
@@ -23,7 +29,7 @@ async function Notice() {
   const user = await requireUser({ allowTemporaryPassword: true });
   if (!user.mustChangePassword) return null;
   return (
-    <p className="bg-status-awaiting mb-6 max-w-xl rounded p-3 text-sm">
+    <p className="rounded-card border-awaiting/40 bg-status-awaiting mt-6 border p-4 text-sm">
       You signed in with a temporary password. Choose your own before you
       continue.
     </p>
