@@ -52,7 +52,7 @@ export function Picker({
               setQ("");
               setResults([]);
             }}
-            className="text-xs text-neutral-600 underline"
+            className="text-accent rounded text-sm hover:underline"
           >
             Change
           </button>
@@ -76,20 +76,20 @@ export function Picker({
               id={listId}
               role="listbox"
               aria-label={`${label} results`}
-              className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded border border-neutral-300 bg-white text-sm shadow"
+              className="rounded-control border-border bg-surface-raised absolute z-10 mt-1 max-h-64 w-full overflow-auto border text-sm shadow-lg shadow-black/40"
             >
               {pending && (
-                <li className="px-3 py-2 text-neutral-500">Searching…</li>
+                <li className="text-text-muted px-3 py-2">Searching…</li>
               )}
               {results.map((r) => (
                 <li key={r.id} role="option" aria-selected={false}>
                   <button
                     type="button"
                     onClick={() => setChosen({ id: r.id, label: r.label })}
-                    className="block w-full px-3 py-2 text-left hover:bg-neutral-100"
+                    className="hover:bg-surface block w-full px-3 py-2 text-left"
                   >
                     <span className="font-mono">{r.label}</span>
-                    <span className="block text-xs text-neutral-600">
+                    <span className="text-text-muted block text-xs">
                       {r.detail}
                     </span>
                   </button>

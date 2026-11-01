@@ -1,29 +1,37 @@
 "use client";
-// The New Inward fields (SPEC §4.1), grouped as on the workbook form. Also
-// used by the Head of Registry's "edit registered details".
+// The New Inward fields (SPEC §4.1): Receipt, Sender and Handling as on the
+// reference design, with the less-used fields in fold-out groups. Also used
+// by the Head of Registry's "edit registered details".
 import { useState } from "react";
 import { Field } from "@/app/_components/form";
-import { Select, TextArea, TextInput, YesNo } from "@/app/_components/inputs";
+import {
+  DateTimeInput,
+  Segmented,
+  Select,
+  TextArea,
+  TextInput,
+  YesNo,
+} from "@/app/_components/inputs";
 import { Picker } from "@/app/_components/picker";
+import {
+  FoldSection,
+  FormSection,
+  Wide,
+} from "@/app/_components/ui/form-section";
 import type { FormOptions } from "@/server/read/options";
 import { searchFilesAction, searchOutwardAction } from "../search-actions";
 
 export type Values = Record<string, string | undefined>;
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <fieldset className="rounded border border-neutral-200 p-4">
-      <legend className="px-1 text-sm font-semibold">{title}</legend>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
-    </fieldset>
-  );
-}
+const FILING_KEYS = [
+  "cacNo",
+  "volumes",
+  "schedule2DocsAttached",
+  "feeEvidenceAttached",
+  "paymentRef",
+  "amountShown",
+  "multiState",
+];
 
 export function InwardFields({
   options,
@@ -38,32 +46,44 @@ export function InwardFields({
   const [typeId, setTypeId] = useState(values.typeId ?? "");
   const type = options.incomingTypes.find((t) => t.id === typeId);
   const v = (k: string) => values[k] ?? "";
+  const has = (keys: string[]) => keys.some((k) => v(k));
+  const normal = options.priorities.find((p) => p.key === "NORMAL");
 
   return (
     <div className="space-y-5">
-      <Section title="Receipt">
-        <TextInput
-          name="receivedDate"
-          type="date"
-          label="Date received"
+      <FormSection title="Receipt">
+        <DateTimeInput
+          dateName="receivedDate"
+          timeName="receivedTime"
+          label="Date & time received"
+          hint="Lagos time"
           required
-          defaultValue={v("receivedDate")}
-        />
-        <TextInput
-          name="receivedTime"
-          type="time"
-          label="Time received"
-          hint="Lagos time. Email/portal at or after closing time counts as next working day."
-          required
-          defaultValue={v("receivedTime")}
+          defaultDate={v("receivedDate")}
+          defaultTime={v("receivedTime")}
         />
         <Select
           name="modeId"
           label="Mode of receipt"
+          hint="Email or portal at or after closing time counts from the next working day"
           required
           options={options.receiptModes}
           defaultValue={v("modeId")}
         />
+        <Wide>
+          <Select
+            name="typeId"
+            label="Type"
+            required
+            options={options.incomingTypes}
+            defaultValue={typeId}
+            onChange={setTypeId}
+            hint={
+              type
+                ? `${type.category}. Goes to ${type.defaultUnit}.`
+                : undefined
+            }
+          />
+        </Wide>
         <Select
           name="receivedById"
           label="Received by"
@@ -76,20 +96,9 @@ export function InwardFields({
           label="Delivered / sent by"
           defaultValue={v("deliveredBy")}
         />
-      </Section>
+      </FormSection>
 
-      <Section title="Correspondence">
-        <Select
-          name="typeId"
-          label="Type of correspondence"
-          required
-          options={options.incomingTypes}
-          defaultValue={typeId}
-          onChange={setTypeId}
-          hint={
-            type ? `${type.category}. Goes to ${type.defaultUnit}.` : undefined
-          }
-        />
+      <FormSection title="Sender">
         <TextInput
           name="sender"
           label="Sender"
@@ -103,14 +112,26 @@ export function InwardFields({
           options={options.partyCategories}
           defaultValue={v("senderCategoryId")}
         />
-        <div className="sm:col-span-2 lg:col-span-3">
+        <Wide>
           <TextInput
             name="subject"
             label="Subject"
             required
             defaultValue={v("subject")}
           />
-        </div>
+        </Wide>
+        <Select
+          name="principalLgaId"
+          label="Principal LGA"
+          options={options.lgas}
+          defaultValue={v("principalLgaId")}
+        />
+        <TextInput
+          name="email"
+          type="email"
+          label="Email"
+          defaultValue={v("email")}
+        />
         <TextInput
           name="senderRef"
           label="Sender's ref. no."
@@ -125,7 +146,7 @@ export function InwardFields({
         <TextInput
           name="relatedOgsercNo"
           label="Related OGSERC No."
-          hint="Registration no. or earlier ACK no. Needed for updates, annual confirmations and deficiency responses."
+          hint="Registration or earlier ACK no. Needed for updates, annual confirmations and deficiency responses."
           defaultValue={v("relatedOgsercNo")}
         />
         <Picker
@@ -136,22 +157,37 @@ export function InwardFields({
           defaultId={values.inResponseToOutwardId || undefined}
           defaultLabel={values.inResponseToOutwardIdLabel}
         />
-      </Section>
+      </FormSection>
 
-      <Section
+      <FoldSection
+        title="Contact person"
+        summary="Name and phone, if different from the sender"
+        open={has(["contactPerson", "phone"])}
+      >
+        <TextInput
+          name="contactPerson"
+          label="Contact person"
+          defaultValue={v("contactPerson")}
+        />
+        <TextInput
+          name="phone"
+          type="tel"
+          label="Phone"
+          defaultValue={v("phone")}
+        />
+      </FoldSection>
+
+      <FoldSection
+        // Opens by itself when a REG-01 type is chosen.
         title={
           type?.isRegistration
             ? "Registration filing (REG-01)"
             : "Filing details"
         }
+        summary="CAC No., volumes, Schedule 2 documents, fee evidence"
+        open={type?.isRegistration || has(FILING_KEYS)}
       >
         <TextInput name="cacNo" label="CAC No." defaultValue={v("cacNo")} />
-        <Select
-          name="principalLgaId"
-          label="Principal LGA"
-          options={options.lgas}
-          defaultValue={v("principalLgaId")}
-        />
         <TextInput
           name="volumes"
           type="number"
@@ -183,94 +219,100 @@ export function InwardFields({
         />
         <Field label="Multi-State licensee">
           <input type="hidden" name="multiStateShown" value="1" />
-          <label className="flex items-center gap-2 py-2 text-sm">
+          <span className="flex min-h-11 items-center gap-2 text-sm">
             <input
               type="checkbox"
               name="multiState"
               defaultChecked={v("multiState") === "on"}
+              className="accent-accent h-4 w-4"
             />
             Needs 13 Schedule 2 documents
-          </label>
+          </span>
         </Field>
-      </Section>
-
-      <Section title="Contact">
-        <TextInput
-          name="contactPerson"
-          label="Contact person"
-          defaultValue={v("contactPerson")}
-        />
-        <TextInput
-          name="phone"
-          type="tel"
-          label="Phone"
-          defaultValue={v("phone")}
-        />
-        <TextInput
-          name="email"
-          type="email"
-          label="Email"
-          defaultValue={v("email")}
-        />
-      </Section>
+      </FoldSection>
 
       {handling && (
-        <Section title="Handling">
-          <Picker
-            name="fileId"
-            label="File"
-            search={searchFilesAction}
-            defaultId={values.fileId || undefined}
-            defaultLabel={values.fileIdLabel}
-          />
-          <Select
-            name="unitOverrideId"
-            label="Forward to (override)"
-            hint="Only to override the type's unit."
-            options={options.units}
-            defaultValue={v("unitOverrideId")}
-          />
-          <Select
-            name="ackIssuedViaId"
-            label="Acknowledgement issued via"
-            required
-            options={options.ackVia}
-            defaultValue={v("ackIssuedViaId")}
-          />
-          <Select
-            name="actionRequiredId"
-            label="Action required"
-            required
-            options={options.actionRequired}
-            defaultValue={v("actionRequiredId")}
-          />
-          <Select
-            name="priorityId"
-            label="Priority"
-            blank="Normal"
-            options={options.priorities.filter((p) => p.key !== "NORMAL")}
-            defaultValue={v("priorityId")}
-          />
-          <TextInput
-            name="actionOfficer"
-            label="Action officer"
-            defaultValue={v("actionOfficer")}
-          />
-          <TextInput
-            name="responseDueOverride"
-            type="date"
-            label="Response due (override)"
-            hint="Use when the sender sets a deadline."
-            defaultValue={v("responseDueOverride")}
-          />
-          <div className="sm:col-span-2">
-            <TextArea
-              name="remarks"
-              label="Remarks"
-              defaultValue={v("remarks")}
+        <>
+          <FormSection title="Handling">
+            <Select
+              name="actionRequiredId"
+              label="Action required"
+              required
+              options={options.actionRequired}
+              defaultValue={v("actionRequiredId")}
             />
-          </div>
-        </Section>
+            <Select
+              name="ackIssuedViaId"
+              label="Acknowledgement via"
+              required
+              options={options.ackVia}
+              defaultValue={v("ackIssuedViaId")}
+            />
+            <Wide>
+              <Segmented
+                name="priorityId"
+                label="Priority"
+                // Blank means Normal; keep a stored Normal id as it is.
+                defaultValue={v("priorityId")}
+                options={[
+                  {
+                    value: v("priorityId") === normal?.id ? normal.id : "",
+                    label: normal?.label ?? "Normal",
+                  },
+                  ...options.priorities
+                    .filter((p) => p.key !== "NORMAL")
+                    .map((p) => ({ value: p.id, label: p.label })),
+                ]}
+              />
+            </Wide>
+            <Wide>
+              <TextArea
+                name="remarks"
+                label="Remarks"
+                rows={3}
+                defaultValue={v("remarks")}
+              />
+            </Wide>
+          </FormSection>
+
+          <FoldSection
+            title="Routing and file"
+            summary="File, unit override, action officer, sender's deadline"
+            open={has([
+              "fileId",
+              "unitOverrideId",
+              "actionOfficer",
+              "responseDueOverride",
+            ])}
+          >
+            <Picker
+              name="fileId"
+              label="File"
+              search={searchFilesAction}
+              defaultId={values.fileId || undefined}
+              defaultLabel={values.fileIdLabel}
+            />
+            <Select
+              name="unitOverrideId"
+              label="Forward to (override)"
+              hint="Only to override the type's unit."
+              options={options.units}
+              defaultValue={v("unitOverrideId")}
+            />
+            <TextInput
+              name="actionOfficer"
+              label="Action officer"
+              defaultValue={v("actionOfficer")}
+            />
+            <TextInput
+              name="responseDueOverride"
+              type="date"
+              label="Response due (override)"
+              hint="Use when the sender sets a deadline."
+              defaultValue={v("responseDueOverride")}
+            />
+          </FoldSection>
+        </>
       )}
     </div>
   );

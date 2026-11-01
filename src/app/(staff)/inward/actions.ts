@@ -5,6 +5,10 @@ import { formError } from "@/server/action-errors";
 import { actorWith, rawOf } from "@/server/actor";
 import { getDb } from "@/server/db";
 import { newInwardDefaults } from "@/server/read/defaults";
+import {
+  inwardPreview,
+  type InwardPreview,
+} from "@/server/read/inward-preview";
 import { formOptions } from "@/server/read/options";
 import { voidItem } from "@/server/registers";
 import {
@@ -13,6 +17,14 @@ import {
   logInward,
   updateInward,
 } from "@/server/workflows/inward";
+
+/** New Inward's "Will be saved as" panel; reads only, assigns nothing. */
+export async function previewInwardAction(
+  raw: Record<string, string>,
+): Promise<InwardPreview> {
+  const actor = await actorWith("registers.write");
+  return inwardPreview(getDb(), actor.user, raw, actor.now);
+}
 
 /** SAVE TO REGISTER. On success the form starts again from its defaults. */
 export async function logInwardAction(

@@ -91,8 +91,10 @@ export function Field({
   return (
     <label className="block text-sm">
       <span className="text-text-muted">{label}</span>
-      {hint && <span className="text-text-faint block text-xs">{hint}</span>}
       <span className="mt-2 block">{children}</span>
+      {hint && (
+        <span className="text-text-faint mt-1.5 block text-xs">{hint}</span>
+      )}
     </label>
   );
 }
