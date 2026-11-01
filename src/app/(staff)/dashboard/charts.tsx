@@ -1,7 +1,10 @@
 "use client";
 // The dashboard's two charts (STACK: Recharts only for the monthly trend and
-// the unit breakdown). One axis each, a "Show as table" toggle, hover readouts,
-// colours validated for colour-blind readers (blue #2a78d6 / orange #eb6834).
+// the unit breakdown). One axis each, a "Show as table" toggle, hover readouts.
+// Series colours are the dark steps of the reference palette (blue #3987e5 /
+// orange #d95926), validated for colour-blind readers on the panel colour
+// #13171c. Chrome values mirror the tokens in globals.css (SVG attributes
+// need real colours, not CSS variables).
 import { useState, type ReactNode } from "react";
 import {
   Bar,
@@ -17,14 +20,14 @@ import {
 } from "recharts";
 
 const C = {
-  inward: "#2a78d6",
-  outward: "#eb6834",
-  ink: "#0b0b0b",
-  ink2: "#52514e",
-  muted: "#898781",
-  grid: "#e1e0d9",
-  axis: "#c3c2b7",
-  surface: "#ffffff",
+  inward: "#3987e5",
+  outward: "#d95926",
+  ink: "#eceef1", // --color-text
+  ink2: "#a3acb8", // --color-text-muted
+  muted: "#8c96a3", // --color-text-faint
+  grid: "#1e232a", // --color-border-subtle
+  axis: "#252b33", // --color-border
+  surface: "#13171c", // --color-surface
 };
 
 const MONTHS = [
@@ -58,17 +61,17 @@ function ChartCard({
 }) {
   const [asTable, setAsTable] = useState(false);
   return (
-    <section className="rounded border border-neutral-200 p-4">
+    <section className="rounded-panel border-border-subtle bg-surface border p-[22px]">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold">{title}</h2>
-          <p className="text-xs text-neutral-600">{subtitle}</p>
+          <p className="text-text-muted mt-0.5 text-xs">{subtitle}</p>
         </div>
         <button
           type="button"
           onClick={() => setAsTable((v) => !v)}
           aria-pressed={asTable}
-          className="rounded border border-neutral-300 px-2 py-1 text-xs whitespace-nowrap"
+          className="rounded-control border-border text-text-muted hover:text-text hover:bg-surface-raised h-9 border px-3 text-xs font-medium whitespace-nowrap"
         >
           {asTable ? "Show as chart" : "Show as table"}
         </button>
@@ -97,8 +100,8 @@ function Tip({
 }: TipProps & { title: (l: string) => string }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded border border-neutral-200 bg-white px-3 py-2 text-xs shadow-sm">
-      <p className="mb-1 text-neutral-600">{title(String(label))}</p>
+    <div className="rounded-control border-border bg-surface-raised border px-3 py-2 text-xs shadow-lg shadow-black/40">
+      <p className="text-text-muted mb-1">{title(String(label))}</p>
       {payload.map((p) => (
         <p key={String(p.name)} className="flex items-center gap-2">
           <span
@@ -106,8 +109,8 @@ function Tip({
             className="inline-block h-0.5 w-3"
             style={{ background: p.color }}
           />
-          <strong className="text-neutral-900">{String(p.value)}</strong>
-          <span className="text-neutral-600">{p.name}</span>
+          <strong className="text-text">{String(p.value)}</strong>
+          <span className="text-text-muted">{p.name}</span>
         </p>
       ))}
     </div>
@@ -157,16 +160,16 @@ export function MonthlyChart({
       subtitle="Inward by deemed receipt date, outward by date of document"
       table={
         <table className="w-full text-sm">
-          <thead className="text-left text-neutral-600">
+          <thead className="text-text-faint text-left text-xs tracking-wider uppercase">
             <tr>
-              <th className="py-1 pr-3 font-medium">Month</th>
-              <th className="py-1 pr-3 text-right font-medium">Inward</th>
-              <th className="py-1 pr-3 text-right font-medium">Outward</th>
+              <th className="py-1 pr-3 font-semibold">Month</th>
+              <th className="py-1 pr-3 text-right font-semibold">Inward</th>
+              <th className="py-1 pr-3 text-right font-semibold">Outward</th>
             </tr>
           </thead>
           <tbody>
             {data.map((d) => (
-              <tr key={d.month} className="border-t border-neutral-100">
+              <tr key={d.month} className="border-border-subtle border-t">
                 <td className="py-1 pr-3">{monthLabel(d.month)}</td>
                 <td className="py-1 pr-3 text-right">{d.inward}</td>
                 <td className="py-1 pr-3 text-right">{d.outward}</td>
@@ -177,7 +180,7 @@ export function MonthlyChart({
       }
     >
       <ul
-        className="mb-2 flex gap-4 text-xs text-neutral-700"
+        className="text-text-muted mb-2 flex gap-4 text-xs"
         aria-label="Legend"
       >
         {(["inward", "outward"] as const).map((k) => (
@@ -266,18 +269,18 @@ export function PendingByUnitChart({
       subtitle="Open, overdue and awaiting forwarding (one definition of pending)"
       table={
         <table className="w-full text-sm">
-          <thead className="text-left text-neutral-600">
+          <thead className="text-text-faint text-left text-xs tracking-wider uppercase">
             <tr>
-              <th className="py-1 pr-3 font-medium">Unit</th>
-              <th className="py-1 pr-3 text-right font-medium">Pending</th>
-              <th className="py-1 pr-3 text-right font-medium">
+              <th className="py-1 pr-3 font-semibold">Unit</th>
+              <th className="py-1 pr-3 text-right font-semibold">Pending</th>
+              <th className="py-1 pr-3 text-right font-semibold">
                 of which overdue
               </th>
             </tr>
           </thead>
           <tbody>
             {data.map((d) => (
-              <tr key={d.label} className="border-t border-neutral-100">
+              <tr key={d.label} className="border-border-subtle border-t">
                 <td className="py-1 pr-3">{d.label}</td>
                 <td className="py-1 pr-3 text-right">{d.pending}</td>
                 <td className="py-1 pr-3 text-right">{d.overdue}</td>
