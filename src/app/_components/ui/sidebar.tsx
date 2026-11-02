@@ -1,9 +1,11 @@
 "use client";
 // Sidebar on wide screens; below lg it folds into a top bar with a Menu
 // button. One copy of the links and user card serves both layouts.
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
+import logo from "../../../../assets/ogserc-logo.png";
 import { Icon, type IconName } from "./icons";
 
 export type NavGroup = {
@@ -31,12 +33,10 @@ export function Sidebar({
     <div className="border-border-subtle bg-sidebar sticky top-0 z-30 flex flex-col border-b lg:h-screen lg:w-[248px] lg:shrink-0 lg:border-r lg:border-b-0">
       <div className="flex items-center justify-between gap-3 px-4 py-3 lg:px-[22px] lg:pt-[22px] lg:pb-2">
         <Link href="/" className="rounded-control flex items-center gap-3">
-          <span className="rounded-control border-border bg-surface text-gold grid h-10 w-10 place-items-center border">
-            <Icon name="bolt" />
-          </span>
           <span className="leading-tight">
-            <span className="block text-[15px] font-semibold">
-              OGSERC Registry
+            <span className="flex items-center gap-2 text-[15px] font-semibold">
+              <Image src={logo} alt="OGSERC" className="h-7 w-auto" priority />
+              Registry
             </span>
             <span className="text-text-muted block text-xs">
               Correspondence &amp; files

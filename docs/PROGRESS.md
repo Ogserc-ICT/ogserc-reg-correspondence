@@ -14,7 +14,7 @@ Updated at the end of each phase. Phases and "done when" criteria come from `CLA
 | 7 | Dashboard (+ optional attachments) | `phase-7` | ✅ Done, pushed: awaiting review |
 | 8 | Hardening and go-live | `phase-8` | 🔨 Built, awaiting the parallel week |
 
-Nothing is merged to `main` yet.
+All phase branches and the dark UI (`feat/ui-dark`) are merged to `main`, which deploys to Vercel.
 
 ---
 
@@ -103,7 +103,7 @@ These need an answer from you or the Commission. Until then, the default in brac
 | Q6 | Confirm response target days per type *(seed values)* | Go-live | Open |
 | Q7 | Real staff list, Secretary's name, who holds each role | Go-live | Open |
 | Q8 | Store scanned letters? Size limit, retention *(not built)* | Phase 7 | Open |
-| Q-A | OGSERC logo file in `assets/` | Phase 5 | Open |
+| Q-A | OGSERC logo file in `assets/` | Phase 5 | Answered: `assets/ogserc-logo.png` (sign-in, sidebar, PDFs) |
 | Q-B | Official green and gold hex codes | Phase 4 | Open |
 | Q-C | Daily Register sign-off in the app, or printed only? | Phase 5 | Open |
 | Q-D | May the Head of Registry void items they logged? *(no)* | Phase 3 | Open |

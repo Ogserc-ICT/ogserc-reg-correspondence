@@ -39,9 +39,10 @@ function loadFonts() {
   return fontBytes;
 }
 
-/** assets/logo.png (or .jpg) if someone has added it (Phase 0 Q-A). */
+/** assets/ogserc-logo.png (or logo.png/.jpg) if present (Phase 0 Q-A). */
 function logoFile(): { bytes: Buffer; kind: "png" | "jpg" } | null {
   for (const [name, kind] of [
+    ["ogserc-logo.png", "png"],
     ["logo.png", "png"],
     ["logo.jpg", "jpg"],
     ["logo.jpeg", "jpg"],
