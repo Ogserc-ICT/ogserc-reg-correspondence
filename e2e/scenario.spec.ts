@@ -111,7 +111,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await pick(page, "File", "RL/001", /OGSERC\/RL\/001/);
   await page.getByRole("button", { name: "Save to register" }).click();
   await expect(status(page)).toContainText(
-    "Saved as OGSERC/ACK/2026/00001. Forward to: Registration & Licensing.",
+    "Saved as OGSERC/ACK/2026/00001. Forward to: Licensing unit.",
   );
   await openSaved(page);
   await fill(page, {
@@ -131,7 +131,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   });
   await choose(page, {
     typeId: "Deficiency notice",
-    originatingUnitId: "Registration & Licensing",
+    originatingUnitId: "Licensing unit",
     recipientCategoryId: "Registrant / licensee",
     dispatchModeId: "Email",
   });
@@ -173,7 +173,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await pick(page, "File", "RL/001", /OGSERC\/RL\/001/);
   await page.getByRole("button", { name: "Save to register" }).click();
   await expect(status(page)).toContainText(
-    "Saved as OGSERC/ACK/2026/00002. Forward to: Registration & Licensing.",
+    "Saved as OGSERC/ACK/2026/00002. Forward to: Licensing unit.",
   );
 
   // ---- I3: NERC letter by hand, 2 Dec 11:05, to the Chairman ----------------
@@ -188,7 +188,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
     modeId: "Hand delivery",
     typeId: "Letter from NERC / Federal agency",
     senderCategoryId: "NERC",
-    unitOverrideId: "Office of the Chairman",
+    unitOverrideId: "Office of the General Counsel and Secretary (Registry)",
     ackIssuedViaId: "Not required",
     actionRequiredId: "Reply required",
     priorityId: "High",
@@ -196,7 +196,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await pick(page, "File", "GOV/001", /OGSERC\/GOV\/001/);
   await page.getByRole("button", { name: "Save to register" }).click();
   await expect(status(page)).toContainText(
-    "Saved as OGSERC/ACK/2026/00003. Forward to: Office of the Chairman.",
+    "Saved as OGSERC/ACK/2026/00003. Forward to: Office of the General Counsel and Secretary (Registry).",
   );
   await openSaved(page);
   await fill(page, {
@@ -217,7 +217,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   });
   await choose(page, {
     typeId: "Letter to NERC / Federal agency",
-    originatingUnitId: "Office of the Chairman",
+    originatingUnitId: "Office of the General Counsel and Secretary (Registry)",
     recipientCategoryId: "NERC",
     signedById: "Chairman (Chairman)",
     dispatchModeId: "Courier",
@@ -240,7 +240,9 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
     "Not forwarded within target",
   );
   await expect(row("ACK/2026/00003")).toContainText("16-Dec-2026");
-  await expect(row("ACK/2026/00003")).toContainText("Office of the Chairman");
+  await expect(row("ACK/2026/00003")).toContainText(
+    "Office of the General Counsel and Secretary (Registry)",
+  );
   await expect(row("ACK/2026/00003")).toContainText("Closed");
 
   // I1 in full.
@@ -248,9 +250,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await expect(detail(page, "Deemed receipt date")).toHaveText("20-Nov-2026");
   await expect(detail(page, "Category")).toHaveText("Regulatory filing");
   await expect(detail(page, "Order reference")).toHaveText("11; Sch. 1 Pt A");
-  await expect(detail(page, "Forward to")).toHaveText(
-    "Registration & Licensing",
-  );
+  await expect(detail(page, "Forward to")).toHaveText("Licensing unit");
   await expect(detail(page, "Response due")).toHaveText("18-Dec-2026");
   await expect(detail(page, "Closed on")).toContainText(
     "25-Nov-2026 (by OGSERC/OUT/2026/00001)",
@@ -443,7 +443,7 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
     // M1: RL/001 out 20 Nov 14:00 to Reg. Officer, back 25 Nov.
     setClock("2026-11-20T14:00");
     await openFile("OGSERC/RL/001");
-    await issue("Reg. Officer", "Registration & Licensing");
+    await issue("Reg. Officer", "Licensing unit");
     await expect(status(page)).toContainText(
       "OGSERC/RL/001 issued to Reg. Officer. Return due 25-Nov-2026.",
     );
@@ -454,13 +454,16 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
       .getByRole("button", { name: /Record return from Reg\. Officer/ })
       .click();
     await expect(status(page)).toContainText(
-      "OGSERC/RL/001 returned to the Registry from Reg. Officer (Registration & Licensing).",
+      "OGSERC/RL/001 returned to the Registry from Reg. Officer (Licensing unit).",
     );
 
     // M2: GOV/001 out 2 Dec to PA to Chairman, not returned.
     setClock("2026-12-02T11:30");
     await openFile("OGSERC/GOV/001");
-    await issue("PA to Chairman", "Office of the Chairman");
+    await issue(
+      "PA to Chairman",
+      "Office of the General Counsel and Secretary (Registry)",
+    );
     await expect(status(page)).toContainText(
       "OGSERC/GOV/001 issued to PA to Chairman. Return due 07-Dec-2026.",
     );
@@ -475,7 +478,7 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
     await expect(detail(page, "Outward items")).toHaveText("1");
     await expect(detail(page, "Last correspondence")).toHaveText("01-Dec-2026");
     const m1 = page.locator("tr:visible", {
-      hasText: "Reg. Officer (Registration & Licensing)",
+      hasText: "Reg. Officer (Licensing unit)",
     });
     await expect(m1).toContainText("25-Nov-2026"); // return due and returned
     await expect(m1).toContainText("Returned");
@@ -483,11 +486,12 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
 
     await openFile("OGSERC/GOV/001");
     await expect(page.locator("main header:visible")).toContainText(
-      "Currently with: PA to Chairman (Office of the Chairman) since 02-Dec-2026 (6 working days)",
+      "Currently with: PA to Chairman (Office of the General Counsel and Secretary (Registry)) since 02-Dec-2026 (6 working days)",
     );
     await expect(flagList(page)).toContainText("Out beyond return date");
     const m2 = page.locator("tr:visible", {
-      hasText: "PA to Chairman (Office of the Chairman)",
+      hasText:
+        "PA to Chairman (Office of the General Counsel and Secretary (Registry))",
     });
     await expect(m2).toContainText("07-Dec-2026");
     await expect(m2).toContainText("Overdue");
@@ -522,10 +526,10 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
 
     // Issue again while still out: asked first; Cancel issues nothing.
     await openFile("OGSERC/GOV/001");
-    await issue("Legal Adviser", "Legal");
+    await issue("Legal Adviser", "Compliance/Legal Services unit: Legal");
     const ask = page.getByRole("alertdialog", { name: "Confirm issue" });
     await expect(ask).toContainText(
-      "OGSERC/GOV/001 is still out with PA to Chairman (Office of the Chairman). Issue it anyway?",
+      "OGSERC/GOV/001 is still out with PA to Chairman (Office of the General Counsel and Secretary (Registry)). Issue it anyway?",
     );
     await ask.getByRole("link", { name: "Cancel" }).click();
     await expect(page.getByRole("alertdialog")).toHaveCount(0);
@@ -533,14 +537,16 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
       page.locator("tr:visible", { hasText: "Legal Adviser" }),
     ).toHaveCount(0);
 
-    await issue("Legal Adviser", "Legal");
+    await issue("Legal Adviser", "Compliance/Legal Services unit: Legal");
     await page.getByRole("button", { name: "Issue anyway" }).click();
     await expect(status(page)).toContainText(
       "OGSERC/GOV/001 issued to Legal Adviser. Return due 15-Dec-2026.",
     );
     await page.reload();
     await expect(
-      page.locator("tr:visible", { hasText: "Legal Adviser (Legal)" }),
+      page.locator("tr:visible", {
+        hasText: "Legal Adviser (Compliance/Legal Services unit: Legal)",
+      }),
     ).toContainText("Earlier movement of this file not returned");
   } finally {
     setClock();

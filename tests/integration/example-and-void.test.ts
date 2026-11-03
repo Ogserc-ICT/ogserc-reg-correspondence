@@ -43,7 +43,9 @@ describe("§12.2 example in the database", () => {
       where: { id: ids.I3 },
       include: { routedUnit: true },
     });
-    expect(i3.routedUnit.name).toBe("Office of the Chairman");
+    expect(i3.routedUnit.name).toBe(
+      "Office of the General Counsel and Secretary (Registry)",
+    );
   });
 
   it("matches the dashboard on 10 Dec 2026", async () => {
@@ -74,12 +76,16 @@ describe("§12.2 example in the database", () => {
 
   it("re-seeding reference data changes nothing an admin edited", async () => {
     await db.unit.update({
-      where: { name: "Legal" },
+      where: { name: "Compliance/Legal Services unit: Legal" },
       data: { name: "Legal Services" },
     });
     const added = await seedReference(db, DEC_10);
     expect(Object.values(added).every((n) => n === 0)).toBe(true);
-    expect(await db.unit.count({ where: { name: "Legal" } })).toBe(0);
+    expect(
+      await db.unit.count({
+        where: { name: "Compliance/Legal Services unit: Legal" },
+      }),
+    ).toBe(0);
   });
 });
 
@@ -260,7 +266,7 @@ describe("full dashboard (SPEC §8.4)", () => {
     });
     expect(d.summary.files).toMatchObject({ outWithOfficers: 1, overdue: 1 });
     expect(
-      d.breakdowns.byUnit.find((u) => u.label === "Registration & Licensing"),
+      d.breakdowns.byUnit.find((u) => u.label === "Licensing unit"),
     ).toMatchObject({
       inwardRouted: 2,
       pending: 1,

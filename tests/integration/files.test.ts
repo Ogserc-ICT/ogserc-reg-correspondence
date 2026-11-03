@@ -57,7 +57,8 @@ describe("F1 and F2 on 10 Dec 2026", () => {
   it("F2: overdue with the PA to Chairman, 6 working days out", async () => {
     const d = await fileDetail(db, officer.user, ids.F2, DEC_10);
     expect(d?.derived).toMatchObject({
-      currentlyWith: "PA to Chairman (Office of the Chairman)",
+      currentlyWith:
+        "PA to Chairman (Office of the General Counsel and Secretary (Registry))",
       outSince: "2026-12-02",
       workingDaysOut: 6,
       flags: ["Out beyond return date"],
@@ -132,7 +133,7 @@ describe("Issue and return", () => {
     });
     const r = await issueFile(db, at(officer, "2026-11-20", "14:00"), file.id, {
       issuedTo: "Legal Adviser",
-      unitId: await unit("Legal"),
+      unitId: await unit("Compliance/Legal Services unit: Legal"),
     });
     expect(r.message).toBe(
       "OGSERC/LEG/001 issued to Legal Adviser. Return due 25-Nov-2026.",
@@ -144,7 +145,7 @@ describe("Issue and return", () => {
     const asked = issueFile(db, officer, ids.F2, { issuedTo: "Legal Adviser" });
     await expect(asked).rejects.toBeInstanceOf(StillOut);
     await expect(asked).rejects.toThrow(
-      "OGSERC/GOV/001 is still out with PA to Chairman (Office of the Chairman). Issue it anyway?",
+      "OGSERC/GOV/001 is still out with PA to Chairman (Office of the General Counsel and Secretary (Registry)). Issue it anyway?",
     );
     expect(await db.fileMovement.count({ where: { fileId: ids.F2 } })).toBe(1);
 
@@ -178,7 +179,7 @@ describe("Issue and return", () => {
       "OGSERC/GOV/001 returned to the Registry from Legal Adviser.",
     );
     expect((await recordReturn(db, officer, ids.F2)).message).toBe(
-      "OGSERC/GOV/001 returned to the Registry from PA to Chairman (Office of the Chairman).",
+      "OGSERC/GOV/001 returned to the Registry from PA to Chairman (Office of the General Counsel and Secretary (Registry)).",
     );
     await expect(recordReturn(db, officer, ids.F2)).rejects.toThrow(
       "OGSERC/GOV/001 is not recorded as out. Nothing to return.",
@@ -220,7 +221,7 @@ describe("permissions", () => {
         name: "Unit",
         email: "unit.f@example.invalid",
         role: "UNIT_OFFICER",
-        unitId: await unit("Legal"),
+        unitId: await unit("Compliance/Legal Services unit: Legal"),
       },
     });
     const unitOfficer = await actorFor(db, u.id);

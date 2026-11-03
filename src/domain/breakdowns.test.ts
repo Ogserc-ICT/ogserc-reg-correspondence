@@ -15,7 +15,7 @@ function breakdowns(today: string) {
   const s = workbookExample();
   const r = evaluate(s, today);
   return dashboardBreakdowns({
-    units: seed.units,
+    units: seed.units.map((u) => u.name),
     firstMonth: "2026-11-01",
     today,
     inward: s.inward.map((i) => {
@@ -34,7 +34,9 @@ function breakdowns(today: string) {
       voided: o.voided,
       derived: r.outward.get(o.id)!.derived,
       unit:
-        o.id === "O1" ? "Registration & Licensing" : "Office of the Chairman",
+        o.id === "O1"
+          ? "Licensing unit"
+          : "Office of the General Counsel and Secretary (Registry)",
       type: o.type.name,
       recipientCategory: o.id === "O1" ? "Registrant / licensee" : "NERC",
       documentDate: o.documentDate,
@@ -45,11 +47,9 @@ function breakdowns(today: string) {
 describe("dashboard breakdowns", () => {
   it("counts by unit with one definition of pending (R12)", () => {
     const b = breakdowns("2026-12-10");
-    expect(b.byUnit).toHaveLength(10);
-    expect(
-      b.byUnit.find((u) => u.label === "Registration & Licensing"),
-    ).toEqual({
-      label: "Registration & Licensing",
+    expect(b.byUnit).toHaveLength(30);
+    expect(b.byUnit.find((u) => u.label === "Licensing unit")).toEqual({
+      label: "Licensing unit",
       inwardRouted: 2,
       pending: 1, // I2, awaiting forwarding, counts as pending
       overdue: 0,
@@ -57,7 +57,10 @@ describe("dashboard breakdowns", () => {
       outwardOriginated: 1,
     });
     expect(
-      b.byUnit.find((u) => u.label === "Office of the Chairman"),
+      b.byUnit.find(
+        (u) =>
+          u.label === "Office of the General Counsel and Secretary (Registry)",
+      ),
     ).toMatchObject({
       inwardRouted: 1,
       closed: 1,

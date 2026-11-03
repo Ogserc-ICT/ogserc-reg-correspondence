@@ -9,6 +9,8 @@ import type {
 import { audit } from "../../src/server/audit";
 import type { Db, Tx } from "../../src/server/db";
 import { toDbDate } from "../../src/server/dates";
+import { resolveTypeDefaultUnits } from "../../src/domain/reference-check";
+import { CONFIRMED_DEFAULT_UNITS } from "../../src/server/v2-decisions";
 
 /** Types whose slip carries the registration sentence until Q4 is answered (TEMPLATES §1). */
 const REGISTRATION_FOOTER_TYPES = [
@@ -66,7 +68,7 @@ const LISTS: [ListKind, string[]][] = [
   ["PARTY_CATEGORY", seed.partyCategories],
   ["ACTION_REQUIRED", seed.actionRequired],
   ["PRIORITY", seed.priorities],
-  ["FILE_CLASS", seed.fileClasses],
+  ["FILE_CLASS", seed.fileClasses.map((c) => c.name)],
   ["FILE_SECURITY", seed.fileSecurity],
   ["FILE_STATUS", seed.fileStatuses],
 ];
@@ -112,7 +114,7 @@ export async function seedReference(db: Db, now: Date): Promise<SeedCounts> {
         "units",
         (
           await tx.unit.createMany({
-            data: seed.units.map((name, i) => ({ name, sortOrder: i })),
+            data: seed.units.map((u, i) => ({ name: u.name, sortOrder: i })),
           })
         ).count,
       );
@@ -141,10 +143,26 @@ export async function seedReference(db: Db, now: Date): Promise<SeedCounts> {
       const units = new Map(
         (await tx.unit.findMany()).map((u) => [u.name, u.id]),
       );
+      // C2/E2: never create a unit for a type; use a confirmed replacement or stop.
+      const resolved = resolveTypeDefaultUnits(
+        seed.incomingTypes,
+        units.keys(),
+        CONFIRMED_DEFAULT_UNITS,
+      );
+      if (resolved.missing.length > 0)
+        throw new Error(
+          "Incoming types point at units that do not exist: " +
+            resolved.missing
+              .map((m) => `'${m.type}' → '${m.defaultUnit}'`)
+              .join("; "),
+        );
+      for (const r of resolved.replaced)
+        console.warn(
+          `Seed: '${r.type}' names '${r.from}', which is not a unit; using '${r.to}' (confirm on Admin › Types).`,
+        );
       const { count } = await tx.incomingType.createMany({
         data: seed.incomingTypes.map((t, i) => {
-          const defaultUnitId = units.get(t.defaultUnit);
-          if (!defaultUnitId) throw new Error(`Unknown unit ${t.defaultUnit}`);
+          const defaultUnitId = units.get(resolved.unitByType.get(t.name)!)!;
           return {
             name: t.name,
             category: t.category,

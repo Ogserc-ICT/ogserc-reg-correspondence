@@ -27,6 +27,7 @@ import {
   type Actor,
 } from "../registers";
 import { loadRuleContext } from "../rules";
+import { SPLIT_TYPE, UNIT_RENAME_MAP } from "@/server/v2-decisions";
 
 export type SheetReport = {
   created: number;
@@ -282,6 +283,21 @@ export async function importWorkbook(
   return report;
 }
 
+/**
+ * v1 workbook names that v2 renamed (C1.1, C2) resolve to their new rows,
+ * unless a row with the old name still exists.
+ */
+function withAliases(
+  byKey: Map<string, string>,
+  aliases: Readonly<Record<string, string>>,
+): Map<string, string> {
+  for (const [from, to] of Object.entries(aliases)) {
+    const id = byKey.get(key(to));
+    if (id && !byKey.has(key(from))) byKey.set(key(from), id);
+  }
+  return byKey;
+}
+
 async function lookups(tx: Tx) {
   const lists = await tx.listItem.findMany();
   const units = await tx.unit.findMany();
@@ -292,8 +308,13 @@ async function lookups(tx: Tx) {
     new Map(xs.map((x) => [key(x.label), x.id]));
   return {
     list: (kind: ListKind) => byLabel(lists.filter((l) => l.list === kind)),
-    units: new Map(units.map((u) => [key(u.name), u.id])),
-    inTypes: new Map(inTypes.map((t) => [key(t.name), t.id])),
+    units: withAliases(
+      new Map(units.map((u) => [key(u.name), u.id])),
+      UNIT_RENAME_MAP,
+    ),
+    inTypes: withAliases(new Map(inTypes.map((t) => [key(t.name), t.id])), {
+      [SPLIT_TYPE.old]: SPLIT_TYPE.renamedTo,
+    }),
     outTypes: new Map(outTypes.map((t) => [key(t.name), t.id])),
     registryUsers: new Map(
       users

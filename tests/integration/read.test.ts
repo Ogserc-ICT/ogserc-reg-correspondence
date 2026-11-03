@@ -30,7 +30,7 @@ beforeAll(async () => {
   ids = (await seedExample(db))!;
   officer = await loadPrincipal(db, ids.users.officer);
   const unit = await db.unit.findUniqueOrThrow({
-    where: { name: "Office of the Chairman" },
+    where: { name: "Office of the General Counsel and Secretary (Registry)" },
   });
   const u = await db.user.create({
     data: {

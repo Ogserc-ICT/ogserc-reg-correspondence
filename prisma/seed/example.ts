@@ -125,14 +125,14 @@ async function createExampleFiles(tx: Tx, officerId: string) {
       "Sample Mini-Grid Ltd",
       "Licensee file",
       "Restricted",
-      "Registration & Licensing",
+      "Licensing unit",
     ),
     F2: await file(
       "OGSERC/GOV/001",
       "NERC and Federal agencies",
       "Government & external relations",
       "Open",
-      "Office of the Chairman",
+      "Office of the General Counsel and Secretary (Registry)",
     ),
   };
 }
@@ -220,7 +220,7 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
           ),
           inReplyToInwardId: I1.id,
           fileId: F1,
-          originatingUnitId: L.unit("Registration & Licensing"),
+          originatingUnitId: L.unit("Licensing unit"),
           signedById: users.secretary,
           signatoryDesignation: "Secretary to the Commission",
           dispatchModeId: L.list("RECEIPT_MODE", "Email"),
@@ -264,7 +264,9 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
           ackIssuedViaId: L.list("ACK_VIA", "Not required"),
           actionRequiredId: L.list("ACTION_REQUIRED", "Reply required"),
           priorityId: L.list("PRIORITY", "High"),
-          unitOverrideId: L.unit("Office of the Chairman"),
+          unitOverrideId: L.unit(
+            "Office of the General Counsel and Secretary (Registry)",
+          ),
           fileId: F2,
           dateForwarded: "2026-12-02",
           receivedByUnitOfficer: "PA to Chairman",
@@ -282,7 +284,9 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
           recipientCategoryId: L.list("PARTY_CATEGORY", "NERC"),
           inReplyToInwardId: I3.id,
           fileId: F2,
-          originatingUnitId: L.unit("Office of the Chairman"),
+          originatingUnitId: L.unit(
+            "Office of the General Counsel and Secretary (Registry)",
+          ),
           signedById: users.chairman,
           signatoryDesignation: "Chairman",
           dispatchModeId: L.list("RECEIPT_MODE", "Courier"),
@@ -325,14 +329,14 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
         F1,
         instantIn("2026-11-20", "14:00"),
         "Reg. Officer",
-        "Registration & Licensing",
+        "Licensing unit",
         "2026-11-25",
       );
       await move(
         F2,
         instantIn("2026-12-02", "11:30"),
         "PA to Chairman",
-        "Office of the Chairman",
+        "Office of the General Counsel and Secretary (Registry)",
         null,
       );
 
@@ -363,7 +367,7 @@ export async function seedDevLogins(db: Db): Promise<string[]> {
   const password = process.env.DEV_SEED_PASSWORD || DEV_PASSWORD;
   const hash = await hashPassword(password);
   const unit = await db.unit.findUniqueOrThrow({
-    where: { name: "Registration & Licensing" },
+    where: { name: "Licensing unit" },
   });
   const extra = [
     {
@@ -373,7 +377,7 @@ export async function seedDevLogins(db: Db): Promise<string[]> {
       unitId: null,
     },
     {
-      name: "Unit Officer (Registration & Licensing)",
+      name: "Unit Officer (Licensing unit)",
       email: "unit.registration@example.invalid",
       role: "UNIT_OFFICER" as const,
       unitId: unit.id,

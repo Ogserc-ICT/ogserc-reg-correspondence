@@ -138,7 +138,7 @@ describe("lists and units", () => {
 
   it("won't switch off a unit that types still route to", async () => {
     const unit = await db.unit.findUniqueOrThrow({
-      where: { name: "Registration & Licensing" },
+      where: { name: "Licensing unit" },
     });
     await expect(
       saveUnit(db, head, unit.id, { name: unit.name, sortOrder: "2" }),

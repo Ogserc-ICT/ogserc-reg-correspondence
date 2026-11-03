@@ -90,7 +90,7 @@ test("admin adds a user, who must change the temporary password", async ({
 test("a unit officer can't open admin pages", async ({ page }) => {
   await signIn(page, "unit.registration@example.invalid");
   await expect(
-    page.getByText("Unit Officer (Registration & Licensing) · Unit officer"),
+    page.getByText("Unit Officer (Licensing unit) · Unit officer"),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Users" })).toHaveCount(0);
   for (const path of ["/admin/users", "/admin/settings"]) {

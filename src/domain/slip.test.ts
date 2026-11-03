@@ -27,7 +27,7 @@ const base: SlipInput = {
   paymentRef: "OGSERC-PAY-0001",
   amountShownKobo: BigInt(25_000_000),
   receivedBy: "Registry Officer 1",
-  forwardedTo: "Registration & Licensing",
+  forwardedTo: "Licensing unit",
   para103SlipWording: true,
   footerKind: "REGISTRATION",
   footers: SLIP_FOOTERS,

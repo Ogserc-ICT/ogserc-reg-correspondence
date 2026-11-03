@@ -28,7 +28,7 @@ describe("§12.2 inward", () => {
       deemedReceiptDate: "2026-11-20",
       category: "Regulatory filing",
       orderRef: "11; Sch. 1 Pt A",
-      routedUnitId: "Registration & Licensing",
+      routedUnitId: "Licensing unit",
       responseDue: "2026-12-18",
       closedOn: "2026-11-25",
       status: "Closed",
@@ -68,7 +68,7 @@ describe("§12.2 inward", () => {
   it("I3: NERC letter routed to the Chairman, closed on time by O2", () => {
     const { derived: d } = get(base().inward, "I3");
     expect(d).toMatchObject({
-      routedUnitId: "Office of the Chairman",
+      routedUnitId: "Office of the General Counsel and Secretary (Registry)",
       responseDue: "2026-12-16",
       closedOn: "2026-12-03",
       status: "Closed",
@@ -143,7 +143,8 @@ describe("§12.2 files", () => {
       status: "Overdue",
     });
     expect(f2.derived).toMatchObject({
-      currentlyWith: "PA to Chairman (Office of the Chairman)",
+      currentlyWith:
+        "PA to Chairman (Office of the General Counsel and Secretary (Registry))",
       outSince: "2026-12-02",
       workingDaysOut: 6,
       flags: ["Out beyond return date"],

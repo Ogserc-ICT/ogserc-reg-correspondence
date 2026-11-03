@@ -78,7 +78,9 @@ describe("acknowledgement slips", () => {
     expect(t).toContain(GENERAL);
     expect(t).not.toContain(REGISTRATION);
     expect(t).not.toContain(SHORT_PARA103);
-    expect(t).toContain("Office of the Chairman");
+    expect(t).toContain(
+      "Office of the General Counsel and Secretary (Registry)",
+    );
   });
 
   it("finds a slip by number and defaults to the latest item", async () => {
@@ -192,7 +194,7 @@ describe("Pending Actions", () => {
 
   it("filters by unit and shows I2 overdue on 16 Dec", async () => {
     const chairman = await db.unit.findUniqueOrThrow({
-      where: { name: "Office of the Chairman" },
+      where: { name: "Office of the General Counsel and Secretary (Registry)" },
     });
     expect(
       (await pendingActions(db, officer, chairman.id, DEC_10)).rows,

@@ -77,7 +77,7 @@ async function newOutwardRaw(extra: Record<string, string> = {}) {
     subject: "Re: deficiency response",
     addressee: "Sample Mini-Grid Ltd",
     recipientCategoryId: await list("PARTY_CATEGORY", "Registrant / licensee"),
-    originatingUnitId: await unit("Registration & Licensing"),
+    originatingUnitId: await unit("Licensing unit"),
     signedById: ids.users.secretary,
     signatoryDesignation: "",
     dispatchModeId: await list("RECEIPT_MODE", "Email"),
@@ -98,7 +98,7 @@ describe("New Inward", () => {
   it("saves with the next number and the TEMPLATES message", async () => {
     const r = await logInward(db, officer, await newInwardRaw());
     expect(r.message).toBe(
-      "Saved as OGSERC/ACK/2026/00004. Forward to: Consumer Affairs.",
+      "Saved as OGSERC/ACK/2026/00004. Forward to: Customer Complaints.",
     );
     expect(r.item.statusCache).toBe("AWAITING_FORWARDING");
   });
@@ -203,13 +203,13 @@ describe("inward handling", () => {
 
     await updateInward(db, officer, ids.I2, {
       dateForwarded: "2026-12-02",
-      unitOverrideId: await unit("Legal"),
+      unitOverrideId: await unit("Compliance/Legal Services unit: Legal"),
     });
     const i2 = await db.inwardItem.findUniqueOrThrow({
       where: { id: ids.I2 },
       include: { routedUnit: true },
     });
-    expect(i2.routedUnit.name).toBe("Legal");
+    expect(i2.routedUnit.name).toBe("Compliance/Legal Services unit: Legal");
     const log = await db.auditLog.findFirstOrThrow({
       where: { entityId: ids.I2, action: "update" },
     });

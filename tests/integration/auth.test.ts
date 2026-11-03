@@ -60,7 +60,7 @@ beforeEach(async () => {
   admin = await loadPrincipal(db, a.id);
   regUnitId = (
     await db.unit.findUniqueOrThrow({
-      where: { name: "Registration & Licensing" },
+      where: { name: "Licensing unit" },
     })
   ).id;
   const u = await createUser(
