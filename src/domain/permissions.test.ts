@@ -8,6 +8,9 @@ import {
 } from "./passwords";
 import {
   can,
+  canReadForRouting,
+  capabilitiesOf,
+  ROLE_LABELS,
   canReadFile,
   canReadInward,
   canReadOutward,
@@ -179,5 +182,68 @@ describe("lockout", () => {
     expect(isLocked(locked.lockedUntil, new Date("2026-12-10T08:15:00Z"))).toBe(
       false,
     );
+  });
+});
+
+describe("SPEC-v2 C12: routing flag and Front desk officer", () => {
+  const ROLES: Role[] = [
+    "REGISTRY_OFFICER",
+    "HEAD_OF_REGISTRY",
+    "UNIT_OFFICER",
+    "SECRETARY",
+    "ADMIN",
+    "FRONT_DESK_OFFICER",
+  ];
+  const user = (role: Role, canRoute?: boolean): Principal => ({
+    id: "u",
+    role,
+    unitId: role === "UNIT_OFFICER" ? "unit" : null,
+    active: true,
+    canRoute,
+  });
+
+  it("no role grants registry.route; only the flag does", () => {
+    for (const role of ROLES) {
+      expect(capabilitiesOf(role)).not.toContain("registry.route");
+      expect(can(user(role), "registry.route")).toBe(false);
+      expect(can(user(role, true), "registry.route")).toBe(true);
+      expect(canReadForRouting(user(role, true))).toBe(true);
+      expect(canReadForRouting(user(role))).toBe(false);
+    }
+    expect(
+      can({ ...user("SECRETARY", true), active: false }, "registry.route"),
+    ).toBe(false);
+  });
+
+  it("the flag adds nothing else: every other capability and the read scope stay the role's", () => {
+    for (const role of ROLES) {
+      for (const cap of capabilitiesOf(role))
+        expect(can(user(role, true), cap)).toBe(true);
+      expect(
+        capabilitiesOf(role).filter((c) => can(user(role, true), c)),
+      ).toEqual(capabilitiesOf(role));
+      expect(readScope(user(role, true))).toEqual(readScope(user(role)));
+      expect(can(user(role, true), "files.readConfidential")).toBe(
+        can(user(role), "files.readConfidential"),
+      );
+    }
+  });
+
+  it("Front desk officer: intakes only, no registers, routing or files", () => {
+    const fd = user("FRONT_DESK_OFFICER");
+    expect(capabilitiesOf("FRONT_DESK_OFFICER")).toEqual(["frontdesk.write"]);
+    expect(readScope(fd)).toEqual({ kind: "none" });
+    expect(can(fd, "frontdesk.read")).toBe(false);
+    expect(can(fd, "files.read")).toBe(false);
+    expect(can(fd, "registers.write")).toBe(false);
+    expect(ROLE_LABELS.FRONT_DESK_OFFICER).toBe("Front desk officer");
+  });
+
+  it("registry officers pull intakes and resend acknowledgement emails", () => {
+    for (const role of ["REGISTRY_OFFICER", "HEAD_OF_REGISTRY"] as const) {
+      expect(can(user(role), "frontdesk.read")).toBe(true);
+      expect(can(user(role), "ackEmail.send")).toBe(true);
+    }
+    expect(can(user("UNIT_OFFICER"), "frontdesk.read")).toBe(false);
   });
 });

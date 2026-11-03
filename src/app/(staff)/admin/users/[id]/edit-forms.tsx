@@ -24,7 +24,13 @@ export function EditUserForm({
     {},
   );
   const v = state.values;
-  const shown = v ? { ...v, isSignatory: v.isSignatory === "on" } : values;
+  const shown = v
+    ? {
+        ...v,
+        isSignatory: v.isSignatory === "on",
+        canRoute: v.canRoute === "on",
+      }
+    : values;
   const active = v ? v.active === "on" : values.active;
   return (
     <form

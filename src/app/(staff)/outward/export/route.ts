@@ -1,4 +1,5 @@
 // CSV of the outward register with the on-screen filters (SPEC §8).
+import { readScope } from "@/domain/permissions";
 import type { NextRequest } from "next/server";
 import { formatDate, formatYesNo } from "@/domain/format";
 import { appNow } from "@/server/clock";
@@ -72,6 +73,8 @@ const COLUMNS: Column<OutwardRegisterRow>[] = [
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return new Response("Sign in first.", { status: 401 });
+  if (readScope(user).kind === "none")
+    return new Response("Forbidden.", { status: 403 });
   const filters = parseFilters(
     Object.fromEntries(request.nextUrl.searchParams),
   );

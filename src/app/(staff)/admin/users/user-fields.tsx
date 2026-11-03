@@ -12,6 +12,7 @@ export type UserValues = {
   role?: string;
   unitId?: string;
   isSignatory?: boolean;
+  canRoute?: boolean;
   designation?: string;
 };
 
@@ -91,6 +92,21 @@ export function UserFields({
           defaultChecked={values.isSignatory}
         />
         Signs outgoing letters
+      </label>
+      <label className="flex items-start gap-2 self-end pb-2 text-sm">
+        <input
+          type="checkbox"
+          name="canRoute"
+          defaultChecked={values.canRoute}
+          className="mt-1"
+        />
+        <span>
+          Can route items
+          <span className="text-text-muted block text-xs">
+            Routing Desk only (Secretary to the Commission, Head of
+            Administration). Grants no other access.
+          </span>
+        </span>
       </label>
     </div>
   );

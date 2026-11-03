@@ -60,6 +60,7 @@ async function EditUser({ params }: { params: Promise<{ id: string }> }) {
             role: user.role,
             unitId: user.unitId ?? "",
             isSignatory: user.isSignatory,
+            canRoute: user.canRoute,
             designation: user.designation ?? "",
             active: user.active,
           }}

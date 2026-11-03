@@ -4,7 +4,7 @@
 import { headers } from "next/headers";
 import { forbidden, redirect } from "next/navigation";
 import { cache } from "react";
-import { can, type Capability } from "@/domain/permissions";
+import { can, readScope, type Capability } from "@/domain/permissions";
 import { getAuth } from "./auth";
 import { getDb } from "./db";
 import { sessionUser, type SessionUser } from "./session";
@@ -29,6 +29,16 @@ export async function requireUser(
   if (!user) redirect("/login");
   if (user.mustChangePassword && !opts.allowTemporaryPassword)
     redirect("/account/password");
+  return user;
+}
+
+/**
+ * The inward/outward registers: 403 for roles that read no items (Admin,
+ * Front desk officer, SPEC-v2 C12). Queries filter by readScope as well.
+ */
+export async function requireRegisterReader(): Promise<SessionUser> {
+  const user = await requireUser();
+  if (readScope(user).kind === "none") forbidden();
   return user;
 }
 

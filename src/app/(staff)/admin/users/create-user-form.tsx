@@ -32,7 +32,11 @@ export function CreateUserForm({
       <Messages state={state} />
       <UserFields
         units={units}
-        values={{ ...v, isSignatory: v.isSignatory === "on" }}
+        values={{
+          ...v,
+          isSignatory: v.isSignatory === "on",
+          canRoute: v.canRoute === "on",
+        }}
       />
       <Field
         label="Temporary password"

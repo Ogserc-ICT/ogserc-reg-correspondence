@@ -6,7 +6,7 @@ import { StatusBadge } from "@/app/_components/status";
 import { BLANK, formatDate, formatYesNo } from "@/domain/format";
 import { can, canVoid } from "@/domain/permissions";
 import { appNow } from "@/server/clock";
-import { requireUser } from "@/server/current-user";
+import { requireRegisterReader } from "@/server/current-user";
 import { fromDbDate } from "@/server/dates";
 import { getDb } from "@/server/db";
 import { outwardDetail } from "@/server/read/items";
@@ -61,7 +61,7 @@ const text = (v: string | null | undefined) => v || BLANK;
 const yn = (v: boolean | null) => (v === null ? "" : v ? "Y" : "N");
 
 async function Item({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireUser();
+  const user = await requireRegisterReader();
   const { id } = await params;
   const db = getDb();
   const d = await outwardDetail(db, user, id, appNow());

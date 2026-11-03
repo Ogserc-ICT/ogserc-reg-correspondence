@@ -9,7 +9,7 @@ import { PreviewButton, PreviewRow } from "@/app/_components/ui/preview-row";
 import { formatDate } from "@/domain/format";
 import { can } from "@/domain/permissions";
 import { appNow } from "@/server/clock";
-import { requireUser } from "@/server/current-user";
+import { requireRegisterReader } from "@/server/current-user";
 import { fromDbDate } from "@/server/dates";
 import { getDb } from "@/server/db";
 import { formOptions } from "@/server/read/options";
@@ -59,7 +59,7 @@ async function Register({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireUser();
+  const user = await requireRegisterReader();
   const params = flatParams(await searchParams);
   const db = getDb();
   const now = appNow();

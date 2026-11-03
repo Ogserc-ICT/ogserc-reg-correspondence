@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { todayIn } from "@/domain/clock";
 import { formatDate } from "@/domain/format";
-import { can, ROLE_LABELS } from "@/domain/permissions";
+import { can, readScope, ROLE_LABELS } from "@/domain/permissions";
 import { appNow } from "@/server/clock";
 import { requireUser } from "@/server/current-user";
 import { SearchBox } from "@/app/_components/ui/search-box";
@@ -39,7 +39,7 @@ async function TopBar() {
   const today = todayIn(appNow());
   return (
     <>
-      {user.role !== "ADMIN" && <SearchBox />}
+      {readScope(user).kind !== "none" && <SearchBox />}
       <p className="text-text-muted ml-auto text-sm whitespace-nowrap">
         <time dateTime={today}>{formatDate(today)}</time>
         <span className="hidden sm:inline"> · Africa/Lagos</span>
@@ -50,7 +50,8 @@ async function TopBar() {
 
 async function AppSidebar() {
   const user = await requireUser({ allowTemporaryPassword: true });
-  const registers = user.role !== "ADMIN";
+  // Admin and Front desk officer read no items (C12).
+  const registers = readScope(user).kind !== "none";
   const groups: NavGroup[] = [
     {
       title: "Workspace",

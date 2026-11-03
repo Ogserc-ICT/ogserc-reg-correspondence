@@ -21,6 +21,7 @@ const ROLES: Role[] = [
   "UNIT_OFFICER",
   "SECRETARY",
   "ADMIN",
+  "FRONT_DESK_OFFICER",
 ];
 
 function userInput(form: FormData): UserInput {
@@ -32,6 +33,7 @@ function userInput(form: FormData): UserInput {
     role: (ROLES as string[]).includes(role) ? (role as Role) : "UNIT_OFFICER",
     unitId: String(form.get("unitId") ?? "") || null,
     isSignatory: form.get("isSignatory") === "on",
+    canRoute: form.get("canRoute") === "on",
     designation: String(form.get("designation") ?? "") || null,
   };
 }

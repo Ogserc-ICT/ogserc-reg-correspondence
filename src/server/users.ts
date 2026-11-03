@@ -17,6 +17,8 @@ export type UserInput = {
   role: Role;
   unitId: string | null;
   isSignatory: boolean;
+  /** Grants registry.route only (SPEC-v2 C5.1, C12). Omitted = false. */
+  canRoute?: boolean;
   designation: string | null;
 };
 
@@ -28,6 +30,7 @@ function publicFields(u: User) {
     role: u.role,
     unitId: u.unitId,
     isSignatory: u.isSignatory,
+    canRoute: u.canRoute,
     designation: u.designation,
     active: u.active,
   };
@@ -50,6 +53,7 @@ function validate(input: UserInput): UserInput {
     role: input.role,
     unitId: input.unitId,
     isSignatory: input.isSignatory,
+    canRoute: input.canRoute ?? false,
     designation: input.designation?.trim() || null,
   };
 }
