@@ -123,7 +123,7 @@ const REQUIRED: Key[] = [
   "subject",
   "receivedById",
   "ackIssuedViaId",
-  "actionRequiredId",
+  // Action required is set on the Routing Desk (SPEC-v2 C4).
 ];
 
 /** Fields set later by the Registry (SPEC §4.1 "Update Item"). */

@@ -129,6 +129,7 @@ export async function sessionUser(
     role: u.role,
     unitId: u.unitId,
     active: u.active,
+    canRoute: u.canRoute,
     name: u.name,
     email: u.email,
     mustChangePassword: u.mustChangePassword,
@@ -140,5 +141,11 @@ export async function loadPrincipal(
   userId: string,
 ): Promise<Principal> {
   const u = await db.user.findUniqueOrThrow({ where: { id: userId } });
-  return { id: u.id, role: u.role, unitId: u.unitId, active: u.active };
+  return {
+    id: u.id,
+    role: u.role,
+    unitId: u.unitId,
+    active: u.active,
+    canRoute: u.canRoute,
+  };
 }

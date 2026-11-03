@@ -273,10 +273,10 @@ async function DeskContent() {
           sub={`${s.outgoing.dispatchedLast7Days} in the last 7 days`}
         />
         <StatTile
-          label="Awaiting forwarding"
-          value={s.incoming.awaitingForwarding}
-          href={`/inward${q("Awaiting forwarding")}`}
-          tone={when(s.incoming.awaitingForwarding, "awaiting")}
+          label="Awaiting routing / forwarding"
+          value={s.incoming.awaitingRoutingOrForwarding}
+          href="/pending"
+          tone={when(s.incoming.awaitingRoutingOrForwarding, "awaiting")}
           sub={`Target: ${plural(rules.registryForwardingTargetDays, "working day")}`}
         />
         <StatTile

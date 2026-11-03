@@ -101,6 +101,7 @@ export type InwardRegisterRow = Prisma.InwardItemGetPayload<{
 }> & { derived: InwardDerived };
 
 export const INWARD_STATUSES: InwardStatus[] = [
+  "Awaiting routing",
   "Awaiting forwarding",
   "Open",
   "Overdue",

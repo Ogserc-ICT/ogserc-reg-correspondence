@@ -1,13 +1,16 @@
-// Who may do what (SPEC §10, STACK rules 6–7). Pure and deny-by-default: a
-// role has only the capabilities listed here. The server checks these on
-// every action and filters every query by `readScope`.
+// Who may do what (SPEC §10 with SPEC-v2 C12, STACK rules 6–7). Pure and
+// deny-by-default: a role has only the capabilities listed here. Routing
+// (registry.route) belongs to no role: only the per-user canRoute flag grants
+// it, and it grants nothing else. The server checks these on every action and
+// filters every query by `readScope`.
 
 export type Role =
   | "REGISTRY_OFFICER"
   | "HEAD_OF_REGISTRY"
   | "UNIT_OFFICER"
   | "SECRETARY"
-  | "ADMIN";
+  | "ADMIN"
+  | "FRONT_DESK_OFFICER";
 
 export const ROLE_LABELS: Record<Role, string> = {
   REGISTRY_OFFICER: "Registry officer",
@@ -15,6 +18,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   UNIT_OFFICER: "Unit officer",
   SECRETARY: "Secretary / management",
   ADMIN: "Admin",
+  FRONT_DESK_OFFICER: "Front desk officer",
 };
 
 export type Capability =
@@ -36,11 +40,21 @@ export type Capability =
   | "users.manage"
   | "settings.manage"
   /** Read the audit log. */
-  | "audit.view";
+  | "audit.view"
+  /** Routing Desk (C5). Granted only by User.canRoute, never by a role. */
+  | "registry.route"
+  /** Log front desk intakes (C3). */
+  | "frontdesk.write"
+  /** Front Desk Log and pulling intakes into New Inward (C3, C12). */
+  | "frontdesk.read"
+  /** Resend acknowledgement emails and send or discard those to review (C6). */
+  | "ackEmail.send";
 
 const CAPABILITIES: Record<Role, readonly Capability[]> = {
   REGISTRY_OFFICER: [
     "registers.write",
+    "frontdesk.read",
+    "ackEmail.send",
     "files.read",
     "files.write",
     "reports.print",
@@ -48,6 +62,8 @@ const CAPABILITIES: Record<Role, readonly Capability[]> = {
   ],
   HEAD_OF_REGISTRY: [
     "registers.write",
+    "frontdesk.read",
+    "ackEmail.send",
     "items.void",
     "items.editAny",
     "files.read",
@@ -61,12 +77,15 @@ const CAPABILITIES: Record<Role, readonly Capability[]> = {
   // Read-only in v1 (Q5); reads are limited by readScope.
   UNIT_OFFICER: [],
   SECRETARY: [
+    "frontdesk.read",
     "files.read",
     "files.readConfidential",
     "reports.print",
     "dashboard.view",
   ],
   ADMIN: ["users.manage", "settings.manage", "audit.view"],
+  // C12: intakes only; no registers, routing or files.
+  FRONT_DESK_OFFICER: ["frontdesk.write"],
 };
 
 export type Principal = {
@@ -75,10 +94,14 @@ export type Principal = {
   /** Unit officers only. */
   unitId: string | null;
   active: boolean;
+  /** User.canRoute: adds registry.route, nothing else (C5.1, C12). */
+  canRoute?: boolean;
 };
 
 export function can(user: Principal | null, cap: Capability): boolean {
-  return !!user && user.active && CAPABILITIES[user.role].includes(cap);
+  if (!user || !user.active) return false;
+  if (cap === "registry.route") return user.canRoute === true;
+  return CAPABILITIES[user.role].includes(cap);
 }
 
 export function capabilitiesOf(role: Role): readonly Capability[] {
@@ -101,8 +124,18 @@ export function readScope(user: Principal | null): ReadScope {
         ? { kind: "unit", unitId: user.unitId }
         : { kind: "none" };
     case "ADMIN":
+    case "FRONT_DESK_OFFICER":
       return { kind: "none" };
   }
+}
+
+/**
+ * The Routing Desk loads any inward item for a user with registry.route,
+ * whatever their role's read scope (C5.2 read-only fields). It opens nothing
+ * else: registers, files and reports still follow the role.
+ */
+export function canReadForRouting(user: Principal | null): boolean {
+  return can(user, "registry.route");
 }
 
 /**

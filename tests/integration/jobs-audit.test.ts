@@ -27,7 +27,7 @@ beforeEach(async () => {
 describe("refresh-status job", () => {
   it("moves I2 to Overdue on 16 Dec without anyone opening it", async () => {
     const i2 = () => db.inwardItem.findUniqueOrThrow({ where: { id: ids.I2 } });
-    expect((await i2()).statusCache).toBe("AWAITING_FORWARDING");
+    expect((await i2()).statusCache).toBe("AWAITING_ROUTING");
     const run = await runJob(
       db,
       "refresh-status",

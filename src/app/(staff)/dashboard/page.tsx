@@ -165,6 +165,12 @@ async function Dashboard() {
           href={`/inward${q("Pending")}`}
         />
         <Stat
+          label="Not yet routed"
+          tone="awaiting"
+          value={i.awaitingRouting}
+          href={`/inward${q("Awaiting routing")}`}
+        />
+        <Stat
           label="Awaiting forwarding"
           tone="awaiting"
           value={i.awaitingForwarding}

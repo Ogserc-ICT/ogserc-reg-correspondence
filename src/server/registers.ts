@@ -34,28 +34,15 @@ import { loadRuleContext } from "./rules";
 /** Who is acting and when; `now` comes from `appNow()`. */
 export type Actor = { user: Principal; now: Date };
 
-/**
- * Cached status column. "Awaiting routing" gets its enum value with the
- * routing columns in V3; until then the server never derives it (every stored
- * item counts as routed, see facts.ts LEGACY_ROUTED).
- */
-const INWARD_STATUS: Record<
-  Exclude<DomainInwardStatus, "Awaiting routing">,
-  InwardStatus
-> = {
+const INWARD_STATUS: Record<DomainInwardStatus, InwardStatus> = {
   Void: "VOID",
   Closed: "CLOSED",
   Overdue: "OVERDUE",
+  "Awaiting routing": "AWAITING_ROUTING",
   "Awaiting forwarding": "AWAITING_FORWARDING",
   "Noted / filed": "NOTED_FILED",
   Open: "OPEN",
 };
-
-function inwardStatusCache(s: DomainInwardStatus): InwardStatus {
-  if (s === "Awaiting routing")
-    throw new Error("Awaiting routing is not stored until V3 (SPEC-v2 C5)");
-  return INWARD_STATUS[s];
-}
 
 const OUTWARD_STATUS: Record<DomainOutwardStatus, OutwardStatus> = {
   Void: "VOID",
@@ -107,7 +94,8 @@ export type NewInward = {
   subject: string;
   receivedById: string;
   ackIssuedViaId: string;
-  actionRequiredId: string;
+  /** Set on the Routing Desk (SPEC-v2 C4); blank until routed. */
+  actionRequiredId?: string | null;
   priorityId?: string | null;
   senderRef?: string | null;
   documentDate?: IsoDate | null;
@@ -187,7 +175,7 @@ export async function createInward(
       fileId: input.fileId ?? null,
       unitOverrideId: input.unitOverrideId ?? null,
       ackIssuedViaId: input.ackIssuedViaId,
-      actionRequiredId: input.actionRequiredId,
+      actionRequiredId: input.actionRequiredId ?? null,
       priorityId: input.priorityId ?? null,
       actionOfficer: text(input.actionOfficer),
       responseDueOverride: toDbDate(input.responseDueOverride),
@@ -256,7 +244,7 @@ export async function refreshInward(tx: Tx, id: string, ctx: RuleContext) {
     where: { id },
     data: {
       routedUnitId: d.routedUnitId ?? row.snapDefaultUnitId,
-      statusCache: inwardStatusCache(d.status),
+      statusCache: INWARD_STATUS[d.status],
       statusCachedOn: toDbDate(ctx.today),
     },
   });

@@ -129,12 +129,16 @@ describe("Daily Register", () => {
     );
   });
 
-  it("2 Dec 2026: I3 received; O2 is dated 2 Dec but dispatched 3 Dec", async () => {
+  it("2 Dec 2026: I3 received; O2 (C13.1: dated 7 Dec) is dispatched 8 Dec", async () => {
     expect(await numbers("2026-12-02")).toEqual({
       received: ["OGSERC/ACK/2026/00003"],
       dispatched: [],
     });
-    expect(await numbers("2026-12-03")).toEqual({
+    expect(await numbers("2026-12-07")).toEqual({
+      received: [],
+      dispatched: [],
+    });
+    expect(await numbers("2026-12-08")).toEqual({
       received: [],
       dispatched: ["OGSERC/OUT/2026/00002"],
     });
@@ -179,17 +183,20 @@ describe("Daily Register", () => {
 });
 
 describe("Pending Actions", () => {
-  it("lists I2 on 10 Dec, Awaiting forwarding, with counters", async () => {
+  it("lists I2 on 10 Dec, Awaiting routing, with counters (C5.3)", async () => {
     const p = await pendingActions(db, officer, undefined, DEC_10);
     expect(p.rows.map((r) => r.number)).toContain("OGSERC/ACK/2026/00002");
     expect(p.counts).toMatchObject({ overdue: 0 });
-    expect(p.counts.awaitingForwarding).toBe(p.counts.pending);
+    expect(p.counts.awaitingRoutingOrForwarding).toBe(p.counts.pending);
     const t = (await pdfPages(await pendingActionsPdf(p))).join(" ");
     expect(t).toContain("Unit: All units");
     expect(t).toContain("Printed: 10-Dec-2026 09:00");
     expect(t).toContain(`Pending: ${p.counts.pending}`);
     expect(t).toContain("OGSERC/ACK/2026/00002");
-    expect(t).toContain("Awaiting forwarding");
+    expect(t).toContain(
+      `Awaiting routing / fwd: ${p.counts.awaitingRoutingOrForwarding}`,
+    );
+    expect(t).toContain("Awaiting routing");
   });
 
   it("filters by unit and shows I2 overdue on 16 Dec", async () => {

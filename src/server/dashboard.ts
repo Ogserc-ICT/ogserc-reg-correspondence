@@ -6,9 +6,10 @@ import {
 } from "@/domain/breakdowns";
 import { dashboardSummary, type DashboardSummary } from "@/domain/dashboard";
 import { deriveFile } from "@/domain/files";
+import { deriveIntake } from "@/domain/front-desk";
 import { deriveInward, reg01CacDuplicates } from "@/domain/inward";
 import { deriveOutward } from "@/domain/outward";
-import type { Principal } from "@/domain/permissions";
+import { can, type Principal } from "@/domain/permissions";
 import { fileWhere, inwardWhere, outwardWhere } from "./access";
 import { fromDbDate } from "./dates";
 import type { Db, Tx } from "./db";
@@ -69,7 +70,26 @@ async function load(db: Db | Tx, now: Date, user?: Principal) {
     const facts = toFileFacts(r);
     return { facts, derived: deriveFile(facts, ctx) };
   });
-  return { ctx, inward, outward, files };
+  // "At front desk, awaiting registry" (C9): users who may see the log.
+  const intakeRows =
+    !user || can(user, "frontdesk.read")
+      ? await db.frontDeskIntake.findMany({
+          where: { registeredAt: null },
+          include: { inwardItem: { select: { id: true } } },
+        })
+      : [];
+  const intakes = intakeRows.map((r) =>
+    deriveIntake(
+      {
+        intakeNo: r.intakeNo,
+        receivedAt: r.receivedAt,
+        inwardItemId: r.inwardItem?.id ?? null,
+        registeredAt: r.registeredAt,
+      },
+      ctx,
+    ),
+  );
+  return { ctx, inward, outward, files, intakes };
 }
 
 export async function loadDashboard(
@@ -77,8 +97,14 @@ export async function loadDashboard(
   now: Date,
   user?: Principal,
 ): Promise<DashboardSummary> {
-  const { ctx, inward, outward, files } = await load(db, now, user);
-  return dashboardSummary({ today: ctx.today, inward, outward, files });
+  const { ctx, inward, outward, files, intakes } = await load(db, now, user);
+  return dashboardSummary({
+    today: ctx.today,
+    inward,
+    outward,
+    files,
+    intakes,
+  });
 }
 
 export type FullDashboard = {
@@ -93,7 +119,7 @@ export async function loadFullDashboard(
   now: Date,
   user: Principal,
 ): Promise<FullDashboard> {
-  const { ctx, inward, outward, files } = await load(db, now, user);
+  const { ctx, inward, outward, files, intakes } = await load(db, now, user);
   const settings = await db.registrySettings.findUniqueOrThrow({
     where: { id: 1 },
   });
@@ -108,7 +134,13 @@ export async function loadFullDashboard(
   });
   return {
     today: ctx.today,
-    summary: dashboardSummary({ today: ctx.today, inward, outward, files }),
+    summary: dashboardSummary({
+      today: ctx.today,
+      inward,
+      outward,
+      files,
+      intakes,
+    }),
     breakdowns: dashboardBreakdowns({
       units: units.map((u) => u.name),
       divisions: divisions.map((d) => d.name),

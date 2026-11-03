@@ -52,7 +52,7 @@ describe("inward register", () => {
       ["OGSERC/ACK/2026/00003", "Closed", []],
       [
         "OGSERC/ACK/2026/00002",
-        "Awaiting forwarding",
+        "Awaiting routing",
         ["Not forwarded within target"],
       ],
       ["OGSERC/ACK/2026/00001", "Closed", []],
@@ -124,12 +124,19 @@ describe("inward register", () => {
 });
 
 describe("outward register", () => {
-  it("derives status and the delivery chase on 11 Dec", async () => {
+  it("derives status and the delivery chase on 16 Dec (C13.1: O2 dispatched 8 Dec)", async () => {
+    const on15 = await outwardRegister(
+      db,
+      officer,
+      {},
+      new Date("2026-12-15T08:00:00Z"),
+    );
+    expect(on15.rows[0].derived.flags).toEqual([]);
     const r = await outwardRegister(
       db,
       officer,
       {},
-      new Date("2026-12-11T08:00:00Z"),
+      new Date("2026-12-16T08:00:00Z"),
     );
     expect(
       r.rows.map((x) => [x.number, x.derived.status, x.derived.flags]),
@@ -235,7 +242,8 @@ describe("pickers and Desk counts", () => {
   it("counts the Desk tiles within the user's scope", async () => {
     const all = await loadDashboard(db, DEC_10, officer);
     expect(all.incoming).toMatchObject({
-      awaitingForwarding: 1,
+      awaitingRouting: 1,
+      awaitingRoutingOrForwarding: 1,
       responseOverdue: 0,
     });
     expect(all.files.outWithOfficers).toBe(1);

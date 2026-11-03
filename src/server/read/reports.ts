@@ -1,5 +1,6 @@
 // Data for the acknowledgement slip, Daily Register and Pending Actions
 // (SPEC §8.1–§8.3). Every function checks reports.print and the read scope.
+import { isAwaitingRoutingOrForwarding } from "@/domain/inward";
 import { addDays, compareDates, type IsoDate } from "@/domain/calendar";
 import { instantIn, todayIn } from "@/domain/clock";
 import type { Principal } from "@/domain/permissions";
@@ -162,8 +163,9 @@ export async function pendingActions(
     counts: {
       pending: rows.length,
       overdue: rows.filter((x) => x.derived.status === "Overdue").length,
-      awaitingForwarding: rows.filter(
-        (x) => x.derived.status === "Awaiting forwarding",
+      /** C5.3: "Awaiting routing / fwd" = Awaiting routing + Awaiting forwarding. */
+      awaitingRoutingOrForwarding: rows.filter((x) =>
+        isAwaitingRoutingOrForwarding(x.derived.status),
       ).length,
     },
   };

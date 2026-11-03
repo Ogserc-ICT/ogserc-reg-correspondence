@@ -123,7 +123,10 @@ describe("number service", () => {
       snapResponseTargetDays: 10,
       snapClosingTime: "17:00",
       routedUnitId: type.defaultUnitId,
-      statusCache: "AWAITING_FORWARDING",
+      // A new item waits for the Routing Desk (SPEC-v2 C5.3).
+      statusCache: "AWAITING_ROUTING",
+      routedById: null,
+      routedAt: null,
     });
     const log = await db.auditLog.findMany({ where: { entityId: item.id } });
     expect(log.map((l) => l.action)).toEqual(["create"]);

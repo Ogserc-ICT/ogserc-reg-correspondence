@@ -86,9 +86,6 @@ const FILE_STATUS_KEYS: readonly FileStatusKey[] = [
   "ARCHIVED",
 ];
 
-/** Until V3 stores routing (SPEC-v2 C5); see toInwardFacts. */
-export const LEGACY_ROUTED = true;
-
 export function toInwardFacts(
   r: InwardFactsRow,
   possibleDuplicateCac: boolean,
@@ -123,11 +120,8 @@ export function toInwardFacts(
     feeEvidenceAttached: r.feeEvidenceAttached,
     multiState: r.multiState,
     registrationDeadlineOverride: fromDbDate(r.registrationDeadlineOverride),
-    // Routing is stored from V3 (routedAt, forwardedBeforeRouting). Until
-    // then every stored item counts as routed: the v1 New Inward form set the
-    // unit and action at registration, so behaviour is unchanged.
-    routed: LEGACY_ROUTED,
-    forwardedBeforeRouting: false,
+    routed: r.routedAt !== null,
+    forwardedBeforeRouting: r.forwardedBeforeRouting,
     dateForwarded: fromDbDate(r.dateForwarded),
     dateClosedManual: fromDbDate(r.dateClosedManual),
     voided: r.voidedAt !== null,

@@ -1,4 +1,5 @@
 // CSV of the inward register with the on-screen filters (SPEC §8).
+import { readScope } from "@/domain/permissions";
 import type { NextRequest } from "next/server";
 import {
   formatDate,
@@ -48,7 +49,7 @@ const COLUMNS: Column<InwardRegisterRow>[] = [
   { header: "File", value: (r) => r.file?.reference },
   { header: "Unit", value: (r) => r.routedUnit.name },
   { header: "Ack. issued via", value: (r) => r.ackIssuedVia.label },
-  { header: "Action required", value: (r) => r.actionRequired.label },
+  { header: "Action required", value: (r) => r.actionRequired?.label },
   { header: "Priority", value: (r) => r.priority?.label ?? "Normal" },
   { header: "Action officer", value: (r) => r.actionOfficer },
   {
@@ -85,6 +86,8 @@ const COLUMNS: Column<InwardRegisterRow>[] = [
 export async function GET(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) return new Response("Sign in first.", { status: 401 });
+  if (readScope(user).kind === "none")
+    return new Response("Forbidden.", { status: 403 });
   const filters = parseFilters(
     Object.fromEntries(request.nextUrl.searchParams),
   );

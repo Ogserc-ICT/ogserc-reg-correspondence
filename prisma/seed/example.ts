@@ -1,4 +1,6 @@
-// The workbook example scenario (SPEC §12.2), for dev and test databases only.
+// The workbook example scenario (SPEC §12.2 as updated by SPEC-v2 C13.1), for
+// dev and test databases only. I1 and I2 are not routed; I3 was routed by the
+// Secretary to the Commission.
 // Items go through the same create functions as the app, so numbers come from
 // the counters: I1–I3 → ACK 00001–00003, O1–O2 → OUT 00001–00002.
 import { instantIn } from "../../src/domain/clock";
@@ -7,7 +9,12 @@ import { audit } from "../../src/server/audit";
 import { hashPassword } from "../../src/server/auth";
 import type { Db, Tx } from "../../src/server/db";
 import { toDbDate } from "../../src/server/dates";
-import { createInward, createOutward } from "../../src/server/registers";
+import {
+  createInward,
+  createOutward,
+  refreshInward,
+} from "../../src/server/registers";
+import { loadRuleContext } from "../../src/server/rules";
 
 export function assertNotProduction(
   env: NodeJS.ProcessEnv = process.env,
@@ -37,6 +44,8 @@ const PEOPLE = [
     role: "SECRETARY",
     isSignatory: true,
     designation: "Secretary to the Commission",
+    // SPEC-v2 C5.1: routes items on top of the Secretary role.
+    canRoute: true,
   },
   {
     key: "chairman",
@@ -191,7 +200,6 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
           subject: "Registration of mini-grid operator",
           receivedById: users.officer,
           ackIssuedViaId: L.list("ACK_VIA", "Printed slip"),
-          actionRequiredId: L.list("ACTION_REQUIRED", "Action required"),
           cacNo: "RC0000000",
           principalLgaId: L.list("LGA", "Sagamu"),
           volumes: 2,
@@ -200,7 +208,7 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
           paymentRef: "OGSERC-PAY-0001",
           amountShownKobo: BigInt(25_000_000),
           fileId: F1,
-          actionOfficer: "Head, Registration",
+          // C13.1: forwarded 20 Nov without routing (example data, no flag).
           dateForwarded: "2026-11-20",
           receivedByUnitOfficer: "Reg. Officer",
         },
@@ -242,7 +250,7 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
           subject: "Response to deficiency notice",
           receivedById: users.officer,
           ackIssuedViaId: L.list("ACK_VIA", "Email"),
-          actionRequiredId: L.list("ACTION_REQUIRED", "Action required"),
+          // C13.1: not routed, not forwarded.
           relatedOgsercNo: "ACK/2026/00001",
           inResponseToOutwardId: O1.id,
           schedule2DocsAttached: 1,
@@ -273,11 +281,41 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
         },
         at("2026-12-02", "11:05"),
       );
+      // C13.1: the Secretary routed I3 with the unit override.
+      const routedAt = instantIn("2026-12-02", "11:20");
+      await tx.inwardItem.update({
+        where: { id: I3.id },
+        data: { routedById: users.secretary, routedAt },
+      });
+      await tx.routingEvent.create({
+        data: {
+          inwardItemId: I3.id,
+          routedById: users.secretary,
+          routedAt,
+          before: {},
+          after: {
+            unitOverrideId: {
+              id: L.unit(
+                "Office of the General Counsel and Secretary (Registry)",
+              ),
+              label: "Office of the General Counsel and Secretary (Registry)",
+            },
+            fileId: { id: F2, label: "OGSERC/GOV/001" },
+            actionRequiredId: {
+              id: L.list("ACTION_REQUIRED", "Reply required"),
+              label: "Reply required",
+            },
+            priorityId: { id: L.list("PRIORITY", "High"), label: "High" },
+          },
+        },
+      });
+      await refreshInward(tx, I3.id, await loadRuleContext(tx, routedAt));
 
       const O2 = await createOutward(
         tx,
         {
-          documentDate: "2026-12-02",
+          // C13.1: dated 7 Dec, dispatched 8 Dec.
+          documentDate: "2026-12-07",
           typeId: L.outType("Letter to NERC / Federal agency"),
           subject: "Re: transition arrangements",
           addressee: "Nigerian Electricity Regulatory Commission",
@@ -290,9 +328,9 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
           signedById: users.chairman,
           signatoryDesignation: "Chairman",
           dispatchModeId: L.list("RECEIPT_MODE", "Courier"),
-          dateDispatched: "2026-12-03",
+          dateDispatched: "2026-12-08",
         },
-        at("2026-12-03"),
+        at("2026-12-08"),
       );
 
       const move = async (
@@ -369,6 +407,9 @@ export async function seedDevLogins(db: Db): Promise<string[]> {
   const unit = await db.unit.findUniqueOrThrow({
     where: { name: "Licensing unit" },
   });
+  const administration = await db.unit.findUniqueOrThrow({
+    where: { name: "Administration" },
+  });
   const extra = [
     {
       name: "Dev Admin",
@@ -381,6 +422,20 @@ export async function seedDevLogins(db: Db): Promise<string[]> {
       email: "unit.registration@example.invalid",
       role: "UNIT_OFFICER" as const,
       unitId: unit.id,
+    },
+    {
+      // SPEC-v2 C5.1: routes on top of an ordinary role, nothing more.
+      name: "Head of Administration",
+      email: "head.admin@example.invalid",
+      role: "UNIT_OFFICER" as const,
+      unitId: administration.id,
+      canRoute: true,
+    },
+    {
+      name: "Front Desk Officer",
+      email: "front.desk@example.invalid",
+      role: "FRONT_DESK_OFFICER" as const,
+      unitId: null,
     },
   ];
   const emails: string[] = [];

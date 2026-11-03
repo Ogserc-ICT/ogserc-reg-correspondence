@@ -206,14 +206,15 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(status(page)).toContainText("updated.");
 
-  // ---- O2: Letter to NERC, 2 Dec, signed by the Chairman, courier 3 Dec ------
+  // ---- O2: Letter to NERC, 7 Dec, signed by the Chairman, courier 8 Dec ------
+  // (SPEC-v2 C13.1: the workbook's example row)
   await page.goto("/outward/new");
   await fill(page, {
-    documentDate: "2026-12-02",
+    documentDate: "2026-12-07",
     subject: "Re: transition arrangements",
     addressee: "Nigerian Electricity Regulatory Commission",
     signatoryDesignation: "",
-    dateDispatched: "2026-12-03",
+    dateDispatched: "2026-12-08",
   });
   await choose(page, {
     typeId: "Letter to NERC / Federal agency",
@@ -235,7 +236,8 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await expect(row("ACK/2026/00001")).toContainText("Closed");
   await expect(row("ACK/2026/00002")).toContainText("01-Dec-2026"); // deemed
   await expect(row("ACK/2026/00002")).toContainText("15-Dec-2026");
-  await expect(row("ACK/2026/00002")).toContainText("Awaiting forwarding");
+  // SPEC-v2 C5.3: not routed yet.
+  await expect(row("ACK/2026/00002")).toContainText("Awaiting routing");
   await expect(row("ACK/2026/00002")).toContainText(
     "Not forwarded within target",
   );
@@ -273,7 +275,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await page.goto("/inward");
   await row("ACK/2026/00003").getByRole("link").click();
   await expect(detail(page, "Closed on")).toContainText(
-    "03-Dec-2026 (by OGSERC/OUT/2026/00002)",
+    "08-Dec-2026 (by OGSERC/OUT/2026/00002)",
   );
   await expect(detail(page, "Closed on time")).toHaveText("Yes");
 
@@ -302,7 +304,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await page.goto("/");
   const tile = (label: string) =>
     page.locator("main a:visible, main div:visible", { hasText: label }).last();
-  await expect(tile("Awaiting forwarding")).toContainText("1");
+  await expect(tile("Awaiting routing / forwarding")).toContainText("1");
   await expect(tile("Incoming overdue")).toContainText("0");
 });
 
@@ -394,7 +396,7 @@ test("Daily Registers for 20 Nov and 2 Dec 2026 list the right items", async ({
   const dec2 = await pdfText(page, "/daily/pdf?date=2026-12-02");
   expect(dec2).toContain("Items received: 1");
   expect(dec2).toContain("OGSERC/ACK/2026/00003");
-  expect(dec2).not.toContain("OGSERC/OUT/2026/00002"); // dispatched on 3 Dec
+  expect(dec2).not.toContain("OGSERC/OUT/2026/00002"); // dispatched on 8 Dec (C13.1)
   expect(dec2).toContain("Items dispatched: 0");
 
   // The screen agrees with the PDF.
@@ -512,7 +514,8 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
     const expectStat = async (group: string, label: string, value: string) =>
       expect(stat(group, label)).toHaveText(`${value}${label}`);
     await expectStat("Incoming", "Items logged", "3");
-    await expectStat("Incoming", "Awaiting forwarding", "1");
+    await expectStat("Incoming", "Not yet routed", "1");
+    await expectStat("Incoming", "Awaiting forwarding", "0");
     await expectStat("Incoming", "Closed", "2");
     await expectStat("Incoming", "Closed on time", "100%");
     await expectStat("Incoming", "Received after hours / non-working day", "1");

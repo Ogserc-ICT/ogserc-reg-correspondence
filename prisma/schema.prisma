@@ -23,11 +23,15 @@ enum Role {
   UNIT_OFFICER
   SECRETARY
   ADMIN
+  /// SPEC-v2 C12: logs front desk intakes only.
+  FRONT_DESK_OFFICER
 }
 
 enum Series {
   ACK
   OUT
+  /// Front desk intakes (SPEC-v2 C3.1).
+  FD
 }
 
 enum ListKind {
@@ -49,6 +53,23 @@ enum AckEmailMode {
   SEND
 }
 
+/// SPEC-v2 C6.5.
+enum EmailKind {
+  ACK
+  ROUTING
+  RESEND
+}
+
+/// SPEC-v2 C6.5, plus DISCARDED and SUPERSEDED (agreed on review).
+enum EmailStatus {
+  QUEUED
+  PENDING_REVIEW
+  SENT
+  FAILED
+  DISCARDED
+  SUPERSEDED
+}
+
 enum HolidayStatus {
   FIXED
   PROVISIONAL
@@ -66,6 +87,7 @@ enum InwardStatus {
   VOID
   CLOSED
   OVERDUE
+  AWAITING_ROUTING
   AWAITING_FORWARDING
   NOTED_FILED
   OPEN
@@ -95,6 +117,8 @@ model User {
   unitId             String?   @db.Uuid
   unit               Unit?     @relation(fields: [unitId], references: [id])
   isSignatory        Boolean   @default(false)
+  /// SPEC-v2 C5.1/C12: grants registry.route on top of the role, nothing else.
+  canRoute           Boolean   @default(false)
   designation        String?
   active             Boolean   @default(true)
   failedLogins       Int       @default(0)
@@ -115,6 +139,11 @@ model User {
   movementsReleased FileMovement[]     @relation("MovementReleasedBy")
   movementsIssuedTo FileMovement[]     @relation("MovementIssuedTo")
   movementsReceived FileMovement[]     @relation("MovementReceivedBackBy")
+  inwardRouted      InwardItem[]       @relation("InwardRoutedBy")
+  routingEvents     RoutingEvent[]
+  intakesReceived   FrontDeskIntake[]
+  emailsCreated     EmailLog[]         @relation("EmailCreatedBy")
+  emailsReviewed    EmailLog[]         @relation("EmailReviewedBy")
   auditEntries      AuditLog[]
   settingsUpdates   RegistrySettings[]
   sessions          Session[]
@@ -222,17 +251,18 @@ model ListItem {
   /// FILE_CLASS only: code for generated file references, e.g. RL (SPEC-v2 C8).
   code                   String?
 
-  inwardMode           InwardItem[]   @relation("InwardMode")
-  inwardSenderCategory InwardItem[]   @relation("InwardSenderCategory")
-  inwardLga            InwardItem[]   @relation("InwardLga")
-  inwardAckVia         InwardItem[]   @relation("InwardAckVia")
-  inwardAction         InwardItem[]   @relation("InwardAction")
-  inwardPriority       InwardItem[]   @relation("InwardPriority")
-  outwardRecipientCat  OutwardItem[]  @relation("OutwardRecipientCategory")
-  outwardDispatchMode  OutwardItem[]  @relation("OutwardDispatchMode")
-  filesClass           RegistryFile[] @relation("FileClass")
-  filesSecurity        RegistryFile[] @relation("FileSecurity")
-  filesStatus          RegistryFile[] @relation("FileStatus")
+  inwardMode           InwardItem[]      @relation("InwardMode")
+  inwardSenderCategory InwardItem[]      @relation("InwardSenderCategory")
+  inwardLga            InwardItem[]      @relation("InwardLga")
+  inwardAckVia         InwardItem[]      @relation("InwardAckVia")
+  inwardAction         InwardItem[]      @relation("InwardAction")
+  intakeMode           FrontDeskIntake[]
+  inwardPriority       InwardItem[]      @relation("InwardPriority")
+  outwardRecipientCat  OutwardItem[]     @relation("OutwardRecipientCategory")
+  outwardDispatchMode  OutwardItem[]     @relation("OutwardDispatchMode")
+  filesClass           RegistryFile[]    @relation("FileClass")
+  filesSecurity        RegistryFile[]    @relation("FileSecurity")
+  filesStatus          RegistryFile[]    @relation("FileStatus")
 
   @@unique([list, label])
   @@unique([list, systemKey])
@@ -256,6 +286,7 @@ model IncomingType {
   active                  Boolean    @default(true)
 
   inwardItems InwardItem[]
+  intakes     FrontDeskIntake[]
 }
 
 model OutgoingType {
@@ -320,6 +351,12 @@ model RegistrySettings {
   secretaryName                   String       @default("")
   /// STACK rule 7: may the Head of Registry void items they logged themselves?
   headMayVoidOwnItems             Boolean      @default(false)
+  /// Q-V2-2: email the previous unit when routing moves an item away (workbook: no).
+  notifyPreviousUnitOnReroute     Boolean      @default(false)
+  /// Q-V2-3: routers re-enter their password to save routing (default no).
+  routingRequiresPassword         Boolean      @default(false)
+  /// Q-V2-5: the front desk may log any receipt mode (workbook), not only hand delivery.
+  frontDeskAnyMode                Boolean      @default(true)
   /// SPEC-v2 C3.1: front desk intake numbers.
   frontDeskPrefix                 String       @default("OGSERC/FD")
   /// SPEC-v2 C8: generated file references {filePrefix}/{code}/{NNN}.
@@ -385,8 +422,9 @@ model InwardItem {
   unitOverride                 Unit?         @relation("InwardUnitOverride", fields: [unitOverrideId], references: [id])
   ackIssuedViaId               String        @db.Uuid
   ackIssuedVia                 ListItem      @relation("InwardAckVia", fields: [ackIssuedViaId], references: [id])
-  actionRequiredId             String        @db.Uuid
-  actionRequired               ListItem      @relation("InwardAction", fields: [actionRequiredId], references: [id])
+  /// Set on the Routing Desk (SPEC-v2 C4); blank until routed.
+  actionRequiredId             String?       @db.Uuid
+  actionRequired               ListItem?     @relation("InwardAction", fields: [actionRequiredId], references: [id])
   /// Blank = Normal.
   priorityId                   String?       @db.Uuid
   priority                     ListItem?     @relation("InwardPriority", fields: [priorityId], references: [id])
@@ -397,6 +435,19 @@ model InwardItem {
   multiState                   Boolean?
   /// Para 25 extension (§2.2).
   registrationDeadlineOverride DateTime?     @db.Date
+
+  // routing (SPEC-v2 C5): set only on the Routing Desk
+  routedById             String?          @db.Uuid
+  routedBy               User?            @relation("InwardRoutedBy", fields: [routedById], references: [id])
+  routedAt               DateTime?        @db.Timestamptz
+  /// Forwarded after confirming it had not been routed (C5.4, E6).
+  forwardedBeforeRouting Boolean          @default(false)
+  /// The front desk intake this item registered (C3.2); one item per intake.
+  frontDeskIntakeId      String?          @unique @db.Uuid
+  frontDeskIntake        FrontDeskIntake? @relation(fields: [frontDeskIntakeId], references: [id])
+  /// Addresses the acknowledgement was actually sent to, merged (C6.5, E1).
+  ackEmailedTo           String[]         @default([])
+  ackEmailedAt           DateTime?        @db.Timestamptz
 
   // handling (Update Item)
   dateForwarded         DateTime? @db.Date
@@ -436,7 +487,9 @@ model InwardItem {
   createdBy   User     @relation("InwardCreatedBy", fields: [createdById], references: [id])
   updatedAt   DateTime @updatedAt @db.Timestamptz
 
-  replies OutwardItem[] @relation("OutwardInReplyTo")
+  replies       OutwardItem[]  @relation("OutwardInReplyTo")
+  routingEvents RoutingEvent[]
+  emails        EmailLog[]
 
   @@unique([numberYear, serial])
   @@index([routedUnitId])
@@ -614,4 +667,88 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@index([at])
+}
+
+// --------------------------------------------------------- v2: front desk ---
+
+/// A document handed in at the front desk, before the Registry registers it
+/// (SPEC-v2 C3). No acknowledgement is issued. Never deleted; the number never
+/// changes (trigger).
+model FrontDeskIntake {
+  id           String        @id @default(uuid(7)) @db.Uuid
+  /// OGSERC/FD/{YYYY}/{00000}; the year is the calendar year of receivedAt.
+  intakeNo     String        @unique
+  intakeYear   Int
+  serial       Int
+  receivedAt   DateTime      @db.Timestamptz
+  sender       String
+  subject      String
+  /// "If known".
+  typeId       String?       @db.Uuid
+  type         IncomingType? @relation(fields: [typeId], references: [id])
+  modeId       String        @db.Uuid
+  mode         ListItem      @relation(fields: [modeId], references: [id])
+  deliveredBy  String?
+  phone        String?
+  volumes      Int?
+  receivedById String        @db.Uuid
+  receivedBy   User          @relation(fields: [receivedById], references: [id])
+  remarks      String?
+  /// Set when the Registry registers it (C3.2).
+  registeredAt DateTime?     @db.Timestamptz
+  createdAt    DateTime      @default(now()) @db.Timestamptz
+  updatedAt    DateTime      @updatedAt @db.Timestamptz
+
+  inwardItem InwardItem?
+
+  @@unique([intakeYear, serial])
+  @@index([registeredAt])
+  @@index([receivedAt])
+}
+
+// ------------------------------------------------------------ v2: routing ---
+
+/// One save on the Routing Desk (SPEC-v2 C5.2, E4). Append-only.
+model RoutingEvent {
+  id           String     @id @default(uuid(7)) @db.Uuid
+  inwardItemId String     @db.Uuid
+  inwardItem   InwardItem @relation(fields: [inwardItemId], references: [id])
+  routedById   String     @db.Uuid
+  routedBy     User       @relation(fields: [routedById], references: [id])
+  routedAt     DateTime   @db.Timestamptz
+  /// The six routing fields before and after (only those that changed).
+  before       Json
+  after        Json
+
+  @@index([inwardItemId, routedAt])
+}
+
+// -------------------------------------------------------------- v2: email ---
+
+/// Every acknowledgement email the app queued, held for review, sent or
+/// failed to send (SPEC-v2 C6.5). Nothing is recorded in Off mode.
+model EmailLog {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  inwardItemId  String      @db.Uuid
+  inwardItem    InwardItem  @relation(fields: [inwardItemId], references: [id])
+  kind          EmailKind
+  status        EmailStatus
+  to            String[]
+  cc            String[]    @default([])
+  subject       String
+  body          String
+  attempts      Int         @default(0)
+  nextAttemptAt DateTime?   @db.Timestamptz
+  error         String?
+  sentAt        DateTime?   @db.Timestamptz
+  createdById   String?     @db.Uuid
+  createdBy     User?       @relation("EmailCreatedBy", fields: [createdById], references: [id])
+  /// Who sent or discarded it from "Emails to review".
+  reviewedById  String?     @db.Uuid
+  reviewedBy    User?       @relation("EmailReviewedBy", fields: [reviewedById], references: [id])
+  createdAt     DateTime    @default(now()) @db.Timestamptz
+  updatedAt     DateTime    @updatedAt @db.Timestamptz
+
+  @@index([inwardItemId, createdAt])
+  @@index([status, nextAttemptAt])
 }

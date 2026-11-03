@@ -27,7 +27,7 @@ describe("§12.2 example in the database", () => {
     const inward = await db.inwardItem.findMany({ orderBy: { serial: "asc" } });
     expect(inward.map((i) => [i.number, i.statusCache])).toEqual([
       ["OGSERC/ACK/2026/00001", "CLOSED"],
-      ["OGSERC/ACK/2026/00002", "AWAITING_FORWARDING"],
+      ["OGSERC/ACK/2026/00002", "AWAITING_ROUTING"],
       ["OGSERC/ACK/2026/00003", "CLOSED"],
     ]);
     const outward = await db.outwardItem.findMany({
@@ -46,13 +46,25 @@ describe("§12.2 example in the database", () => {
     expect(i3.routedUnit.name).toBe(
       "Office of the General Counsel and Secretary (Registry)",
     );
+    // C13.1: only I3 was routed, by the Secretary; one routing event.
+    expect(inward.map((i) => i.routedById !== null)).toEqual([
+      false,
+      false,
+      true,
+    ]);
+    expect(
+      await db.routingEvent.count({ where: { inwardItemId: ids.I3 } }),
+    ).toBe(1);
   });
 
   it("matches the dashboard on 10 Dec 2026", async () => {
     const { incoming, outgoing, files } = await loadDashboard(db, DEC_10);
     expect(incoming).toMatchObject({
       logged: 3,
-      awaitingForwarding: 1,
+      awaitingRouting: 1,
+      awaitingForwarding: 0,
+      awaitingRoutingOrForwarding: 1,
+      atFrontDesk: 0,
       closed: 2,
       closedOnTimePct: 100,
       afterHoursOrNonWorkingDay: 1,
@@ -254,7 +266,10 @@ describe("full dashboard (SPEC §8.4)", () => {
     const d = await loadFullDashboard(db, DEC_10, officer);
     expect(d.summary.incoming).toMatchObject({
       logged: 3,
-      awaitingForwarding: 1,
+      awaitingRouting: 1,
+      awaitingForwarding: 0,
+      awaitingRoutingOrForwarding: 1,
+      atFrontDesk: 0,
       closed: 2,
       closedOnTimePct: 100,
       afterHoursOrNonWorkingDay: 1,
@@ -273,6 +288,17 @@ describe("full dashboard (SPEC §8.4)", () => {
       closed: 1,
       outwardOriginated: 1,
     });
+    // C13.1: by division of the current unit.
+    expect(d.breakdowns.byDivision).toHaveLength(5);
+    expect(
+      d.breakdowns.byDivision.find(
+        (r) => r.label === "Legal, Licensing and Consumer Affairs",
+      ),
+    ).toMatchObject({ inwardRouted: 2, pending: 1, closed: 1 });
+    expect(
+      d.breakdowns.byDivision.find((r) => r.label === "Office of the Chairman"),
+    ).toMatchObject({ inwardRouted: 1, closed: 1, outwardOriginated: 1 });
+    expect(d.breakdowns.byUnit).toHaveLength(30);
     expect(d.breakdowns.byMonth[0]).toEqual({
       month: "2026-11",
       inward: 1,

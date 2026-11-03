@@ -14,7 +14,7 @@ import {
 } from "@/domain/format";
 import { can, canVoid } from "@/domain/permissions";
 import { appNow } from "@/server/clock";
-import { requireUser } from "@/server/current-user";
+import { requireRegisterReader } from "@/server/current-user";
 import { fromDbDate } from "@/server/dates";
 import { getDb } from "@/server/db";
 import { inwardDetail } from "@/server/read/items";
@@ -62,7 +62,7 @@ export default function InwardItemPage({ params }: PageProps<"/inward/[id]">) {
 const text = (v: string | null | undefined) => v || BLANK;
 
 async function Item({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireUser();
+  const user = await requireRegisterReader();
   const { id } = await params;
   const db = getDb();
   const d = await inwardDetail(db, user, id, appNow());
@@ -114,7 +114,7 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
     fileIdLabel: d.file?.reference ?? "",
     unitOverrideId: row.unitOverrideId ?? "",
     ackIssuedViaId: row.ackIssuedViaId,
-    actionRequiredId: row.actionRequiredId,
+    actionRequiredId: row.actionRequiredId ?? "",
     priorityId: row.priorityId ?? "",
     actionOfficer: row.actionOfficer ?? "",
     responseDueOverride: fromDbDate(row.responseDueOverride) ?? "",
@@ -307,7 +307,7 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
                 {row.ackIssuedVia.label}
               </Detail>
               <Detail label="Action required">
-                {row.actionRequired.label}
+                {row.actionRequired?.label ?? "—"}
               </Detail>
               <Detail label="Priority">
                 {row.priority?.label ?? "Normal"}

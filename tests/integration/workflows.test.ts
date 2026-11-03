@@ -100,7 +100,8 @@ describe("New Inward", () => {
     expect(r.message).toBe(
       "Saved as OGSERC/ACK/2026/00004. Forward to: Customer Complaints.",
     );
-    expect(r.item.statusCache).toBe("AWAITING_FORWARDING");
+    // Waits for the Routing Desk (SPEC-v2 C5.3).
+    expect(r.item.statusCache).toBe("AWAITING_ROUTING");
   });
 
   it("lists every missing field in form order, and other problems too", async () => {
@@ -304,7 +305,7 @@ describe("New Outward and outward handling", () => {
       }),
     );
     let i2 = await db.inwardItem.findUniqueOrThrow({ where: { id: ids.I2 } });
-    expect(i2.statusCache).toBe("AWAITING_FORWARDING");
+    expect(i2.statusCache).toBe("AWAITING_ROUTING");
 
     const reply = await logOutward(
       db,
@@ -315,7 +316,7 @@ describe("New Outward and outward handling", () => {
       }),
     );
     i2 = await db.inwardItem.findUniqueOrThrow({ where: { id: ids.I2 } });
-    expect(i2.statusCache).toBe("AWAITING_FORWARDING"); // not dispatched yet
+    expect(i2.statusCache).toBe("AWAITING_ROUTING"); // not dispatched yet
 
     await updateOutward(db, officer, reply.item.id, {
       dateDispatched: "2026-12-08",

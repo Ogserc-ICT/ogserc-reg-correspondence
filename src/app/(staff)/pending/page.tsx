@@ -114,10 +114,10 @@ async function Pending({
           tone={p.counts.overdue ? "overdue" : undefined}
         />
         <StatTile
-          label="Awaiting forwarding"
-          value={p.counts.awaitingForwarding}
+          label="Awaiting routing / fwd"
+          value={p.counts.awaitingRoutingOrForwarding}
           sub="Still at the Registry"
-          tone={p.counts.awaitingForwarding ? "awaiting" : undefined}
+          tone={p.counts.awaitingRoutingOrForwarding ? "awaiting" : undefined}
         />
       </div>
 

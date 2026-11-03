@@ -1,6 +1,7 @@
 // Daily Register and Pending Actions: A4 landscape, header row repeated on
 // each page, no blank rows (TEMPLATES §2, §3).
 import type { PDFPage } from "pdf-lib";
+import { isAwaitingRoutingOrForwarding } from "@/domain/inward";
 import { formatDate, formatDateTime, formatTime } from "@/domain/format";
 import { fromDbDate } from "../dates";
 import type { DailyRegister, PendingActions } from "../read/reports";
@@ -224,7 +225,7 @@ export async function pendingActionsPdf(
     `Unit: ${p.unit}      Printed: ${printed}`,
   );
   page.drawText(
-    `Pending: ${p.counts.pending}     Overdue: ${p.counts.overdue}     Awaiting forwarding: ${p.counts.awaitingForwarding}`,
+    `Pending: ${p.counts.pending}     Overdue: ${p.counts.overdue}     Awaiting routing / fwd: ${p.counts.awaitingRoutingOrForwarding}`,
     { x: M, y, size: 9.5, font: doc.bold, color: INK },
   );
   y -= 16;
@@ -251,7 +252,7 @@ export async function pendingActionsPdf(
         shade: (r) =>
           r.derived.status === "Overdue"
             ? SHADE.overdue
-            : r.derived.status === "Awaiting forwarding"
+            : isAwaitingRoutingOrForwarding(r.derived.status)
               ? SHADE.awaiting
               : null,
         columns: [
@@ -271,7 +272,11 @@ export async function pendingActionsPdf(
             width: 8,
             value: (r) => r.actionOfficer ?? "—",
           },
-          { header: "Action", width: 7, value: (r) => r.actionRequired.label },
+          {
+            header: "Action",
+            width: 7,
+            value: (r) => r.actionRequired?.label ?? "—",
+          },
           {
             header: "Priority",
             width: 5,

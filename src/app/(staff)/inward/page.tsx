@@ -8,7 +8,7 @@ import { PreviewButton, PreviewRow } from "@/app/_components/ui/preview-row";
 import { can } from "@/domain/permissions";
 import { formatDate, formatDateTime } from "@/domain/format";
 import { appNow } from "@/server/clock";
-import { requireUser } from "@/server/current-user";
+import { requireRegisterReader } from "@/server/current-user";
 import { getDb } from "@/server/db";
 import { formOptions } from "@/server/read/options";
 import {
@@ -57,7 +57,7 @@ async function Register({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const user = await requireUser();
+  const user = await requireRegisterReader();
   const params = flatParams(await searchParams);
   const db = getDb();
   const now = appNow();
@@ -82,6 +82,7 @@ async function Register({
     { label: "All", count: base.length },
     ...[
       "Pending",
+      "Awaiting routing",
       "Awaiting forwarding",
       "Open",
       "Overdue",

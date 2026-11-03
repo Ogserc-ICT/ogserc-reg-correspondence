@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 
 const OVERDUE = new Set(["Overdue", "Response overdue"]);
 const AWAITING = new Set([
+  "Awaiting routing",
   "Awaiting forwarding",
   "Open",
   "Not yet dispatched",
