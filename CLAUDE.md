@@ -5,6 +5,7 @@ Internal web app for Ogun State Electricity Regulatory Commission (OGSERC) staff
 This is a **standalone app** with its own repo and database. It is **not** the Registration & Evaluation app, although both use the `OGSERC/ACK` number series (see `docs/SPEC.md` §3.3).
 
 ## Source of truth
+- docs/SPEC-v2-CHANGES.md overrides docs/SPEC.md where they differ.
 - `docs/SPEC.md`: every business rule, status order, flag, action, number format and test fixture. **Read it before changing any domain logic.** If code and spec disagree, the spec wins. If the spec is unclear, ask; do not guess.
 - `docs/TEMPLATES.md`: acknowledgement slip, Daily Register and Pending Actions layouts and wording; on-screen messages.
 - `seed-data.json`: incoming/outgoing correspondence types, units, LGAs, lists, settings, public holidays. Seed from this file; never hard-code these values in components.
