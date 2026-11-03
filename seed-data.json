@@ -1,5 +1,5 @@
 {
-  "_note": "Extracted from OGSERC_Registry_Correspondence_Workbook.xlsm (Lists + Settings sheets). Seed reference tables from this file; never hard-code these values in components. 'closesInwardItem' on outgoing types is NEW (not in the Excel) - see docs/SPEC.md §9 R4.",
+  "_note": "v2 — extracted from OGSERC_Registry_Correspondence_Workbook_New.xlsm. Seed reference tables from this file; never hard-code. 'closesInwardItem' and 'defaultUnitValid' are app additions (see docs/SPEC-v2-CHANGES.md). Staff names under 'staffFromWorkbook' are for creating user accounts, not lists to seed. Routing PINs are deliberately not included.",
   "settings": {
     "ackPrefix": "OGSERC/ACK",
     "outPrefix": "OGSERC/OUT",
@@ -23,256 +23,301 @@
     "noDeliveryConfirmationModes": [
       "Publication / gazette",
       "Internal mail"
-    ]
+    ],
+    "ackEmailMode": "Display",
+    "ackEmailCc": "",
+    "frontDeskPrefix": "OGSERC/FD",
+    "filePrefix": "OGSERC",
+    "fileRefSerialDigits": 3
   },
   "incomingTypes": [
     {
       "name": "REG-01 Registration (new)",
       "category": "Regulatory filing",
-      "defaultUnit": "Registration & Licensing",
+      "defaultUnit": "Licensing unit",
       "orderRef": "11; Sch. 1 Pt A",
       "responseTargetDays": 20,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "OUN-01 Own-use notification",
       "category": "Regulatory filing",
-      "defaultUnit": "Registration & Licensing",
+      "defaultUnit": "Licensing unit",
       "orderRef": "3(4); Sch. 1 Pt B",
       "responseTargetDays": 10,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Update - material change",
       "category": "Regulatory filing",
-      "defaultUnit": "Registration & Licensing",
+      "defaultUnit": "Licensing unit",
       "orderRef": "16(1)",
       "responseTargetDays": 10,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Annual confirmation",
       "category": "Regulatory filing",
-      "defaultUnit": "Registration & Licensing",
+      "defaultUnit": "Licensing unit",
       "orderRef": "16(2)",
       "responseTargetDays": 10,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Deficiency response",
       "category": "Regulatory filing",
-      "defaultUnit": "Registration & Licensing",
+      "defaultUnit": "Licensing unit",
       "orderRef": "13(1)(b)",
       "responseTargetDays": 10,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Licence / permit application",
       "category": "Regulatory filing",
-      "defaultUnit": "Registration & Licensing",
+      "defaultUnit": "Licensing unit",
       "orderRef": "18(1)",
       "responseTargetDays": 20,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Multi-State ring-fencing plan",
       "category": "Regulatory filing",
-      "defaultUnit": "Registration & Licensing",
+      "defaultUnit": "Licensing unit",
       "orderRef": "7(3)",
       "responseTargetDays": 20,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Licence renewal application",
       "category": "Regulatory filing",
-      "defaultUnit": "Registration & Licensing",
+      "defaultUnit": "Licensing unit",
       "orderRef": "8(5)",
       "responseTargetDays": 20,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Fee payment evidence",
       "category": "Regulatory filing",
-      "defaultUnit": "Finance",
+      "defaultUnit": "Finance and Account unit",
       "orderRef": "17",
       "responseTargetDays": 5,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Confidentiality claim / representation",
       "category": "Regulatory filing",
-      "defaultUnit": "Legal",
+      "defaultUnit": "Compliance/Legal Services unit: Legal",
       "orderRef": "15(3); 20",
       "responseTargetDays": 10,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Application for review",
       "category": "Regulatory filing",
-      "defaultUnit": "Legal",
+      "defaultUnit": "Compliance/Legal Services unit: Legal",
       "orderRef": "21",
       "responseTargetDays": 20,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Consumer complaint",
       "category": "Consumer matters",
-      "defaultUnit": "Consumer Affairs",
+      "defaultUnit": "Customer Complaints",
       "orderRef": "9",
       "responseTargetDays": 10,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     },
     {
       "name": "Tariff application / review",
       "category": "Regulatory filing",
-      "defaultUnit": "Tariffs & Economic Regulation",
+      "defaultUnit": "Tariff and Rates unit",
       "orderRef": null,
       "responseTargetDays": 20,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Licensee returns / performance report",
       "category": "Licensee returns & reports",
-      "defaultUnit": "Technical & Market Operations",
+      "defaultUnit": "Performance Monitoring unit, Market Analysis",
       "orderRef": null,
       "responseTargetDays": 10,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": false
     },
     {
       "name": "Incident / outage report",
       "category": "Licensee returns & reports",
-      "defaultUnit": "Technical & Market Operations",
+      "defaultUnit": "Performance Monitoring unit, Occupational Health and Safety",
       "orderRef": null,
       "responseTargetDays": 5,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": false
     },
     {
-      "name": "Consumer petition / public representation",
+      "name": "Consumer petition",
       "category": "Consumer matters",
-      "defaultUnit": "Consumer Affairs",
+      "defaultUnit": "Customer Complaints",
       "orderRef": null,
       "responseTargetDays": 10,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
+    },
+    {
+      "name": "Public representation",
+      "category": "Consumer matters",
+      "defaultUnit": "Public Affairs and Stakeholder unit: Communication",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Letter from Governor's Office",
       "category": "Government & legislature",
-      "defaultUnit": "Office of the Chairman",
+      "defaultUnit": "Office of the General Counsel and Secretary (Registry)",
       "orderRef": null,
       "responseTargetDays": 5,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Letter from House of Assembly",
       "category": "Government & legislature",
-      "defaultUnit": "Office of the Chairman",
+      "defaultUnit": "Office of the General Counsel and Secretary (Registry)",
       "orderRef": null,
       "responseTargetDays": 5,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Letter from State MDA / Local Government",
       "category": "Government & legislature",
-      "defaultUnit": "Office of the Secretary",
+      "defaultUnit": "Office of the General Counsel and Secretary (Registry)",
       "orderRef": null,
       "responseTargetDays": 10,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Letter from NERC / Federal agency",
       "category": "Federal & sector agencies",
-      "defaultUnit": "Office of the Secretary",
+      "defaultUnit": "Office of the General Counsel and Secretary (Registry)",
       "orderRef": null,
       "responseTargetDays": 10,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Letter from DisCo / GenCo / TCN",
       "category": "Industry & investors",
-      "defaultUnit": "Technical & Market Operations",
+      "defaultUnit": "Networks unit: Transmission and Distribution",
       "orderRef": null,
       "responseTargetDays": 10,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Investor / developer enquiry",
       "category": "Industry & investors",
-      "defaultUnit": "Registration & Licensing",
+      "defaultUnit": "Licensing unit",
       "orderRef": null,
       "responseTargetDays": 10,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Development partner correspondence",
       "category": "Industry & investors",
-      "defaultUnit": "Office of the Chairman",
+      "defaultUnit": "Corporate Planning and Strategy (CPS)",
       "orderRef": null,
       "responseTargetDays": 10,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Court process / legal notice",
       "category": "Legal & court",
-      "defaultUnit": "Legal",
+      "defaultUnit": "Compliance/Legal Services unit: Legal",
       "orderRef": null,
       "responseTargetDays": 3,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Freedom of Information request",
       "category": "Legal & court",
-      "defaultUnit": "Legal",
+      "defaultUnit": "Compliance/Legal Services unit: Legal",
       "orderRef": null,
       "responseTargetDays": 7,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Invitation (meeting / event / hearing)",
       "category": "Invitations & events",
-      "defaultUnit": "Office of the Secretary",
+      "defaultUnit": "Office of the General Counsel and Secretary (Registry)",
       "orderRef": null,
       "responseTargetDays": 3,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Invoice / vendor correspondence",
       "category": "Finance & procurement",
-      "defaultUnit": "Finance",
+      "defaultUnit": "Finance and Account unit",
       "orderRef": null,
       "responseTargetDays": 10,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Staff / personnel matter",
       "category": "Administration & HR",
-      "defaultUnit": "Administration & HR",
+      "defaultUnit": "Human Resources",
       "orderRef": null,
       "responseTargetDays": 10,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Media / press enquiry",
       "category": "Media & public",
-      "defaultUnit": "Corporate Communications",
+      "defaultUnit": "Public Affairs and Stakeholder unit: Communication",
       "orderRef": null,
       "responseTargetDays": 2,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Circular / publication (for information)",
       "category": "Other",
-      "defaultUnit": "Office of the Secretary",
+      "defaultUnit": "Office of the General Counsel and Secretary (Registry)",
       "orderRef": null,
       "responseTargetDays": 0,
-      "para103SlipWording": false
+      "para103SlipWording": false,
+      "defaultUnitValid": true
     },
     {
       "name": "Other correspondence",
       "category": "Other",
-      "defaultUnit": "Office of the Secretary",
+      "defaultUnit": "Office of the General Counsel and Secretary (Registry)",
       "orderRef": "10(2)",
       "responseTargetDays": 10,
-      "para103SlipWording": true
+      "para103SlipWording": true,
+      "defaultUnitValid": true
     }
   ],
   "outgoingTypes": [
@@ -425,16 +470,188 @@
     "Publication / gazette"
   ],
   "units": [
-    "Office of the Chairman",
-    "Office of the Secretary",
-    "Registration & Licensing",
-    "Technical & Market Operations",
-    "Tariffs & Economic Regulation",
-    "Consumer Affairs",
-    "Legal",
-    "Finance",
-    "Administration & HR",
-    "Corporate Communications"
+    {
+      "name": "Office of the General Counsel and Secretary (Registry)",
+      "division": "Office of the Chairman",
+      "unitGroup": "Registry",
+      "emails": []
+    },
+    {
+      "name": "Internal Audit unit",
+      "division": "Office of the Chairman",
+      "unitGroup": "Internal Audit",
+      "emails": []
+    },
+    {
+      "name": "Public Affairs and Stakeholder unit: Communication",
+      "division": "Office of the Chairman",
+      "unitGroup": "Public Affairs and Protocol",
+      "emails": []
+    },
+    {
+      "name": "Public Affairs and Stakeholder unit: New Media",
+      "division": "Office of the Chairman",
+      "unitGroup": "Public Affairs and Protocol",
+      "emails": []
+    },
+    {
+      "name": "Public Affairs and Stakeholder unit: Protocol",
+      "division": "Office of the Chairman",
+      "unitGroup": "Public Affairs and Protocol",
+      "emails": []
+    },
+    {
+      "name": "Engineering Standards unit",
+      "division": "Engineering Services",
+      "unitGroup": "Standards and Networks",
+      "emails": []
+    },
+    {
+      "name": "Networks unit: Transmission and Distribution",
+      "division": "Engineering Services",
+      "unitGroup": "Standards and Networks",
+      "emails": []
+    },
+    {
+      "name": "Networks unit: Generation",
+      "division": "Engineering Services",
+      "unitGroup": "Standards and Networks",
+      "emails": []
+    },
+    {
+      "name": "Performance Monitoring unit",
+      "division": "Engineering Services",
+      "unitGroup": "Monitoring, Metering and Safety",
+      "emails": []
+    },
+    {
+      "name": "Metering Standards unit",
+      "division": "Engineering Services",
+      "unitGroup": "Monitoring, Metering and Safety",
+      "emails": []
+    },
+    {
+      "name": "Occupational Health, Safety and Performance Analysis unit",
+      "division": "Engineering Services",
+      "unitGroup": "Monitoring, Metering and Safety",
+      "emails": []
+    },
+    {
+      "name": "Market Analysis unit",
+      "division": "Electricity Market, Planning and Research",
+      "unitGroup": "Market, Tariff and Regulatory Finance",
+      "emails": []
+    },
+    {
+      "name": "Tariff and Rates unit",
+      "division": "Electricity Market, Planning and Research",
+      "unitGroup": "Market, Tariff and Regulatory Finance",
+      "emails": []
+    },
+    {
+      "name": "Regulatory Financial Reporting Analysis (RFRA)",
+      "division": "Electricity Market, Planning and Research",
+      "unitGroup": "Market, Tariff and Regulatory Finance",
+      "emails": []
+    },
+    {
+      "name": "Corporate Planning and Strategy (CPS)",
+      "division": "Electricity Market, Planning and Research",
+      "unitGroup": "Planning, Renewables, Research and Data",
+      "emails": []
+    },
+    {
+      "name": "Renewable Energy",
+      "division": "Electricity Market, Planning and Research",
+      "unitGroup": "Planning, Renewables, Research and Data",
+      "emails": []
+    },
+    {
+      "name": "Research unit: Research Analytics",
+      "division": "Electricity Market, Planning and Research",
+      "unitGroup": "Planning, Renewables, Research and Data",
+      "emails": []
+    },
+    {
+      "name": "Research unit: Data Aggregation Platform (DAP)",
+      "division": "Electricity Market, Planning and Research",
+      "unitGroup": "Planning, Renewables, Research and Data",
+      "emails": []
+    },
+    {
+      "name": "Finance and Account unit",
+      "division": "Financial Management Services",
+      "unitGroup": "Finance, Procurement and ICT",
+      "emails": []
+    },
+    {
+      "name": "Procurement unit",
+      "division": "Financial Management Services",
+      "unitGroup": "Finance, Procurement and ICT",
+      "emails": []
+    },
+    {
+      "name": "ICT unit",
+      "division": "Financial Management Services",
+      "unitGroup": "Finance, Procurement and ICT",
+      "emails": [
+        "it@ogserc.org.ng"
+      ]
+    },
+    {
+      "name": "Human Resources",
+      "division": "Financial Management Services",
+      "unitGroup": "HR and Admin",
+      "emails": []
+    },
+    {
+      "name": "Front Desk",
+      "division": "Financial Management Services",
+      "unitGroup": "HR and Admin",
+      "emails": []
+    },
+    {
+      "name": "Administration",
+      "division": "Financial Management Services",
+      "unitGroup": "HR and Admin",
+      "emails": []
+    },
+    {
+      "name": "Licensing unit",
+      "division": "Legal, Licensing and Consumer Affairs",
+      "unitGroup": "Licensing, Legal and Compliance",
+      "emails": []
+    },
+    {
+      "name": "Compliance/Legal Services unit: Legal",
+      "division": "Legal, Licensing and Consumer Affairs",
+      "unitGroup": "Licensing, Legal and Compliance",
+      "emails": []
+    },
+    {
+      "name": "Compliance/Legal Services unit: Compliance and Enforcement",
+      "division": "Legal, Licensing and Consumer Affairs",
+      "unitGroup": "Licensing, Legal and Compliance",
+      "emails": []
+    },
+    {
+      "name": "Customer Complaints",
+      "division": "Legal, Licensing and Consumer Affairs",
+      "unitGroup": "Consumer Affairs",
+      "emails": []
+    },
+    {
+      "name": "Customer Service Standards",
+      "division": "Legal, Licensing and Consumer Affairs",
+      "unitGroup": "Consumer Affairs",
+      "emails": []
+    },
+    {
+      "name": "Consumer Enlightenment and Education",
+      "division": "Legal, Licensing and Consumer Affairs",
+      "unitGroup": "Consumer Affairs",
+      "emails": []
+    }
   ],
   "lgas": [
     "Abeokuta North",
@@ -499,18 +716,54 @@
     "Low"
   ],
   "fileClasses": [
-    "Registration & licensing",
-    "Licensee file",
-    "Tariffs & market",
-    "Technical & standards",
-    "Consumer affairs",
-    "Legal",
-    "Finance",
-    "Administration",
-    "Personnel (confidential)",
-    "Government & external relations",
-    "Policy & regulations",
-    "General correspondence"
+    {
+      "name": "Registration & licensing",
+      "code": "REG"
+    },
+    {
+      "name": "Licensee file",
+      "code": "RL"
+    },
+    {
+      "name": "Tariffs & market",
+      "code": "TM"
+    },
+    {
+      "name": "Technical & standards",
+      "code": "TS"
+    },
+    {
+      "name": "Consumer affairs",
+      "code": "CA"
+    },
+    {
+      "name": "Legal",
+      "code": "LEG"
+    },
+    {
+      "name": "Finance",
+      "code": "FIN"
+    },
+    {
+      "name": "Administration",
+      "code": "ADM"
+    },
+    {
+      "name": "Personnel (confidential)",
+      "code": "PF"
+    },
+    {
+      "name": "Government & external relations",
+      "code": "GOV"
+    },
+    {
+      "name": "Policy & regulations",
+      "code": "POL"
+    },
+    {
+      "name": "General correspondence",
+      "code": "GEN"
+    }
   ],
   "fileSecurity": [
     "Open",
@@ -521,16 +774,6 @@
     "Open",
     "Closed",
     "Archived"
-  ],
-  "registryStaffPlaceholders": [
-    "[Registry officer 1]",
-    "[Registry officer 2]",
-    "[Registry officer 3]",
-    "[Head of Registry]"
-  ],
-  "secretaryPlaceholders": [
-    "[Secretary's full name]",
-    "[Acting Secretary's full name]"
   ],
   "publicHolidays": [
     {
@@ -613,5 +856,64 @@
       "name": "Boxing Day holiday (substitute for Sun 26 Dec)",
       "status": "Provisional — confirm FG declaration"
     }
-  ]
+  ],
+  "divisions": [
+    {
+      "name": "Office of the Chairman",
+      "emails": []
+    },
+    {
+      "name": "Engineering Services",
+      "emails": [
+        "engineeringstandards@ogserc.org.ng"
+      ]
+    },
+    {
+      "name": "Electricity Market, Planning and Research",
+      "emails": [
+        "empr@ogserc.org.ng"
+      ]
+    },
+    {
+      "name": "Financial Management Services",
+      "emails": []
+    },
+    {
+      "name": "Legal, Licensing and Consumer Affairs",
+      "emails": []
+    }
+  ],
+  "staffFromWorkbook": {
+    "registryStaff": [
+      "Olanrewaju Oluyombo",
+      "Abiodun Sodipo"
+    ],
+    "secretary": [
+      "Oluwatoyin Sonoiki"
+    ],
+    "signatories": [
+      {
+        "name": "Jide Onakoya",
+        "designation": "Chairman"
+      },
+      {
+        "name": "Oluwatoyin Sonoiki",
+        "designation": "Secretary to the Commission"
+      }
+    ],
+    "routingOfficers": [
+      {
+        "name": "Oluwatoyin Sonoiki",
+        "role": "Secretary to the Commission"
+      },
+      {
+        "name": "Adetola Salami",
+        "role": "Head of Administration"
+      }
+    ],
+    "frontDeskStaff": [
+      "Funmilayo Sorungbe",
+      "Aliu Funmilola"
+    ]
+  }
 }
