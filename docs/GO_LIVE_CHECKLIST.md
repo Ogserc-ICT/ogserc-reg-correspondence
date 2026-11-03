@@ -19,13 +19,14 @@ Started in Phase V0 and finished in V8. Tick each item before the app replaces t
 ## Email
 - [ ] Enter the unit and division email addresses (Admin › Units). Only ICT unit, Engineering Services and Electricity Market, Planning and Research have one so far.
 - [ ] Choose the email provider and sender mailbox (Q-V2-1). Configure it and send a test.
+  - Until then, email stays **Off**. Retries currently run from the daily `email-retry` job, plus "Run now" (Admin › Jobs) and Resend on the Registry Desk.
+  - When the provider is chosen, revisit hosting and how often retries run. A cron more frequent than daily needs Vercel Pro.
 - [ ] Set `ackEmailCc` if a copy should go to the Registry.
 - [ ] Switch `ackEmailMode` from **Off** to Review or Send.
-- [ ] Email retry job scheduled (needs Vercel Pro for a frequent cron).
 
 ## People and roles
 - [ ] Create accounts for the front desk officers (role: Front desk officer).
-- [ ] Create accounts for the Secretary to the Commission and the Head of Administration (role: Routing officer).
+- [ ] Tick "Can route" on the accounts of the Secretary to the Commission (role: Secretary / management) and the Head of Administration (their own role). Nobody else.
 - [ ] Review registry officer, Head of Registry and unit officer accounts against the new units.
 
 ## Carried over from Phase 8

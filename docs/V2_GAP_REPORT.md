@@ -179,7 +179,7 @@ Commit `384e559` brought the v2 `seed-data.json` onto `feat/registry-v2` without
   - `routingChanges()` builds the before/after diff.
   - The flag `Forwarded before routing` is derived from the stored fact.
 - **Server:**
-  - `routeInward` needs `registry.route`, with the C5.1 refusal message. It writes a RoutingEvent and an audit entry in one transaction, recalculates the item, then queues the routing email (C6).
+  - `routeInward` needs `registry.route` (granted only by the per-user `canRoute` flag, see C12), with the C5.1 refusal message. It writes a RoutingEvent and an audit entry in one transaction, recalculates the item, then queues the routing email (C6).
   - `updateInward` is reduced to `dateForwarded, receivedByUnitOfficer, ackIssuedVia, dateClosedManual, remarks`.
 - **Screens:**
   - `/route`, the Routing Desk: item picker, read-only summary, the six editable fields, and the routing history.
@@ -236,7 +236,7 @@ Commit `384e559` brought the v2 `seed-data.json` onto `feat/registry-v2` without
   - Admin email settings.
 
 **Risk**
-- Vercel crons on the current setup run daily. A frequent retry cron (every 5–15 min) needs Vercel Pro, which OPERATIONS.md already recommends. Without it, retries rely on "Run now" and Resend.
+- Vercel crons on the current setup run daily. A frequent retry cron (every 5–15 min) needs Vercel Pro. **Decided after V0:** keep the daily `email-retry` job plus "Run now" and Resend for now. Email stays Off until a provider is chosen; hosting and retry frequency are reviewed then.
 - The slip PDF is rendered inside a server function. Watch time and memory limits.
 
 **Agreed answers to ambiguities**
@@ -337,11 +337,18 @@ All decided (§1). The settings with workbook defaults are `notifyPreviousUnitOn
 - **`FRONT_DESK_OFFICER`:**
   - Capabilities `frontdesk.write` and `frontdesk.read` (awaiting list and own intakes).
   - `readScope` none for inward and outward items. No files, reports or dashboard.
-- **`ROUTING_OFFICER`:**
-  - Has **every SECRETARY capability**, plus `registry.route`.
-  - `readScope` all.
-  - Because a user can hold only one role, a Secretary who routes is given ROUTING_OFFICER. That role is a strict superset of SECRETARY, so they keep everything they can do today. A test asserts the superset, so a later change to SECRETARY can't silently drop something.
-  - Consequence: the Head of Administration, as a routing officer, also gets SECRETARY's read access, including confidential and personnel files. If that is too much, the fallback is a per-user `canRoute` flag on a SECRETARY or other account; not built unless asked.
+- **Routing is a per-user flag, not a role (decided after V0 review):**
+  - `User.canRoute` (boolean, default false). Admins set it on the user screen, and every change is audited.
+  - `can(user, "registry.route")` is true only when `canRoute` is set. The flag adds **only** `registry.route` on top of the user's own role.
+  - The Secretary keeps the SECRETARY role with `canRoute = true`. The Head of Administration keeps their own role with `canRoute = true`.
+  - Routing grants no other access: in particular no Confidential or Personnel files, and no wider read scope.
+  - The routing officer still needs to read the item being routed. The Routing Desk loads it under `registry.route` alone (C5.2's read-only fields), whatever the role's `readScope`.
+  - `getCurrentUser` reads the flag from the database on every request, so a change takes effect on the next request.
+  - Tests:
+    - a user with `canRoute` but without the Secretary role can route, but cannot see Confidential or Personnel files;
+    - a user without `canRoute` cannot open the Routing Desk or call `routeInward`, whatever their role;
+    - changing `canRoute` is audited and takes effect on the next request.
+  - This replaces the `ROUTING_OFFICER` role proposed in V0, which would have given the Head of Administration the Secretary's file access.
 - **Registry officer:**
   - Loses the routing fields (C4, C5).
   - Gains `frontdesk.read` (Front Desk Log), intake pull, `ackEmail.send` (resend) and review of pending emails.
@@ -382,7 +389,7 @@ All decided (§1). The settings with workbook defaults are `notifyPreviousUnitOn
 |---|---|---|
 | V1 | Reference data | **First commit restores a green suite.** Then: v2 seed (divisions, units with group and emails, 32 types, file class codes, signatories), seed validation, dev/test reseed, `scripts/upgrade-reference-v2.ts` (single transaction, `--dry-run` report, `--commit --confirm`) |
 | V2 | Domain engine | Cascade and pending, flags, front desk number and waiting days, file reference generator, recipients and "already emailed", routing rules. C13 fixtures |
-| V3 | Data model and roles | FrontDeskIntake, RoutingEvent, EmailLog, new inward fields, FRONT_DESK_OFFICER, ROUTING_OFFICER, `registry.route`. Server checks and tests |
+| V3 | Data model and roles | FrontDeskIntake, RoutingEvent, EmailLog, new inward fields, FRONT_DESK_OFFICER, `User.canRoute` granting `registry.route`. Server checks and tests |
 | V4 | Front Desk | Front Desk screen and Log, pull into New Inward, slimmed New Inward |
 | V5 | Routing | Routing Desk with history, reduced Update Item, forward-before-routing confirm and flag |
 | V6 | Email | Transport interface and dev transport, Send / Review / Off, queue and retry, Emails to review, resend, EmailLog |
