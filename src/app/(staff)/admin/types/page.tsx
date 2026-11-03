@@ -6,7 +6,7 @@ import { Select, TextInput } from "@/app/_components/inputs";
 import { appNow } from "@/server/clock";
 import { requireCan } from "@/server/current-user";
 import { getDb } from "@/server/db";
-import { loadReference } from "@/server/reference";
+import { loadReference, typeUnitProblems } from "@/server/reference";
 import {
   saveIncomingTypeAction,
   saveOutgoingTypeAction,
@@ -180,9 +180,20 @@ async function Types() {
   const user = await requireCan("reference.manage");
   const ref = await loadReference(getDb(), { user, now: appNow() });
   const units = ref.units.map((u) => ({ id: u.id, label: u.name }));
+  const problems = await typeUnitProblems(getDb());
 
   return (
     <div className="space-y-10">
+      {problems.length > 0 && (
+        <div role="note" className="bg-status-overdue rounded p-3 text-sm">
+          <p className="font-semibold">Check these default units</p>
+          <ul className="list-disc pl-5">
+            {problems.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <section className="rounded-panel border-border-subtle bg-surface border p-[22px]">
         <h2 className="mb-2 text-lg font-semibold">Incoming types</h2>
         <p className="text-text-muted mb-3 text-sm">

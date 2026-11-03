@@ -4,6 +4,7 @@
 // type rules they were saved with (STACK rule 10); holiday changes move open
 // deadlines, so statuses are refreshed straight away.
 import { isIsoDate } from "@/domain/calendar";
+import { typeDefaultUnitProblems } from "@/domain/reference-check";
 import type {
   HolidayStatus,
   ListKind,
@@ -69,6 +70,31 @@ async function record(
     actor.now,
   );
   return true;
+}
+
+/**
+ * C2/V13: active incoming types whose default unit is switched off or has no
+ * division. Shown on Admin › Types and logged at start-up. No permission
+ * check: it returns only type and unit names.
+ */
+export async function typeUnitProblems(db: Db | Tx): Promise<string[]> {
+  const types = await db.incomingType.findMany({
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    select: {
+      name: true,
+      active: true,
+      defaultUnit: { select: { name: true, active: true, divisionId: true } },
+    },
+  });
+  return typeDefaultUnitProblems(
+    types.map((t) => ({
+      type: t.name,
+      typeActive: t.active,
+      unit: t.defaultUnit.name,
+      unitActive: t.defaultUnit.active,
+      unitHasDivision: t.defaultUnit.divisionId !== null,
+    })),
+  );
 }
 
 export async function loadReference(db: Db, actor: Actor) {

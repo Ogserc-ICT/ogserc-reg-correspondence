@@ -42,6 +42,13 @@ enum ListKind {
   FILE_STATUS
 }
 
+/// SPEC-v2 C6.3. Default OFF until a real email provider is configured (Q-V2-1).
+enum AckEmailMode {
+  OFF
+  REVIEW
+  SEND
+}
+
 enum HolidayStatus {
   FIXED
   PROVISIONAL
@@ -165,11 +172,29 @@ model Verification {
 
 // ------------------------------------------------------- reference data ---
 
+/// SPEC-v2 C1: the five divisions; a unit's division is derived for items.
+model Division {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String   @unique
+  /// 0..n addresses; lower-cased, deduplicated.
+  emails    String[] @default([])
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+
+  units Unit[]
+}
+
 model Unit {
-  id        String  @id @default(uuid(7)) @db.Uuid
-  name      String  @unique
-  sortOrder Int     @default(0)
-  active    Boolean @default(true)
+  id         String    @id @default(uuid(7)) @db.Uuid
+  name       String    @unique
+  /// Null only for units added before v2 or by an admin without one.
+  divisionId String?   @db.Uuid
+  division   Division? @relation(fields: [divisionId], references: [id], onDelete: Restrict)
+  unitGroup  String?
+  /// 0..n addresses; lower-cased, deduplicated.
+  emails     String[]  @default([])
+  sortOrder  Int       @default(0)
+  active     Boolean   @default(true)
 
   users             User[]
   incomingTypes     IncomingType[]
@@ -194,6 +219,8 @@ model ListItem {
   afterHoursCutoff       Boolean  @default(false)
   /// RECEIPT_MODE only: dispatch by this mode never needs proof of delivery (§5.4).
   noDeliveryConfirmation Boolean  @default(false)
+  /// FILE_CLASS only: code for generated file references, e.g. RL (SPEC-v2 C8).
+  code                   String?
 
   inwardMode           InwardItem[]   @relation("InwardMode")
   inwardSenderCategory InwardItem[]   @relation("InwardSenderCategory")
@@ -244,6 +271,17 @@ model OutgoingType {
   outwardItems OutwardItem[]
 }
 
+/// SPEC-v2 C7: who may sign outward letters. Admin-editable.
+model Signatory {
+  id          String  @id @default(uuid(7)) @db.Uuid
+  name        String  @unique
+  designation String
+  /// Pre-selected on New Outward (the Secretary to the Commission).
+  isDefault   Boolean @default(false)
+  sortOrder   Int     @default(0)
+  active      Boolean @default(true)
+}
+
 model PublicHoliday {
   id     String        @id @default(uuid(7)) @db.Uuid
   date   DateTime      @unique @db.Date
@@ -254,7 +292,7 @@ model PublicHoliday {
 
 /// Exactly one row (id = 1, enforced by a CHECK constraint).
 model RegistrySettings {
-  id                              Int      @id @default(1)
+  id                              Int          @id @default(1)
   ackPrefix                       String
   outPrefix                       String
   /// "HH:mm"
@@ -266,25 +304,33 @@ model RegistrySettings {
   urgentResponseTargetDays        Int
   defaultResponseTargetDays       Int
   fileReturnTargetDays            Int
-  effectiveDate                   DateTime @db.Date
+  effectiveDate                   DateTime     @db.Date
   effectiveDateIsPlaceholder      Boolean
   registrationDeadlineDays        Int
   /// Q1; false = Excel behaviour.
-  deadlineRollsToNextWorkingDay   Boolean  @default(false)
-  dashboardFirstMonth             DateTime @db.Date
+  deadlineRollsToNextWorkingDay   Boolean      @default(false)
+  dashboardFirstMonth             DateTime     @db.Date
   registryAddress                 String
-  schedule2RequiredDocs           Int      @default(12)
-  schedule2RequiredDocsMultiState Int      @default(13)
+  schedule2RequiredDocs           Int          @default(12)
+  schedule2RequiredDocsMultiState Int          @default(13)
   /// Slip footers (TEMPLATES §1). "{closingTime}" is replaced from officeClosingTime.
   slipFooterRegistration          String
   slipFooterPara103               String
   slipFooterGeneral               String
-  secretaryName                   String   @default("")
+  secretaryName                   String       @default("")
   /// STACK rule 7: may the Head of Registry void items they logged themselves?
-  headMayVoidOwnItems             Boolean  @default(false)
-  updatedAt                       DateTime @updatedAt @db.Timestamptz
-  updatedById                     String?  @db.Uuid
-  updatedBy                       User?    @relation(fields: [updatedById], references: [id])
+  headMayVoidOwnItems             Boolean      @default(false)
+  /// SPEC-v2 C3.1: front desk intake numbers.
+  frontDeskPrefix                 String       @default("OGSERC/FD")
+  /// SPEC-v2 C8: generated file references {filePrefix}/{code}/{NNN}.
+  filePrefix                      String       @default("OGSERC")
+  fileRefSerialDigits             Int          @default(3)
+  /// SPEC-v2 C6.3 (the workbook's "Display" maps to REVIEW; seeded OFF).
+  ackEmailMode                    AckEmailMode @default(OFF)
+  ackEmailCc                      String       @default("")
+  updatedAt                       DateTime     @updatedAt @db.Timestamptz
+  updatedById                     String?      @db.Uuid
+  updatedBy                       User?        @relation(fields: [updatedById], references: [id])
 }
 
 // ------------------------------------------------------------ registers ---

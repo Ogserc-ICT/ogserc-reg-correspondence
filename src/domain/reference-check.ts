@@ -50,3 +50,29 @@ export function resolveTypeDefaultUnits(
   }
   return out;
 }
+
+/** What the database knows about a type's default unit. */
+export type StoredTypeUnit = {
+  type: string;
+  typeActive: boolean;
+  unit: string;
+  unitActive: boolean;
+  unitHasDivision: boolean;
+};
+
+/**
+ * Admin / start-up check (C2, V13): active incoming types whose default unit
+ * is switched off or has no division (so it gets no division email). Each
+ * entry is a sentence for the admin.
+ */
+export function typeDefaultUnitProblems(
+  rows: readonly StoredTypeUnit[],
+): string[] {
+  return rows
+    .filter((r) => r.typeActive && (!r.unitActive || !r.unitHasDivision))
+    .map((r) =>
+      !r.unitActive
+        ? `'${r.type}' routes to '${r.unit}', which is switched off. Choose a current unit.`
+        : `'${r.type}' routes to '${r.unit}', which has no division. Set its division in Admin › Units.`,
+    );
+}

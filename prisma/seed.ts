@@ -19,7 +19,9 @@ async function main() {
   if (!url) throw new Error("DATABASE_URL is not set");
   const db = createDb(url);
   try {
-    const added = await seedReference(db, appNow());
+    const added = await seedReference(db, appNow(), (line) =>
+      console.warn(`Seed: ${line}`),
+    );
     console.log("Reference data added:", added);
     const arg = (a: string) => process.argv.includes(a);
     if (arg("--example")) {

@@ -4,6 +4,7 @@ import { CONFIRMED_DEFAULT_UNITS } from "@/server/v2-decisions";
 import {
   checkTypeDefaultUnits,
   resolveTypeDefaultUnits,
+  typeDefaultUnitProblems,
 } from "@/domain/reference-check";
 
 const unitNames = seed.units.map((u) => u.name);
@@ -53,5 +54,34 @@ describe("type default units (C2, E2)", () => {
     );
     expect(r.missing).toEqual([{ type: "X", defaultUnit: "Nowhere" }]);
     expect(r.unitByType.size).toBe(0);
+  });
+});
+
+describe("typeDefaultUnitProblems (admin check)", () => {
+  const row = {
+    type: "T",
+    typeActive: true,
+    unit: "U",
+    unitActive: true,
+    unitHasDivision: true,
+  };
+  it("is quiet when every active type routes to a current unit with a division", () => {
+    expect(typeDefaultUnitProblems([row])).toEqual([]);
+    expect(
+      typeDefaultUnitProblems([
+        { ...row, typeActive: false, unitActive: false },
+      ]),
+    ).toEqual([]);
+  });
+  it("names switched-off units and units without a division", () => {
+    expect(
+      typeDefaultUnitProblems([
+        { ...row, unitActive: false },
+        { ...row, type: "T2", unitHasDivision: false },
+      ]),
+    ).toEqual([
+      "'T' routes to 'U', which is switched off. Choose a current unit.",
+      "'T2' routes to 'U', which has no division. Set its division in Admin › Units.",
+    ]);
   });
 });

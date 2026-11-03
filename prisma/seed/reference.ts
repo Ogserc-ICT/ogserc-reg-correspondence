@@ -9,6 +9,7 @@ import type {
 import { audit } from "../../src/server/audit";
 import type { Db, Tx } from "../../src/server/db";
 import { toDbDate } from "../../src/server/dates";
+import { normaliseEmails } from "../../src/domain/emails";
 import { resolveTypeDefaultUnits } from "../../src/domain/reference-check";
 import { CONFIRMED_DEFAULT_UNITS } from "../../src/server/v2-decisions";
 
@@ -102,22 +103,63 @@ function slipFooter(name: string, para103: boolean): SlipFooter {
 
 export type SeedCounts = Record<string, number>;
 
-export async function seedReference(db: Db, now: Date): Promise<SeedCounts> {
+const emailsOf = (xs: readonly string[]) => normaliseEmails(xs).emails;
+
+/** The workbook's "Display" mode becomes OFF at seed (Q-V2-1: no provider yet). */
+export const SEED_ACK_EMAIL_MODE = "OFF" as const;
+
+export async function seedReference(
+  db: Db,
+  now: Date,
+  /** Notes for the operator (the seed CLI prints them). */
+  log: (line: string) => void = () => {},
+): Promise<SeedCounts> {
   return db.$transaction(async (tx) => {
     const added: SeedCounts = {};
     const bump = (k: string, n: number) => (added[k] = (added[k] ?? 0) + n);
 
     // A table (or one list) is seeded only while it is empty. Matching rows by
     // name would bring back a value an admin has since renamed or removed.
-    if ((await tx.unit.count()) === 0)
+    if ((await tx.division.count()) === 0)
+      bump(
+        "divisions",
+        (
+          await tx.division.createMany({
+            data: seed.divisions.map((d, i) => ({
+              name: d.name,
+              emails: emailsOf(d.emails),
+              sortOrder: i,
+            })),
+          })
+        ).count,
+      );
+
+    if ((await tx.unit.count()) === 0) {
+      const divisions = new Map(
+        (await tx.division.findMany()).map((d) => [d.name, d.id]),
+      );
       bump(
         "units",
         (
           await tx.unit.createMany({
-            data: seed.units.map((u, i) => ({ name: u.name, sortOrder: i })),
+            data: seed.units.map((u, i) => {
+              const divisionId = divisions.get(u.division);
+              if (!divisionId)
+                throw new Error(
+                  `Unit '${u.name}': unknown division '${u.division}'`,
+                );
+              return {
+                name: u.name,
+                divisionId,
+                unitGroup: u.unitGroup,
+                emails: emailsOf(u.emails),
+                sortOrder: i,
+              };
+            }),
           })
         ).count,
       );
+    }
 
     for (const [list, labels] of LISTS) {
       if ((await tx.listItem.count({ where: { list } })) > 0) continue;
@@ -134,6 +176,10 @@ export async function seedReference(db: Db, now: Date): Promise<SeedCounts> {
           noDeliveryConfirmation:
             list === "RECEIPT_MODE" &&
             seed.settings.noDeliveryConfirmationModes.includes(label),
+          code:
+            list === "FILE_CLASS"
+              ? (seed.fileClasses.find((c) => c.name === label)?.code ?? null)
+              : null,
         })),
       });
       bump("listItems", count);
@@ -157,8 +203,8 @@ export async function seedReference(db: Db, now: Date): Promise<SeedCounts> {
               .join("; "),
         );
       for (const r of resolved.replaced)
-        console.warn(
-          `Seed: '${r.type}' names '${r.from}', which is not a unit; using '${r.to}' (confirm on Admin › Types).`,
+        log(
+          `'${r.type}' names '${r.from}', which is not a unit; using '${r.to}' (confirm on Admin › Types).`,
         );
       const { count } = await tx.incomingType.createMany({
         data: seed.incomingTypes.map((t, i) => {
@@ -199,6 +245,21 @@ export async function seedReference(db: Db, now: Date): Promise<SeedCounts> {
               date: toDbDate(h.date),
               name: h.name,
               ...parseHolidayStatus(h.status),
+            })),
+          })
+        ).count,
+      );
+
+    if ((await tx.signatory.count()) === 0)
+      bump(
+        "signatories",
+        (
+          await tx.signatory.createMany({
+            data: seed.staffFromWorkbook.signatories.map((p, i) => ({
+              name: p.name,
+              designation: p.designation,
+              isDefault: p.designation === "Secretary to the Commission",
+              sortOrder: i,
             })),
           })
         ).count,
@@ -245,6 +306,11 @@ async function seedSettings(tx: Tx): Promise<number> {
       slipFooterRegistration: SLIP_FOOTERS.registration,
       slipFooterPara103: SLIP_FOOTERS.para103,
       slipFooterGeneral: SLIP_FOOTERS.general,
+      frontDeskPrefix: s.frontDeskPrefix,
+      filePrefix: s.filePrefix,
+      fileRefSerialDigits: s.fileRefSerialDigits,
+      ackEmailMode: SEED_ACK_EMAIL_MODE,
+      ackEmailCc: s.ackEmailCc,
     },
   });
   return 1;
