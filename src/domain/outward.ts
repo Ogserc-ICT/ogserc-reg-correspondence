@@ -155,3 +155,25 @@ export function deriveOutward(
     flags: f.voided ? [] : flags,
   };
 }
+
+/** A signatory from the list (C7). */
+export type SignatoryChoice = { name: string; designation: string };
+
+/**
+ * C7: the designation fills in from the signatory chosen from the list; a
+ * typed designation wins (someone signing in another capacity), and someone
+ * not on the list must have one typed.
+ */
+export function signatoryDesignation(
+  chosen: SignatoryChoice | null,
+  typed: string | null,
+): string | null {
+  return typed?.trim() || chosen?.designation || null;
+}
+
+/** C7: the pre-selected signatory (the Secretary to the Commission). */
+export function defaultSignatory<
+  T extends { isDefault: boolean; active: boolean },
+>(list: readonly T[]): T | null {
+  return list.find((s) => s.active && s.isDefault) ?? null;
+}
