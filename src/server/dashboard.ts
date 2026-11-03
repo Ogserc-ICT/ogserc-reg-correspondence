@@ -28,7 +28,9 @@ async function load(db: Db | Tx, now: Date, user?: Principal) {
     where: user ? inwardWhere(user) : {},
     include: {
       ...inwardFactsInclude,
-      routedUnit: { select: { name: true } },
+      routedUnit: {
+        select: { name: true, division: { select: { name: true } } },
+      },
       senderCategory: { select: { label: true } },
       principalLga: { select: { label: true } },
     },
@@ -37,7 +39,9 @@ async function load(db: Db | Tx, now: Date, user?: Principal) {
     where: user ? outwardWhere(user) : {},
     include: {
       ...outwardFactsInclude,
-      originatingUnit: { select: { name: true } },
+      originatingUnit: {
+        select: { name: true, division: { select: { name: true } } },
+      },
       recipientCategory: { select: { label: true } },
     },
   });
@@ -93,18 +97,28 @@ export async function loadFullDashboard(
   const settings = await db.registrySettings.findUniqueOrThrow({
     where: { id: 1 },
   });
-  const units = await db.unit.findMany({ orderBy: { sortOrder: "asc" } });
+  // C9: the current units and divisions, each listed even with no items.
+  const units = await db.unit.findMany({
+    where: { active: true },
+    orderBy: { sortOrder: "asc" },
+  });
+  const divisions = await db.division.findMany({
+    where: { active: true },
+    orderBy: { sortOrder: "asc" },
+  });
   return {
     today: ctx.today,
     summary: dashboardSummary({ today: ctx.today, inward, outward, files }),
     breakdowns: dashboardBreakdowns({
       units: units.map((u) => u.name),
+      divisions: divisions.map((d) => d.name),
       firstMonth: fromDbDate(settings.dashboardFirstMonth),
       today: ctx.today,
       inward: inward.map((i) => ({
         voided: i.facts.voided,
         derived: i.derived,
         unit: i.row.routedUnit.name,
+        division: i.row.routedUnit.division?.name ?? null,
         category: i.row.snapCategory,
         type: i.row.snapTypeName,
         senderCategory: i.row.senderCategory.label,
@@ -114,6 +128,7 @@ export async function loadFullDashboard(
         voided: o.facts.voided,
         derived: o.derived,
         unit: o.row.originatingUnit.name,
+        division: o.row.originatingUnit.division?.name ?? null,
         type: o.row.snapTypeName,
         recipientCategory: o.row.recipientCategory.label,
         documentDate: o.facts.documentDate,

@@ -1,6 +1,9 @@
-// SPEC §12.2 (workbook example, "today" = 10 Dec 2026 unless stated) and the
-// pure parts of §12.3 (N1, N2). N3 and N4 need the database (Phase 2).
+// SPEC §12.2 as updated by SPEC-v2 C13.1 (workbook example, "today" = 10 Dec
+// 2026 unless stated) and the pure parts of §12.3 (N1, N2). N3 and N4 need
+// the database. The new C13.2 fixtures are in v2-fixtures.test.ts.
 import { describe, expect, it } from "vitest";
+import seed from "../../seed-data.json";
+import { dashboardBreakdowns } from "./breakdowns";
 import { instantIn } from "./clock";
 import { deriveMovement } from "./files";
 import { INWARD_FLAGS } from "./inward";
@@ -40,12 +43,19 @@ describe("§12.2 inward", () => {
     expect(d.replyOutward?.id).toBe("O1");
   });
 
-  it("I2: deficiency response by email after hours, not forwarded", () => {
+  it("I1: in Licensing unit, forwarded without routing, no flag (C13.1)", () => {
+    const { facts, derived: d } = get(base().inward, "I1");
+    expect(facts.routed).toBe(false);
+    expect(d.flags).not.toContain(INWARD_FLAGS.forwardedBeforeRouting);
+  });
+
+  it("I2: deficiency response by email after hours, not routed or forwarded", () => {
     const { derived: d } = get(base().inward, "I2");
     expect(d).toMatchObject({
       deemedReceiptDate: "2026-12-01",
       responseDue: "2026-12-15",
-      status: "Awaiting forwarding",
+      status: "Awaiting routing",
+      pending: true,
       workingDaysAtRegistry: 7,
       flags: [INWARD_FLAGS.notForwarded],
       afterHoursOrNonWorkingDay: true,
@@ -65,12 +75,12 @@ describe("§12.2 inward", () => {
     ]);
   });
 
-  it("I3: NERC letter routed to the Chairman, closed on time by O2", () => {
+  it("I3: NERC letter routed to the Office of the General Counsel and Secretary, closed 8 Dec by O2", () => {
     const { derived: d } = get(base().inward, "I3");
     expect(d).toMatchObject({
       routedUnitId: "Office of the General Counsel and Secretary (Registry)",
       responseDue: "2026-12-16",
-      closedOn: "2026-12-03",
+      closedOn: "2026-12-08",
       status: "Closed",
       closedOnTime: true,
       flags: [],
@@ -92,24 +102,27 @@ describe("§12.2 outward", () => {
     expect(d.responseInward?.id).toBe("I2");
   });
 
-  it("O2: letter to NERC, dispatched, no flag on 10 Dec", () => {
+  it("O2: letter to NERC dated 7 Dec, dispatched 8 Dec (C13.1)", () => {
     const { derived: d } = get(base().outward, "O2");
     expect(d).toMatchObject({
       responseExpected: false,
       responseDue: null,
       workingDaysToDispatch: 1,
-      workingDaysSinceDispatch: 5,
+      workingDaysSinceDispatch: 2,
       status: "Dispatched",
       flags: [],
     });
   });
 
-  it("O2 on 11 Dec 2026: Delivery not confirmed", () => {
-    const { derived: d } = get(
-      evaluate(workbookExample(), "2026-12-11").outward,
-      "O2",
-    );
-    expect(d.flags).toEqual([OUTWARD_FLAGS.deliveryNotConfirmed]);
+  it("O2: Delivery not confirmed not on 15 Dec (5 days), yes on 16 Dec (6)", () => {
+    const on = (day: string) =>
+      get(evaluate(workbookExample(), day).outward, "O2").derived;
+    expect(on("2026-12-15").workingDaysSinceDispatch).toBe(5);
+    expect(on("2026-12-15").flags).toEqual([]);
+    expect(on("2026-12-16").workingDaysSinceDispatch).toBe(6);
+    expect(on("2026-12-16").flags).toEqual([
+      OUTWARD_FLAGS.deliveryNotConfirmed,
+    ]);
   });
 });
 
@@ -152,12 +165,15 @@ describe("§12.2 files", () => {
   });
 });
 
-describe("§12.2 dashboard on 10 Dec 2026", () => {
+describe("§12.2 dashboard on 10 Dec 2026 (C13.1)", () => {
   it("matches the workbook counts", () => {
     const { incoming, outgoing, files } = base().dashboard;
     expect(incoming).toMatchObject({
       logged: 3,
-      awaitingForwarding: 1,
+      awaitingRouting: 1,
+      awaitingForwarding: 0,
+      awaitingRoutingOrForwarding: 1,
+      atFrontDesk: 0,
       closed: 2,
       closedOnTimePct: 100,
       afterHoursOrNonWorkingDay: 1,
@@ -169,6 +185,56 @@ describe("§12.2 dashboard on 10 Dec 2026", () => {
       repliesToInward: 2,
     });
     expect(files).toMatchObject({ outWithOfficers: 1, overdue: 1 });
+  });
+
+  it("by division: Legal, Licensing and Consumer Affairs 2 (I1, I2); Office of the Chairman 1 (I3)", () => {
+    const s = base();
+    const division = (unit: string) =>
+      seed.units.find((u) => u.name === unit)?.division ?? null;
+    const unitOf = (id: string) => get(s.inward, id).derived.routedUnitId!;
+    const b = dashboardBreakdowns({
+      units: seed.units.map((u) => u.name),
+      divisions: seed.divisions.map((d) => d.name),
+      firstMonth: "2026-11-01",
+      today: TODAY,
+      inward: [...s.inward.entries()].map(([id, i]) => ({
+        voided: i.facts.voided,
+        derived: i.derived,
+        unit: unitOf(id),
+        division: division(unitOf(id)),
+        category: i.derived.category!,
+        type: i.facts.type!.name,
+        senderCategory: i.facts.senderCategoryId!,
+        lga: null,
+      })),
+      outward: [...s.outward.values()].map((o, n) => {
+        const unit = n === 0 ? "Licensing unit" : unitOf("I3");
+        return {
+          voided: o.facts.voided,
+          derived: o.derived,
+          unit,
+          division: division(unit),
+          type: o.facts.type.name,
+          recipientCategory: "NERC",
+          documentDate: o.facts.documentDate,
+        };
+      }),
+    });
+    const row = (label: string) => b.byDivision.find((r) => r.label === label);
+    expect(b.byDivision).toHaveLength(5);
+    expect(row("Legal, Licensing and Consumer Affairs")).toMatchObject({
+      inwardRouted: 2,
+      pending: 1,
+      closed: 1,
+      outwardOriginated: 1,
+    });
+    expect(row("Office of the Chairman")).toMatchObject({
+      inwardRouted: 1,
+      pending: 0,
+      closed: 1,
+      outwardOriginated: 1,
+    });
+    expect(row("Engineering Services")).toMatchObject({ inwardRouted: 0 });
   });
 });
 
@@ -188,7 +254,7 @@ describe("§12.3 new rules", () => {
     );
     let i2 = get(evaluate(s, "2026-12-07").inward, "I2").derived;
     expect(i2.closedOn).toBeNull();
-    expect(i2.status).toBe("Awaiting forwarding");
+    expect(i2.status).toBe("Awaiting routing");
     expect(i2.replies.map((r) => r.id)).toEqual(["O3"]);
 
     s.outward.push(

@@ -1,4 +1,5 @@
-// Inward items: derived fields, status and flags (SPEC §4.2–§4.4).
+// Inward items: derived fields, status and flags (SPEC §4.2–§4.4, with the
+// v2 changes in SPEC-v2-CHANGES C4 and C5: routing, "Awaiting routing").
 import {
   addWorkingDays,
   compareDates,
@@ -66,6 +67,13 @@ export type InwardFacts = {
   multiState: boolean | null;
   /** Para 25 extension for this registrant (SPEC §2.2). */
   registrationDeadlineOverride: IsoDate | null;
+  /**
+   * Routed by the Secretary to the Commission / Head of Administration on the
+   * Routing Desk (C5). Until then routedUnit is the type's suggested unit.
+   */
+  routed: boolean;
+  /** Forwarded after the user confirmed it had not been routed (C5.4, E6). */
+  forwardedBeforeRouting: boolean;
   dateForwarded: IsoDate | null;
   dateClosedManual: IsoDate | null;
   voided: boolean;
@@ -78,15 +86,38 @@ export type InwardStatus =
   | "Void"
   | "Closed"
   | "Overdue"
+  | "Awaiting routing"
   | "Awaiting forwarding"
   | "Noted / filed"
   | "Open";
 
+/** Every status, in cascade order (C5.3). */
+export const INWARD_STATUSES: readonly InwardStatus[] = [
+  "Void",
+  "Closed",
+  "Overdue",
+  "Awaiting routing",
+  "Awaiting forwarding",
+  "Noted / filed",
+  "Open",
+];
+
+/**
+ * The one definition of "pending" (SPEC §9 R12, C5.3), used by Pending
+ * Actions, the unit filter and every dashboard table. C9's by-category "open"
+ * without Overdue is treated as a spec error (docs/V2_GAP_REPORT.md C9).
+ */
 export const PENDING_INWARD: readonly InwardStatus[] = [
   "Open",
   "Overdue",
   "Awaiting forwarding",
+  "Awaiting routing",
 ];
+
+/** Not yet with the unit: the "Awaiting routing / forwarding" figure (C5.3, C9). */
+export function isAwaitingRoutingOrForwarding(status: InwardStatus): boolean {
+  return status === "Awaiting routing" || status === "Awaiting forwarding";
+}
 
 export const INWARD_FLAGS = {
   missingRequired: "Missing required field",
@@ -99,6 +130,7 @@ export const INWARD_FLAGS = {
   ackNotIssued: "Acknowledgement not yet issued",
   responseOverdue: "Response overdue",
   closedLate: "Closed after due date",
+  forwardedBeforeRouting: "Forwarded before routing",
   numberYearDiffers: "Number year differs from deemed receipt year",
 } as const;
 
@@ -179,7 +211,9 @@ export function deriveInward(f: InwardFacts, ctx: RuleContext): InwardDerived {
       : overdue
         ? "Overdue"
         : !f.dateForwarded
-          ? "Awaiting forwarding"
+          ? f.routed
+            ? "Awaiting forwarding"
+            : "Awaiting routing"
           : isNoteOnly(f.actionRequired)
             ? "Noted / filed"
             : "Open";
@@ -230,6 +264,7 @@ export function deriveInward(f: InwardFacts, ctx: RuleContext): InwardDerived {
   if (f.ackIssuedVia === "NOT_YET_ISSUED") flags.push(F.ackNotIssued);
   if (status === "Overdue") flags.push(F.responseOverdue);
   if (closedLate) flags.push(F.closedLate);
+  if (f.forwardedBeforeRouting) flags.push(F.forwardedBeforeRouting);
   if (f.numberYear !== yearOf(deemed)) flags.push(F.numberYearDiffers);
 
   return {
@@ -255,6 +290,10 @@ export function deriveInward(f: InwardFacts, ctx: RuleContext): InwardDerived {
   };
 }
 
+/**
+ * Fields the New Inward form requires (C4). Action required is set on the
+ * Routing Desk, so it is no longer checked here.
+ */
 function isMissingRequired(f: InwardFacts): boolean {
   const required = [
     f.receivedAt,
@@ -265,7 +304,6 @@ function isMissingRequired(f: InwardFacts): boolean {
     f.subject?.trim(),
     f.receivedById,
     f.ackIssuedVia,
-    f.actionRequired,
   ];
   return required.some((v) => v === null || v === undefined || v === "");
 }
@@ -289,4 +327,21 @@ export function reg01CacDuplicates(
     byCac.set(cac, [...(byCac.get(cac) ?? []), it.id]);
   }
   return new Set([...byCac.values()].filter((ids) => ids.length > 1).flat());
+}
+
+/**
+ * C4 save message for New Inward; the acknowledgement email line (C6), if
+ * any, follows it after a blank line.
+ */
+export function savedInwardMessage(
+  no: string,
+  suggestedUnit: string,
+  emailLine: string | null = null,
+): string {
+  const lines = [
+    `Saved as ${no}.`,
+    `Suggested unit: ${suggestedUnit}`,
+    "Routing, file reference and handling will be set by the Secretary / Head of Admin on the Routing Desk.",
+  ];
+  return emailLine ? `${lines.join("\n")}\n\n${emailLine}` : lines.join("\n");
 }

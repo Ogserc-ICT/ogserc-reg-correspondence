@@ -11,6 +11,9 @@ import {
   lastDashboardDay,
 } from "./breakdowns";
 
+const divisionOf = (unit: string) =>
+  seed.units.find((u) => u.name === unit)?.division ?? null;
+
 function breakdowns(today: string) {
   const s = workbookExample();
   const r = evaluate(s, today);
@@ -24,23 +27,28 @@ function breakdowns(today: string) {
         voided: i.voided,
         derived: d,
         unit: d.routedUnitId!, // fixture unit ids are the names
+        division: divisionOf(d.routedUnitId!),
         category: d.category!,
         type: i.type!.name,
         senderCategory: i.senderCategoryId!,
         lga: i.id === "I1" ? "Sagamu" : null,
       };
     }),
-    outward: s.outward.map((o) => ({
-      voided: o.voided,
-      derived: r.outward.get(o.id)!.derived,
-      unit:
+    outward: s.outward.map((o) => {
+      const unit =
         o.id === "O1"
           ? "Licensing unit"
-          : "Office of the General Counsel and Secretary (Registry)",
-      type: o.type.name,
-      recipientCategory: o.id === "O1" ? "Registrant / licensee" : "NERC",
-      documentDate: o.documentDate,
-    })),
+          : "Office of the General Counsel and Secretary (Registry)";
+      return {
+        voided: o.voided,
+        derived: r.outward.get(o.id)!.derived,
+        unit,
+        division: divisionOf(unit),
+        type: o.type.name,
+        recipientCategory: o.id === "O1" ? "Registrant / licensee" : "NERC",
+        documentDate: o.documentDate,
+      };
+    }),
   });
 }
 
@@ -51,7 +59,7 @@ describe("dashboard breakdowns", () => {
     expect(b.byUnit.find((u) => u.label === "Licensing unit")).toEqual({
       label: "Licensing unit",
       inwardRouted: 2,
-      pending: 1, // I2, awaiting forwarding, counts as pending
+      pending: 1, // I2, awaiting routing, counts as pending (C5.3)
       overdue: 0,
       closed: 1,
       outwardOriginated: 1,

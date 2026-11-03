@@ -1,5 +1,6 @@
-// Dashboard breakdowns (SPEC §8.4). One definition of "pending" everywhere
-// (§9 R12: Open + Overdue + Awaiting forwarding). Voided items are left out.
+// Dashboard breakdowns (SPEC §8.4, SPEC-v2 C9). One definition of "pending"
+// everywhere (§9 R12, C5.3: Open + Overdue + Awaiting forwarding + Awaiting
+// routing). Voided items are left out.
 import { addDays, type IsoDate } from "./calendar";
 import type { InwardDerived } from "./inward";
 import type { OutwardDerived } from "./outward";
@@ -7,7 +8,10 @@ import type { OutwardDerived } from "./outward";
 export type InwardRow = {
   voided: boolean;
   derived: InwardDerived;
+  /** The item's current unit (suggested unit until routed). */
   unit: string;
+  /** That unit's division, derived at read time (C1); null if it has none. */
+  division: string | null;
   category: string;
   type: string;
   senderCategory: string;
@@ -17,7 +21,10 @@ export type InwardRow = {
 export type OutwardRow = {
   voided: boolean;
   derived: OutwardDerived;
+  /** Originating unit. */
   unit: string;
+  /** The originating unit's division (C7); null if it has none. */
+  division: string | null;
   type: string;
   recipientCategory: string;
   documentDate: IsoDate;
@@ -63,6 +70,8 @@ export function dashboardBreakdowns(input: {
   inward: readonly InwardRow[];
   outward: readonly OutwardRow[];
   units: readonly string[];
+  /** Every division, listed even with no items (C9). */
+  divisions?: readonly string[];
   firstMonth: IsoDate;
   today: IsoDate;
 }) {
@@ -103,8 +112,23 @@ export function dashboardBreakdowns(input: {
     };
   });
 
+  // Divisions (C9): inward by the division of the current unit; outward by
+  // the division of the originating unit.
+  const divisionRows = (input.divisions ?? []).map((label) => {
+    const inn = inward.filter((r) => r.division === label);
+    return {
+      label,
+      inwardRouted: inn.length,
+      pending: inn.filter(pending).length,
+      overdue: inn.filter(overdue).length,
+      closed: inn.filter(closed).length,
+      outwardOriginated: outward.filter((r) => r.division === label).length,
+    };
+  });
+
   return {
     byUnit: unitRows,
+    byDivision: divisionRows,
     byCategory: group(inward, (r) => r.category, {
       received: () => true,
       pending,

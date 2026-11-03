@@ -1,6 +1,7 @@
 // New Inward "Will be saved as" panel: what the item would get if saved now,
 // worked out by the same domain rules as the save. Read-only: the number is a
 // peek at the counter, not a reservation, so the screen says "expected".
+import { LEGACY_ROUTED } from "../facts";
 import { compareDates, isWorkingDay, yearOf } from "@/domain/calendar";
 import { formatNumber } from "@/domain/numbering";
 import { deriveInward, INWARD_FLAGS, type InwardFlag } from "@/domain/inward";
@@ -162,6 +163,8 @@ export async function inwardPreview(
       feeEvidenceAttached: f.feeEvidenceAttached ?? null,
       multiState: f.multiState ?? null,
       registrationDeadlineOverride: null,
+      routed: LEGACY_ROUTED,
+      forwardedBeforeRouting: false,
       dateForwarded: null,
       dateClosedManual: null,
       voided: false,

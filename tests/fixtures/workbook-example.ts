@@ -94,6 +94,9 @@ export function inwardRow(
     feeEvidenceAttached: null,
     multiState: null,
     registrationDeadlineOverride: null,
+    // New items are not routed until the Routing Desk saves them (C5).
+    routed: false,
+    forwardedBeforeRouting: false,
     dateForwarded: null,
     dateClosedManual: null,
     voided: false,
@@ -156,9 +159,10 @@ export function workbookExample(): Scenario {
         cacNo: "RC0000000",
         schedule2DocsAttached: 12,
         feeEvidenceAttached: true,
+        // C13.1: forwarded 20 Nov without routing (example data, no flag).
         dateForwarded: "2026-11-20",
         ackIssuedVia: "PRINTED_SLIP",
-        actionRequired: "ACTION_REQUIRED",
+        actionRequired: null,
         fileRef: "OGSERC/RL/001",
       }),
       inwardRow({
@@ -172,7 +176,8 @@ export function workbookExample(): Scenario {
         inResponseToOutwardId: "O1",
         schedule2DocsAttached: 1,
         ackIssuedVia: "EMAIL",
-        actionRequired: "ACTION_REQUIRED",
+        // C13.1: not routed, not forwarded.
+        actionRequired: null,
         fileRef: "OGSERC/RL/001",
       }),
       inwardRow({
@@ -183,6 +188,8 @@ export function workbookExample(): Scenario {
         type: incomingType("Letter from NERC / Federal agency"),
         sender: "NERC",
         senderCategoryId: "NERC",
+        // C13.1: routed with a unit override.
+        routed: true,
         unitOverrideId:
           "Office of the General Counsel and Secretary (Registry)",
         dateForwarded: "2026-12-02",
@@ -209,10 +216,11 @@ export function workbookExample(): Scenario {
         id: "O2",
         number: "OGSERC/OUT/2026/00002",
         typeName: "Letter to NERC / Federal agency",
-        documentDate: "2026-12-02",
+        // C13.1: dated 7 Dec, dispatched 8 Dec (the workbook's example row).
+        documentDate: "2026-12-07",
         inReplyToInwardId: "I3",
         dispatchModeId: "Courier",
-        dateDispatched: "2026-12-03",
+        dateDispatched: "2026-12-08",
         fileRef: "OGSERC/GOV/001",
       }),
     ],

@@ -2,7 +2,13 @@
 // Voided items count only towards "voided".
 import { addDays, compareDates, type IsoDate } from "./calendar";
 import { FILE_FLAGS, type FileDerived, type FileFacts } from "./files";
-import { INWARD_FLAGS, type InwardDerived, type InwardFacts } from "./inward";
+import type { IntakeDerived } from "./front-desk";
+import {
+  INWARD_FLAGS,
+  isAwaitingRoutingOrForwarding,
+  type InwardDerived,
+  type InwardFacts,
+} from "./inward";
 import {
   OUTWARD_FLAGS,
   type OutwardDerived,
@@ -14,6 +20,8 @@ export type DashboardInput = {
   inward: readonly { facts: InwardFacts; derived: InwardDerived }[];
   outward: readonly { facts: OutwardFacts; derived: OutwardDerived }[];
   files: readonly { facts: FileFacts; derived: FileDerived }[];
+  /** Front desk intakes (C3, C9). */
+  intakes?: readonly IntakeDerived[];
 };
 
 /** Within (today − 7, today]. */
@@ -34,6 +42,7 @@ export function dashboardSummary({
   inward,
   outward,
   files,
+  intakes = [],
 }: DashboardInput) {
   const inn = inward.filter((i) => !i.facts.voided).map((i) => i.derived);
   const out = outward.filter((o) => !o.facts.voided);
@@ -55,6 +64,14 @@ export function dashboardSummary({
       receivedLast7Days: count(inn, (d) => inLast7Days(d.receiptDate, today)),
       pending: count(inn, (d) => d.pending),
       awaitingForwarding: count(inn, (d) => d.status === "Awaiting forwarding"),
+      /** "Not yet routed" (C9). */
+      awaitingRouting: count(inn, (d) => d.status === "Awaiting routing"),
+      /** "Awaiting routing / forwarding" (C5.3, C9). */
+      awaitingRoutingOrForwarding: count(inn, (d) =>
+        isAwaitingRoutingOrForwarding(d.status),
+      ),
+      /** "At front desk, awaiting registry" (C9). */
+      atFrontDesk: count(intakes, (d) => d.status === "Awaiting registry"),
       forwardingOverdue: count(inn, (d) =>
         d.flags.includes(INWARD_FLAGS.notForwarded),
       ),
