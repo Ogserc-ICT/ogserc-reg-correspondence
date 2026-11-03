@@ -1,0 +1,265 @@
+{
+  "_note": "v1 reference data (before the v2 workbook), for testing scripts/upgrade-reference-v2.ts only.",
+  "units": [
+    "Office of the Chairman",
+    "Office of the Secretary",
+    "Registration & Licensing",
+    "Technical & Market Operations",
+    "Tariffs & Economic Regulation",
+    "Consumer Affairs",
+    "Legal",
+    "Finance",
+    "Administration & HR",
+    "Corporate Communications"
+  ],
+  "incomingTypes": [
+    {
+      "name": "REG-01 Registration (new)",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "11; Sch. 1 Pt A",
+      "responseTargetDays": 20,
+      "para103SlipWording": true
+    },
+    {
+      "name": "OUN-01 Own-use notification",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "3(4); Sch. 1 Pt B",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Update - material change",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "16(1)",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Annual confirmation",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "16(2)",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Deficiency response",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "13(1)(b)",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Licence / permit application",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "18(1)",
+      "responseTargetDays": 20,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Multi-State ring-fencing plan",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "7(3)",
+      "responseTargetDays": 20,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Licence renewal application",
+      "category": "Regulatory filing",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": "8(5)",
+      "responseTargetDays": 20,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Fee payment evidence",
+      "category": "Regulatory filing",
+      "defaultUnit": "Finance",
+      "orderRef": "17",
+      "responseTargetDays": 5,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Confidentiality claim / representation",
+      "category": "Regulatory filing",
+      "defaultUnit": "Legal",
+      "orderRef": "15(3); 20",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Application for review",
+      "category": "Regulatory filing",
+      "defaultUnit": "Legal",
+      "orderRef": "21",
+      "responseTargetDays": 20,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Consumer complaint",
+      "category": "Consumer matters",
+      "defaultUnit": "Consumer Affairs",
+      "orderRef": "9",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    },
+    {
+      "name": "Tariff application / review",
+      "category": "Regulatory filing",
+      "defaultUnit": "Tariffs & Economic Regulation",
+      "orderRef": null,
+      "responseTargetDays": 20,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Licensee returns / performance report",
+      "category": "Licensee returns & reports",
+      "defaultUnit": "Technical & Market Operations",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Incident / outage report",
+      "category": "Licensee returns & reports",
+      "defaultUnit": "Technical & Market Operations",
+      "orderRef": null,
+      "responseTargetDays": 5,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Consumer petition / public representation",
+      "category": "Consumer matters",
+      "defaultUnit": "Consumer Affairs",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Letter from Governor's Office",
+      "category": "Government & legislature",
+      "defaultUnit": "Office of the Chairman",
+      "orderRef": null,
+      "responseTargetDays": 5,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Letter from House of Assembly",
+      "category": "Government & legislature",
+      "defaultUnit": "Office of the Chairman",
+      "orderRef": null,
+      "responseTargetDays": 5,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Letter from State MDA / Local Government",
+      "category": "Government & legislature",
+      "defaultUnit": "Office of the Secretary",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Letter from NERC / Federal agency",
+      "category": "Federal & sector agencies",
+      "defaultUnit": "Office of the Secretary",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Letter from DisCo / GenCo / TCN",
+      "category": "Industry & investors",
+      "defaultUnit": "Technical & Market Operations",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Investor / developer enquiry",
+      "category": "Industry & investors",
+      "defaultUnit": "Registration & Licensing",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Development partner correspondence",
+      "category": "Industry & investors",
+      "defaultUnit": "Office of the Chairman",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Court process / legal notice",
+      "category": "Legal & court",
+      "defaultUnit": "Legal",
+      "orderRef": null,
+      "responseTargetDays": 3,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Freedom of Information request",
+      "category": "Legal & court",
+      "defaultUnit": "Legal",
+      "orderRef": null,
+      "responseTargetDays": 7,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Invitation (meeting / event / hearing)",
+      "category": "Invitations & events",
+      "defaultUnit": "Office of the Secretary",
+      "orderRef": null,
+      "responseTargetDays": 3,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Invoice / vendor correspondence",
+      "category": "Finance & procurement",
+      "defaultUnit": "Finance",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Staff / personnel matter",
+      "category": "Administration & HR",
+      "defaultUnit": "Administration & HR",
+      "orderRef": null,
+      "responseTargetDays": 10,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Media / press enquiry",
+      "category": "Media & public",
+      "defaultUnit": "Corporate Communications",
+      "orderRef": null,
+      "responseTargetDays": 2,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Circular / publication (for information)",
+      "category": "Other",
+      "defaultUnit": "Office of the Secretary",
+      "orderRef": null,
+      "responseTargetDays": 0,
+      "para103SlipWording": false
+    },
+    {
+      "name": "Other correspondence",
+      "category": "Other",
+      "defaultUnit": "Office of the Secretary",
+      "orderRef": "10(2)",
+      "responseTargetDays": 10,
+      "para103SlipWording": true
+    }
+  ]
+}

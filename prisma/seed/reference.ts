@@ -101,6 +101,28 @@ function slipFooter(name: string, para103: boolean): SlipFooter {
   return para103 ? "PARA103" : "GENERAL";
 }
 
+export type SeedIncomingType = (typeof seed.incomingTypes)[number];
+
+/** The row for one seed incoming type (also used by upgrade-reference-v2). */
+export function incomingTypeRow(
+  t: SeedIncomingType,
+  defaultUnitId: string,
+  sortOrder: number,
+) {
+  return {
+    name: t.name,
+    category: t.category,
+    defaultUnitId,
+    orderRef: t.orderRef,
+    responseTargetDays: t.responseTargetDays,
+    para103SlipWording: t.para103SlipWording,
+    slipFooter: slipFooter(t.name, t.para103SlipWording),
+    isRegistration: t.name === REGISTRATION_TYPE,
+    requiresRelatedOgsercNo: RELATED_NO_TYPES.includes(t.name),
+    sortOrder,
+  };
+}
+
 export type SeedCounts = Record<string, number>;
 
 const emailsOf = (xs: readonly string[]) => normaliseEmails(xs).emails;
@@ -207,21 +229,9 @@ export async function seedReference(
           `'${r.type}' names '${r.from}', which is not a unit; using '${r.to}' (confirm on Admin › Types).`,
         );
       const { count } = await tx.incomingType.createMany({
-        data: seed.incomingTypes.map((t, i) => {
-          const defaultUnitId = units.get(resolved.unitByType.get(t.name)!)!;
-          return {
-            name: t.name,
-            category: t.category,
-            defaultUnitId,
-            orderRef: t.orderRef,
-            responseTargetDays: t.responseTargetDays,
-            para103SlipWording: t.para103SlipWording,
-            slipFooter: slipFooter(t.name, t.para103SlipWording),
-            isRegistration: t.name === REGISTRATION_TYPE,
-            requiresRelatedOgsercNo: RELATED_NO_TYPES.includes(t.name),
-            sortOrder: i,
-          };
-        }),
+        data: seed.incomingTypes.map((t, i) =>
+          incomingTypeRow(t, units.get(resolved.unitByType.get(t.name)!)!, i),
+        ),
       });
       bump("incomingTypes", count);
     }

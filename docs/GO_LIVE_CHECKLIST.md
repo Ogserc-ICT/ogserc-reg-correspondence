@@ -5,8 +5,10 @@ Started in Phase V0 and finished in V8. Tick each item before the app replaces t
 ## Database upgrade
 - [ ] **Upgrade production to the v2 reference data:**
   - [ ] Back up the production database and test the restore before running `upgrade-reference-v2`.
-  - [ ] Run `scripts/upgrade-reference-v2.ts --dry-run` against production and review the before/after report (units, divisions, types, user units, settings, signatories).
-  - [ ] Run it with `--commit --confirm`. It runs in one transaction, so it applies all of its changes or none.
+  - [ ] Apply the migrations (a production deploy runs `prisma migrate deploy`).
+  - [ ] From a trusted machine, with the production `DATABASE_URL_UNPOOLED`, run `npx tsx scripts/upgrade-reference-v2.ts` (dry run). Review every before/after line: units, divisions, types, user units, file classes, signatories.
+  - [ ] Run `npx tsx scripts/upgrade-reference-v2.ts --commit --confirm <fingerprint>`, using the fingerprint the dry run printed. It runs in one transaction, so it applies all of its changes or none, and it saves nothing if the data changed since the dry run.
+  - [ ] Run the dry run once more. It should say "No changes".
   - [ ] Check that unit officers' units were remapped by the confirmed C1.1 map.
 
 ## Reference data to confirm
