@@ -1,4 +1,4 @@
-// Simple lists and units (Head of Registry). Values the Registry's rules use
+// Simple lists (Head of Registry); units moved to Admin › Organisation. Values the Registry's rules use
 // can be renamed but not switched off; nothing is ever deleted.
 import type { Metadata } from "next";
 import { Suspense } from "react";
@@ -7,7 +7,7 @@ import { appNow } from "@/server/clock";
 import { requireCan } from "@/server/current-user";
 import { getDb } from "@/server/db";
 import { LIST_KINDS, loadReference } from "@/server/reference";
-import { saveListItemAction, saveUnitAction } from "../reference-actions";
+import { saveListItemAction } from "../reference-actions";
 import { AddForm, Check, Editor, Tabs } from "../reference-ui";
 
 export const metadata: Metadata = { title: "Lists · OGSERC Registry" };
@@ -32,52 +32,14 @@ async function Lists() {
 
   return (
     <div className="space-y-10">
-      <section className="rounded-panel border-border-subtle bg-surface border p-[22px]">
-        <h2 className="mb-2 text-lg font-semibold">Units</h2>
-        <div className="mt-3 space-y-2">
-          {ref.units.map((u) => (
-            <Editor
-              key={u.id}
-              action={saveUnitAction.bind(null, u.id)}
-              summary={
-                <span
-                  className={u.active ? "" : "text-text-faint line-through"}
-                >
-                  {u.name}
-                </span>
-              }
-            >
-              <TextInput
-                name="name"
-                label="Name"
-                required
-                defaultValue={u.name}
-              />
-              <TextInput
-                name="sortOrder"
-                type="number"
-                label="Order"
-                defaultValue={String(u.sortOrder)}
-              />
-              <div className="pt-6">
-                <Check name="active" label="In use" defaultChecked={u.active} />
-              </div>
-            </Editor>
-          ))}
-        </div>
-        <AddForm action={saveUnitAction.bind(null, null)} submit="Add unit">
-          <TextInput name="name" label="Name" required />
-          <TextInput
-            name="sortOrder"
-            type="number"
-            label="Order"
-            defaultValue="99"
-          />
-          <div className="pt-6">
-            <Check name="active" label="In use" defaultChecked />
-          </div>
-        </AddForm>
-      </section>
+      <p className="text-text-muted text-sm">
+        Units, divisions, their email addresses, signatories and file class
+        codes are on{" "}
+        <a href="/admin/organisation" className="text-accent hover:underline">
+          Admin › Organisation
+        </a>
+        .
+      </p>
 
       {LIST_KINDS.map(({ kind, title }) => {
         const items = ref.listItems.filter((i) => i.list === kind);
@@ -105,6 +67,11 @@ async function Lists() {
                       className={i.active ? "" : "text-text-faint line-through"}
                     >
                       {i.label}
+                      {i.code && (
+                        <span className="text-text-faint ml-2 font-mono text-xs">
+                          {i.code}
+                        </span>
+                      )}
                       {i.systemKey && (
                         <span className="text-text-faint ml-2 text-xs">
                           used by the rules

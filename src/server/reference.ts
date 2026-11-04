@@ -34,11 +34,11 @@ export const LIST_KINDS: { kind: ListKind; title: string }[] = [
 const FOOTERS: SlipFooter[] = ["REGISTRATION", "PARA103", "GENERAL"];
 const HOLIDAY_STATUSES: HolidayStatus[] = ["FIXED", "PROVISIONAL", "ESTIMATED"];
 
-function fail(problems: string[]): never {
+export function fail(problems: string[]): never {
   throw new ValidationError(problems);
 }
 
-function plain<T extends object>(o: T): Record<string, unknown> {
+export function plain<T extends object>(o: T): Record<string, unknown> {
   return Object.fromEntries(
     Object.entries(o).map(([k, v]) => [
       k,
@@ -47,7 +47,7 @@ function plain<T extends object>(o: T): Record<string, unknown> {
   );
 }
 
-async function record(
+export async function record(
   tx: Tx,
   actor: Actor,
   entityType: string,
@@ -283,55 +283,6 @@ export async function saveListItem(
     });
     await record(tx, actor, "ListItem", created.id, null, plain(created));
     return { message: `${created.label} added.` };
-  });
-}
-
-export async function saveUnit(
-  db: Db,
-  actor: Actor,
-  id: string | null,
-  raw: Raw,
-) {
-  assertCan(actor.user, "reference.manage");
-  const r = new Reader(raw);
-  const name = r.text("name");
-  const active = r.checkbox("active");
-  const sortOrder = r.int("sortOrder", "Order") ?? 0;
-  if (!name) fail(["Enter the unit's name."]);
-  return db.$transaction(async (tx) => {
-    const clash = await tx.unit.findFirst({
-      where: {
-        name: { equals: name!, mode: "insensitive" },
-        ...(id ? { id: { not: id } } : {}),
-      },
-    });
-    if (clash) fail([`There is already a unit called ${clash.name}.`]);
-    if (id) {
-      const before = await tx.unit.findUniqueOrThrow({ where: { id } });
-      if (before.active && !active) {
-        const types = await tx.incomingType.count({
-          where: { defaultUnitId: id, active: true },
-        });
-        const officers = await tx.user.count({
-          where: { unitId: id, active: true },
-        });
-        if (types || officers)
-          fail([
-            `${before.name} can't be switched off while ${types} active type(s) route to it and ${officers} unit officer(s) belong to it.`,
-          ]);
-      }
-      const after = await tx.unit.update({
-        where: { id },
-        data: { name: name!, active, sortOrder },
-      });
-      await record(tx, actor, "Unit", id, plain(before), plain(after));
-      return { message: `${after.name} saved.` };
-    }
-    const created = await tx.unit.create({
-      data: { name: name!, active, sortOrder },
-    });
-    await record(tx, actor, "Unit", created.id, null, plain(created));
-    return { message: `${created.name} added.` };
   });
 }
 

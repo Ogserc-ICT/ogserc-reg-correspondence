@@ -48,7 +48,12 @@ export type Capability =
   /** Front Desk Log and pulling intakes into New Inward (C3, C12). */
   | "frontdesk.read"
   /** Resend acknowledgement emails and send or discard those to review (C6). */
-  | "ackEmail.send";
+  | "ackEmail.send"
+  /**
+   * Divisions, units and their emails, signatories, file class codes (C12:
+   * Admin; the Head of Registry kept the units they already managed).
+   */
+  | "organisation.manage";
 
 const CAPABILITIES: Record<Role, readonly Capability[]> = {
   REGISTRY_OFFICER: [
@@ -72,6 +77,7 @@ const CAPABILITIES: Record<Role, readonly Capability[]> = {
     "reports.print",
     "dashboard.view",
     "reference.manage",
+    "organisation.manage",
     "audit.view",
   ],
   // Read-only in v1 (Q5); reads are limited by readScope.
@@ -83,7 +89,12 @@ const CAPABILITIES: Record<Role, readonly Capability[]> = {
     "reports.print",
     "dashboard.view",
   ],
-  ADMIN: ["users.manage", "settings.manage", "audit.view"],
+  ADMIN: [
+    "users.manage",
+    "settings.manage",
+    "organisation.manage",
+    "audit.view",
+  ],
   // C12: intakes only; no registers, routing or files.
   FRONT_DESK_OFFICER: ["frontdesk.write"],
 };

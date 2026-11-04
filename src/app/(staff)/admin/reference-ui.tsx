@@ -67,7 +67,7 @@ export function Tabs() {
   return (
     <nav className="mb-6 flex flex-wrap gap-2" aria-label="Reference data">
       {tab("/admin/types", "Types")}
-      {tab("/admin/lists", "Lists and units")}
+      {tab("/admin/lists", "Lists")}
       {tab("/admin/holidays", "Public holidays")}
     </nav>
   );

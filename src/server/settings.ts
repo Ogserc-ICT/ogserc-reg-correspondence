@@ -41,6 +41,14 @@ const prefix = (label: string) =>
 export const settingsSchema = z.object({
   ackPrefix: prefix("Inward prefix"),
   outPrefix: prefix("Outward prefix"),
+  // SPEC-v2 C3.1, C8.
+  frontDeskPrefix: prefix("Front desk prefix"),
+  filePrefix: prefix("File reference prefix"),
+  fileRefSerialDigits: z.coerce
+    .number({ error: "File reference digits: enter a number." })
+    .int("File reference digits: a whole number.")
+    .min(1, "File reference digits: at least 1.")
+    .max(6, "File reference digits: at most 6."),
   officeClosingTime: z
     .string()
     .regex(
@@ -72,6 +80,9 @@ export const settingsSchema = z.object({
   slipFooterGeneral: text("General slip footer"),
   secretaryName: z.string().trim().max(200),
   headMayVoidOwnItems: z.boolean(),
+  // SPEC-v2 C11: Q-V2-3 and Q-V2-5 (workbook behaviour by default).
+  routingRequiresPassword: z.boolean(),
+  frontDeskAnyMode: z.boolean(),
   // SPEC-v2 C6.3: Off (default) | Review | Send; CC for every ack email.
   ackEmailMode: z.enum(["OFF", "REVIEW", "SEND"], {
     error: "Acknowledgement email: choose Off, Review or Send.",
@@ -85,6 +96,9 @@ function toInput(s: RegistrySettings): SettingsInput {
   return {
     ackPrefix: s.ackPrefix,
     outPrefix: s.outPrefix,
+    frontDeskPrefix: s.frontDeskPrefix,
+    filePrefix: s.filePrefix,
+    fileRefSerialDigits: s.fileRefSerialDigits,
     officeClosingTime: s.officeClosingTime,
     registryForwardingTargetDays: s.registryForwardingTargetDays,
     dispatchTargetDays: s.dispatchTargetDays,
@@ -105,6 +119,8 @@ function toInput(s: RegistrySettings): SettingsInput {
     slipFooterGeneral: s.slipFooterGeneral,
     secretaryName: s.secretaryName,
     headMayVoidOwnItems: s.headMayVoidOwnItems,
+    routingRequiresPassword: s.routingRequiresPassword,
+    frontDeskAnyMode: s.frontDeskAnyMode,
     ackEmailMode: s.ackEmailMode,
     ackEmailCc: s.ackEmailCc,
   };

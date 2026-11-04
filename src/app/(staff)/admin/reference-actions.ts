@@ -11,7 +11,6 @@ import {
   saveIncomingType,
   saveListItem,
   saveOutgoingType,
-  saveUnit,
 } from "@/server/reference";
 
 async function run(
@@ -61,15 +60,6 @@ export async function saveListItemAction(
   return run("/admin/lists", form, (raw) =>
     saveListItem(getDb(), actor, list, id, raw),
   );
-}
-
-export async function saveUnitAction(
-  id: string | null,
-  _p: FormState,
-  form: FormData,
-) {
-  const actor = await actorWith("reference.manage");
-  return run("/admin/lists", form, (raw) => saveUnit(getDb(), actor, id, raw));
 }
 
 export async function saveHolidayAction(

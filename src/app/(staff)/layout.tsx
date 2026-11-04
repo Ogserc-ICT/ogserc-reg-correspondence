@@ -117,6 +117,11 @@ async function AppSidebar() {
           label: "Reference lists",
           icon: "list",
         },
+        can(user, "organisation.manage") && {
+          href: "/admin/organisation",
+          label: "Organisation",
+          icon: "users",
+        },
         can(user, "audit.view") && {
           href: "/admin/audit",
           label: "Audit log",

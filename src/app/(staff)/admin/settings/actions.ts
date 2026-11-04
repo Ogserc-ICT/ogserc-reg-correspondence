@@ -11,6 +11,8 @@ const BOOLEANS = [
   "effectiveDateIsPlaceholder",
   "deadlineRollsToNextWorkingDay",
   "headMayVoidOwnItems",
+  "routingRequiresPassword",
+  "frontDeskAnyMode",
 ] as const;
 
 export async function saveSettingsAction(

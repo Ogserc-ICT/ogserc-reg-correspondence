@@ -1,5 +1,6 @@
 // Phase 8 reference data: types, lists, units and holidays, edited by the
 // Head of Registry; history never rewritten; holidays move open deadlines.
+import { saveUnit } from "@/server/organisation";
 import { beforeEach, describe, expect, it } from "vitest";
 import { seedExample, type ExampleIds } from "../../prisma/seed/example";
 import { ForbiddenError, ValidationError } from "@/server/errors";
@@ -9,7 +10,6 @@ import {
   saveHoliday,
   saveIncomingType,
   saveListItem,
-  saveUnit,
 } from "@/server/reference";
 import type { Actor } from "@/server/registers";
 import { logInward } from "@/server/workflows/inward";
@@ -141,7 +141,11 @@ describe("lists and units", () => {
       where: { name: "Licensing unit" },
     });
     await expect(
-      saveUnit(db, head, unit.id, { name: unit.name, sortOrder: "2" }),
+      saveUnit(db, head, unit.id, {
+        name: unit.name,
+        divisionId: unit.divisionId ?? "",
+        sortOrder: "2",
+      }),
     ).rejects.toBeInstanceOf(ValidationError);
   });
 });

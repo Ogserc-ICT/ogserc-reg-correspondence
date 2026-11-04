@@ -77,6 +77,28 @@ export function SettingsForm({ initial }: { initial: Values }) {
           "e.g. OGSERC/ACK",
         )}
         {input("outPrefix", "Outward prefix", "e.g. OGSERC/OUT")}
+        {input("frontDeskPrefix", "Front desk prefix", "e.g. OGSERC/FD")}
+        {input(
+          "filePrefix",
+          "File reference prefix",
+          "e.g. OGSERC, giving OGSERC/RL/002",
+        )}
+        {input(
+          "fileRefSerialDigits",
+          "File reference digits",
+          "3 gives OGSERC/RL/002.",
+          "number",
+        )}
+      </Section>
+      <Section title="Front desk and routing">
+        {box(
+          "frontDeskAnyMode",
+          "The front desk may log any mode of receipt, not only hand deliveries (Q-V2-5)",
+        )}
+        {box(
+          "routingRequiresPassword",
+          "Routers re-enter their password to save routing (Q-V2-3)",
+        )}
       </Section>
       <Section title="Receipt (para 10(3))">
         {input(
