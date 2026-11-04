@@ -73,6 +73,39 @@ async function openSaved(page: Page) {
   await page.waitForURL(/\/(inward|outward)\/[0-9a-f-]{36}$/);
 }
 
+/** Signs out whoever is signed in, then signs in as someone else. */
+async function switchTo(page: Page, email: string) {
+  await page.context().clearCookies();
+  await signInAs(page, email);
+}
+
+/**
+ * SPEC-v2 C5.2: the Secretary routes an item on the Routing Desk, then the
+ * registry officer signs in again.
+ */
+async function routeAsSecretary(
+  page: Page,
+  ackNo: string,
+  choices: Record<string, string>,
+  file: { search: string; result: RegExp } | null,
+) {
+  await switchTo(page, "secretary@example.invalid");
+  await page.goto("/routing");
+  await pick(
+    page,
+    "Inward item",
+    ackNo,
+    new RegExp(ackNo.replaceAll("/", "\\/")),
+  );
+  await page.getByRole("button", { name: "Load" }).click();
+  await page.waitForURL(/\/routing\?item=/);
+  await choose(page, choices);
+  if (file) await pick(page, "File reference", file.search, file.result);
+  await page.getByRole("button", { name: "Save routing" }).click();
+  await expect(status(page)).toContainText(`OGSERC/${ackNo} routed to`);
+  await switchTo(page, "registry.officer1@example.invalid");
+}
+
 test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   page,
 }) => {
@@ -115,12 +148,19 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
     ].join("\n"),
   );
   await openSaved(page);
+  const i1 = page.url();
+  // Routed before it is forwarded, so no "Forwarded before routing" flag.
+  await routeAsSecretary(
+    page,
+    "ACK/2026/00001",
+    { actionRequiredId: "Action required" },
+    { search: "RL/001", result: /OGSERC\/RL\/001/ },
+  );
+  await page.goto(i1);
   await fill(page, {
     dateForwarded: "2026-11-20",
     receivedByUnitOfficer: "Reg. Officer",
-    actionOfficer: "Head, Registration",
   });
-  await pick(page, "File", "RL/001", /OGSERC\/RL\/001/);
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(status(page)).toContainText("OGSERC/ACK/2026/00001 updated.");
 
@@ -175,10 +215,6 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await page.getByRole("button", { name: "Save to register" }).click();
   await expect(status(page)).toContainText("Saved as OGSERC/ACK/2026/00002.");
   await expect(status(page)).toContainText("Suggested unit: Licensing unit");
-  await openSaved(page);
-  await pick(page, "File", "RL/001", /OGSERC\/RL\/001/);
-  await page.getByRole("button", { name: "Save changes" }).click();
-  await expect(status(page)).toContainText("OGSERC/ACK/2026/00002 updated.");
 
   // ---- I3: NERC letter by hand, 2 Dec 11:05, to the Chairman ----------------
   await page.goto("/inward/new");
@@ -197,12 +233,18 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
   await page.getByRole("button", { name: "Save to register" }).click();
   await expect(status(page)).toContainText("Saved as OGSERC/ACK/2026/00003.");
   await openSaved(page);
-  // The unit override, priority and file move to the Routing Desk in V5.
-  await choose(page, {
-    unitOverrideId: "Office of the General Counsel and Secretary (Registry)",
-    priorityId: "High",
-  });
-  await pick(page, "File", "GOV/001", /OGSERC\/GOV\/001/);
+  const i3 = page.url();
+  await routeAsSecretary(
+    page,
+    "ACK/2026/00003",
+    {
+      unitOverrideId: "Office of the General Counsel and Secretary (Registry)",
+      actionRequiredId: "Reply required",
+      priorityId: "High",
+    },
+    { search: "GOV/001", result: /OGSERC\/GOV\/001/ },
+  );
+  await page.goto(i3);
   await fill(page, {
     dateForwarded: "2026-12-02",
     receivedByUnitOfficer: "PA to Chairman",
@@ -480,9 +522,12 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
     await expect(page.locator("main header:visible")).toContainText(
       "Currently with: Registry",
     );
-    await expect(detail(page, "Inward items")).toHaveText("2");
+    // Through the UI, I2 has no file: a file reference is set only on the
+    // Routing Desk, and I2 is not routed yet (SPEC-v2 C4, C13.1). The seeded
+    // example keeps the workbook row (2 inward items, last on 1 Dec).
+    await expect(detail(page, "Inward items")).toHaveText("1");
     await expect(detail(page, "Outward items")).toHaveText("1");
-    await expect(detail(page, "Last correspondence")).toHaveText("01-Dec-2026");
+    await expect(detail(page, "Last correspondence")).toHaveText("25-Nov-2026");
     const m1 = page.locator("tr:visible", {
       hasText: "Reg. Officer (Licensing unit)",
     });
