@@ -12,6 +12,9 @@ export const DEV_PASSWORD =
 /** The app clock during e2e runs: SPEC §12.2's "today" (Lagos time). */
 export const E2E_APP_NOW = "2026-12-10T09:00";
 
+/** Where the e2e server's dev email transport writes (SPEC-v2 C6). */
+export const E2E_MAIL_DIR = path.resolve(".data/mail-e2e");
+
 /** The e2e server reads its clock from this file on every request. */
 export const E2E_CLOCK_FILE = path.resolve(".e2e-clock");
 

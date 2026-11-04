@@ -23,8 +23,10 @@ Started in Phase V0 and finished in V8. Tick each item before the app replaces t
 - [ ] Choose the email provider and sender mailbox (Q-V2-1). Configure it and send a test.
   - Until then, email stays **Off**. Retries currently run from the daily `email-retry` job, plus "Run now" (Admin › Jobs) and Resend on the Registry Desk.
   - When the provider is chosen, revisit hosting and how often retries run. A cron more frequent than daily needs Vercel Pro.
-- [ ] Set `ackEmailCc` if a copy should go to the Registry.
-- [ ] Switch `ackEmailMode` from **Off** to Review or Send.
+  - The provider needs code for its transport (`src/server/email/transport.ts`); only `EMAIL_TRANSPORT=dev` exists, and production refuses to start with it. Leave `EMAIL_TRANSPORT` unset in production until then; set `EMAIL_FROM` to the sender mailbox.
+  - Admin › Settings won't switch the email to Review or Send while no provider is set up.
+- [ ] Set the CC (Admin › Settings, "Copy (CC) every acknowledgement to") if a copy should go to the Registry.
+- [ ] Switch the acknowledgement email from **Off** to Review or Send (Admin › Settings). In Review, check the Emails page (or the Registry Desk notice) daily.
 
 ## People and roles
 - [ ] Create accounts for the front desk officers (role: Front desk officer).

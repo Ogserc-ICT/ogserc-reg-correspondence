@@ -33,6 +33,7 @@ import {
   VoidedNote,
 } from "../../item-ui";
 import { InwardTimeline } from "../inward-timeline";
+import { ResendButton } from "../../emails/email-buttons";
 import { EditInwardForm, InwardActions, UpdateInwardForm } from "./item-forms";
 
 export const metadata: Metadata = { title: "Inward item · OGSERC Registry" };
@@ -208,6 +209,11 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
                 />
               </div>
             )}
+            {!voided && can(user, "ackEmail.send") && (
+              <div className="mt-3">
+                <ResendButton itemId={row.id} />
+              </div>
+            )}
           </section>
           <section className="rounded-panel border-border-subtle bg-surface border p-[22px]">
             <SubHeading>Timeline</SubHeading>
@@ -318,6 +324,11 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
                     </Link>
                   </>
                 )}
+              </Detail>
+              <Detail label="Acknowledgement emailed">
+                {row.ackEmailedAt
+                  ? `${formatDateTime(row.ackEmailedAt)} to ${row.ackEmailedTo.join("; ")}`
+                  : "Not emailed"}
               </Detail>
               <Detail label="Acknowledgement issued via">
                 {row.ackIssuedVia.label}

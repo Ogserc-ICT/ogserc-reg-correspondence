@@ -17,6 +17,7 @@ import { requireUser } from "@/server/current-user";
 import { loadFullDashboard } from "@/server/dashboard";
 import { fromDbDate } from "@/server/dates";
 import { getDb } from "@/server/db";
+import { countEmailsToReview } from "@/server/email/ack";
 import { upcomingUnconfirmedHolidays } from "@/server/jobs";
 import { fileIndex } from "@/server/read/files";
 import { inwardRegister, outwardRegister } from "@/server/read/registers";
@@ -96,6 +97,8 @@ async function DeskContent() {
       ? await upcomingUnconfirmedHolidays(db, today)
       : [];
   const q = (status: string) => `?status=${encodeURIComponent(status)}`;
+  // SPEC-v2 C6.3 Review mode: emails held for a registry officer.
+  const toReview = await countEmailsToReview(db, user);
 
   const nextDue = inward
     .filter((r) => r.derived.status === "Open" && r.derived.responseDue)
@@ -244,6 +247,25 @@ async function DeskContent() {
           )}
         </div>
       </div>
+
+      {toReview > 0 && (
+        <div
+          role="note"
+          aria-label="Emails to review"
+          className="rounded-card border-awaiting/40 bg-status-awaiting mt-6 flex flex-wrap items-center justify-between gap-3 border p-4 text-sm"
+        >
+          <p>
+            <span className="font-semibold">Emails to review: {toReview}</span>
+            <span className="text-text-muted">
+              {" "}
+              · acknowledgement emails waiting to be sent or discarded.
+            </span>
+          </p>
+          <Link href="/emails" className={buttonClass("secondary")}>
+            Review emails
+          </Link>
+        </div>
+      )}
 
       {holidays.length > 0 && (
         <div

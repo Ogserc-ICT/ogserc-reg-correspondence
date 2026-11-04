@@ -77,6 +77,11 @@ async function AppSidebar() {
           label: "File Desk",
           icon: "folder",
         },
+        can(user, "ackEmail.send") && {
+          href: "/emails",
+          label: "Emails",
+          icon: "mail",
+        },
         can(user, "reports.print") && {
           href: "/pending",
           label: "Pending Actions",
