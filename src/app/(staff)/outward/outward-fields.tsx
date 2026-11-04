@@ -2,6 +2,7 @@
 // The New Outward fields (SPEC §5.1): Document, Recipient, Signature and
 // Dispatch, as on the New Inward screen. Also used by the Head of
 // Registry's "edit registered details".
+import { useRef } from "react";
 import { Field, inputClass } from "@/app/_components/form";
 import { Select, TextArea, TextInput, YesNo } from "@/app/_components/inputs";
 import { Picker } from "@/app/_components/picker";
@@ -26,6 +27,12 @@ export function OutwardFields({
 }) {
   const v = (k: string) => values[k] ?? "";
   const has = (keys: string[]) => keys.some((k) => v(k));
+  // SPEC-v2 C7: the designation fills in from the signatory chosen.
+  const designation = useRef<HTMLInputElement>(null);
+  const chooseSignatory = (id: string) => {
+    const s = options.signatories.find((x) => x.id === id);
+    if (designation.current) designation.current.value = s?.designation ?? "";
+  };
   return (
     <div className="space-y-5">
       <FormSection title="Document">
@@ -111,17 +118,26 @@ export function OutwardFields({
 
       <FormSection title="Signature">
         <Select
-          name="signedById"
+          name="signatoryId"
           label="Signed by"
-          required
+          hint="Choose from the list, or leave blank and type the name below."
+          blank="Someone not on the list"
           options={options.signatories}
-          defaultValue={v("signedById")}
+          defaultValue={v("signatoryId")}
+          onChange={chooseSignatory}
+        />
+        <TextInput
+          name="signedByText"
+          label="Signed by (not on the list)"
+          hint="Only for someone not on the list."
+          defaultValue={v("signedByText")}
         />
         <Field
           label="Signatory's designation *"
-          hint="Filled in from the signatory if left blank."
+          hint="Filled in from the signatory chosen if left blank."
         >
           <input
+            ref={designation}
             name="signatoryDesignation"
             defaultValue={v("signatoryDesignation")}
             className={inputClass}

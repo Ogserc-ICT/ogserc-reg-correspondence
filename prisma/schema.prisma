@@ -131,7 +131,6 @@ model User {
   inwardReceived    InwardItem[]       @relation("InwardReceivedBy")
   inwardCreated     InwardItem[]       @relation("InwardCreatedBy")
   inwardVoided      InwardItem[]       @relation("InwardVoidedBy")
-  outwardSigned     OutwardItem[]      @relation("OutwardSignedBy")
   outwardDispatched OutwardItem[]      @relation("OutwardDispatchedBy")
   outwardCreated    OutwardItem[]      @relation("OutwardCreatedBy")
   outwardVoided     OutwardItem[]      @relation("OutwardVoidedBy")
@@ -311,6 +310,8 @@ model Signatory {
   isDefault   Boolean @default(false)
   sortOrder   Int     @default(0)
   active      Boolean @default(true)
+
+  outwardItems OutwardItem[]
 }
 
 model PublicHoliday {
@@ -524,10 +525,10 @@ model OutwardItem {
   originatingUnitId        String        @db.Uuid
   originatingUnit          Unit          @relation(fields: [originatingUnitId], references: [id])
   preparedBy               String?
-  /// A user flagged as signatory (§9 R11); null only for imported rows.
-  signedById               String?       @db.Uuid
-  signedBy                 User?         @relation("OutwardSignedBy", fields: [signedById], references: [id])
-  /// Imported rows: the signatory as typed in the workbook.
+  /// SPEC-v2 C7: chosen from the signatory list...
+  signatoryId              String?       @db.Uuid
+  signatory                Signatory?    @relation(fields: [signatoryId], references: [id], onDelete: Restrict)
+  /// ...or typed, for someone not on the list (and imported rows).
   signedByText             String?
   signatoryDesignation     String
   dispatchModeId           String        @db.Uuid

@@ -1,6 +1,6 @@
 "use client";
 // New file, Update file, Issue and Record return (SPEC §6, §7).
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Messages, SubmitButton, type FormState } from "@/app/_components/form";
 import { buttonClass } from "@/app/_components/ui/button";
 import { Select, TextArea, TextInput } from "@/app/_components/inputs";
@@ -8,6 +8,7 @@ import type { FormOptions } from "@/server/read/options";
 import {
   createFileAction,
   issueFileAction,
+  previewFileReferenceAction,
   returnFileAction,
   updateFileAction,
 } from "./actions";
@@ -24,14 +25,24 @@ function FileFields({
   isNew: boolean;
 }) {
   const v = (k: string) => values[k] ?? "";
+  // SPEC-v2 C8: what a blank reference becomes for the chosen class.
+  const [next, setNext] = useState<string | null>(null);
+  async function preview(classId: string) {
+    if (!isNew) return;
+    if (!classId) return setNext(null);
+    const r = await previewFileReferenceAction(classId);
+    setNext("reference" in r ? `Leave blank for ${r.reference}.` : r.problem);
+  }
   return (
     <div className="grid gap-x-4 gap-y-5 sm:grid-cols-2">
       {isNew && (
         <TextInput
           name="reference"
           label="File reference"
-          hint="Must be new, e.g. OGSERC/RL/002."
-          required
+          hint={
+            next ??
+            "Leave blank to generate it from the file class, e.g. OGSERC/RL/002."
+          }
           defaultValue={v("reference")}
         />
       )}
@@ -48,6 +59,7 @@ function FileFields({
         label="File class"
         options={options.fileClasses}
         defaultValue={v("fileClassId")}
+        onChange={preview}
       />
       <Select
         name="owningUnitId"
@@ -218,6 +230,8 @@ export function IssueFileForm({
         <Select
           name="unitId"
           label="Unit"
+          hint="The OGSERC unit the file goes to."
+          required
           options={options.units}
           defaultValue={v.unitId}
         />

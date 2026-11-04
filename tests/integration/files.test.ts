@@ -100,6 +100,66 @@ describe("New file", () => {
     ).rejects.toThrow("OGSERC/RL/001 is already in the File Index.");
   });
 
+  it("V9: generates the next reference for the file class (C8)", async () => {
+    const licensee = await list("FILE_CLASS", "Licensee file");
+    const policy = await list("FILE_CLASS", "Policy & regulations");
+    const r1 = await createFile(db, officer, {
+      reference: "",
+      title: "Third licensee",
+      fileClassId: licensee,
+    });
+    // RL/001 exists (F1).
+    expect(r1.file.reference).toBe("OGSERC/RL/002");
+    expect(r1.message).toBe("OGSERC/RL/002 added to the File Index.");
+    const r2 = await createFile(db, officer, {
+      reference: "",
+      title: "Regulations",
+      fileClassId: policy,
+    });
+    expect(r2.file.reference).toBe("OGSERC/POL/001");
+    // Typed, any case, when RL/002 exists → refused.
+    await expect(
+      createFile(db, officer, { reference: "ogserc/rl/002", title: "Dup" }),
+    ).rejects.toThrow("OGSERC/RL/002 is already in the File Index.");
+    // Two at once never share a serial.
+    const [a, b] = await Promise.all([
+      createFile(db, officer, {
+        reference: "",
+        title: "A",
+        fileClassId: licensee,
+      }),
+      createFile(db, officer, {
+        reference: "",
+        title: "B",
+        fileClassId: licensee,
+      }),
+    ]);
+    expect([a.file.reference, b.file.reference].sort()).toEqual([
+      "OGSERC/RL/003",
+      "OGSERC/RL/004",
+    ]);
+  });
+
+  it("asks for a class code, or a typed reference (C8)", async () => {
+    const legal = await list("FILE_CLASS", "Legal");
+    await db.listItem.update({ where: { id: legal }, data: { code: null } });
+    await expect(
+      createFile(db, officer, {
+        reference: "",
+        title: "X",
+        fileClassId: legal,
+      }),
+    ).rejects.toThrow(
+      "Set a file class code for 'Legal' in Admin, or type the file reference.",
+    );
+    await expect(
+      createFile(db, officer, { reference: "", title: "X" }),
+    ).rejects.toSatisfy(
+      (e: unknown) =>
+        e instanceof FormProblems && e.missing.includes("File reference"),
+    );
+  });
+
   it("lists missing fields and closed-file rules", async () => {
     await expect(
       createFile(db, officer, { reference: "OGSERC/X/1", title: "" }),
@@ -142,7 +202,10 @@ describe("Issue and return", () => {
   });
 
   it("asks before issuing a file that is still out, then flags the movement", async () => {
-    const asked = issueFile(db, officer, ids.F2, { issuedTo: "Legal Adviser" });
+    const asked = issueFile(db, officer, ids.F2, {
+      issuedTo: "Legal Adviser",
+      unitId: await unit("Compliance/Legal Services unit: Legal"),
+    });
     await expect(asked).rejects.toBeInstanceOf(StillOut);
     await expect(asked).rejects.toThrow(
       "OGSERC/GOV/001 is still out with PA to Chairman (Office of the General Counsel and Secretary (Registry)). Issue it anyway?",
@@ -153,11 +216,16 @@ describe("Issue and return", () => {
       db,
       officer,
       ids.F2,
-      { issuedTo: "Legal Adviser" },
+      {
+        issuedTo: "Legal Adviser",
+        unitId: await unit("Compliance/Legal Services unit: Legal"),
+      },
       { confirmStillOut: true },
     );
     const d = await fileDetail(db, officer.user, ids.F2, DEC_10);
-    expect(d?.derived.currentlyWith).toBe("Legal Adviser");
+    expect(d?.derived.currentlyWith).toBe(
+      "Legal Adviser (Compliance/Legal Services unit: Legal)",
+    );
     expect(d?.movements[0].derived.flags).toEqual([
       "Earlier movement of this file not returned",
     ]);
@@ -172,11 +240,14 @@ describe("Issue and return", () => {
       db,
       officer,
       ids.F2,
-      { issuedTo: "Legal Adviser" },
+      {
+        issuedTo: "Legal Adviser",
+        unitId: await unit("Compliance/Legal Services unit: Legal"),
+      },
       { confirmStillOut: true },
     );
     expect((await recordReturn(db, officer, ids.F2)).message).toBe(
-      "OGSERC/GOV/001 returned to the Registry from Legal Adviser.",
+      "OGSERC/GOV/001 returned to the Registry from Legal Adviser (Compliance/Legal Services unit: Legal).",
     );
     expect((await recordReturn(db, officer, ids.F2)).message).toBe(
       "OGSERC/GOV/001 returned to the Registry from PA to Chairman (Office of the General Counsel and Secretary (Registry)).",
@@ -194,6 +265,25 @@ describe("Issue and return", () => {
     ).rejects.toThrow(
       "Date returned can't be before the date the file went out.",
     );
+  });
+
+  it("V10: needs an OGSERC unit from the list (Internal File Desk, C8)", async () => {
+    const { file } = await createFile(db, officer, {
+      reference: "OGSERC/FIN/002",
+      title: "Budget",
+    });
+    await expect(
+      issueFile(db, officer, file.id, { issuedTo: "Accountant" }),
+    ).rejects.toSatisfy(
+      (e: unknown) => e instanceof FormProblems && e.missing.includes("Unit"),
+    );
+    // Not one of the units (here: a list item's id).
+    await expect(
+      issueFile(db, officer, file.id, {
+        issuedTo: "Accountant",
+        unitId: await list("FILE_STATUS", "Closed"),
+      }),
+    ).rejects.toThrow("Unit: choose a value from the list.");
   });
 
   it("needs someone to issue to", async () => {

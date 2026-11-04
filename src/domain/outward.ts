@@ -177,3 +177,11 @@ export function defaultSignatory<
 >(list: readonly T[]): T | null {
   return list.find((s) => s.active && s.isDefault) ?? null;
 }
+
+/** C7: who signed, from the list or as typed. */
+export function signerName(o: {
+  signatory: { name: string } | null;
+  signedByText: string | null;
+}): string | null {
+  return o.signatory?.name ?? o.signedByText ?? null;
+}

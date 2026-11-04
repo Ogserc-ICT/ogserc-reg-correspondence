@@ -119,9 +119,7 @@ export async function refProblems(
         });
         break;
       case "signatory":
-        row = await tx.user.findFirst({
-          where: { id: c.id, isSignatory: true },
-        });
+        row = await tx.signatory.findUnique({ where: { id: c.id } });
         break;
     }
     if (!row || (requireActive && !row.active))

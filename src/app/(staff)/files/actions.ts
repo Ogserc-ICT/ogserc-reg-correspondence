@@ -7,6 +7,7 @@ import { getDb } from "@/server/db";
 import {
   createFile,
   issueFile,
+  previewFileReference,
   recordReturn,
   StillOut,
   updateFile,
@@ -91,4 +92,13 @@ export async function returnFileAction(
   } catch (err) {
     return formError(err);
   }
+}
+
+/** New file: the reference a blank field would get (SPEC-v2 C8). */
+export async function previewFileReferenceAction(
+  fileClassId: string,
+): Promise<{ reference: string } | { problem: string }> {
+  await actorWith("files.write");
+  if (!/^[0-9a-f-]{36}$/i.test(fileClassId)) return { problem: "" };
+  return previewFileReference(getDb(), fileClassId);
 }

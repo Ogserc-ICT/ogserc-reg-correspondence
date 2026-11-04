@@ -17,7 +17,9 @@ import { fileIndex, movementLog, parseFileFilters } from "@/server/read/files";
 import { flatParams, query, type Params } from "../register-ui";
 import { MOVEMENT_TONE } from "./movement-tone";
 
-export const metadata: Metadata = { title: "Files · OGSERC Registry" };
+export const metadata: Metadata = {
+  title: "Internal File Desk · OGSERC Registry",
+};
 
 export default function FilesPage({ searchParams }: PageProps<"/files">) {
   return (
@@ -26,7 +28,7 @@ export default function FilesPage({ searchParams }: PageProps<"/files">) {
         fallback={
           <>
             <h1 className="text-[28px] font-semibold tracking-tight">
-              File Desk
+              Internal File Desk
             </h1>
             <p className="text-text-muted mt-2">Loading…</p>
           </>
@@ -68,8 +70,8 @@ async function Files({
   return (
     <>
       <PageHeader
-        title="File Desk"
-        intro="Where every physical file is, who has it, and when it is due back."
+        title="Internal File Desk"
+        intro="Where every physical file is, which OGSERC unit or officer has it, and when it is due back."
         actions={
           can(user, "files.write") && (
             <Link href="/files/new" className={buttonClass("primary")}>

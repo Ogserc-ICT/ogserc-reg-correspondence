@@ -86,7 +86,10 @@ async function newOutwardRaw(extra: Record<string, string> = {}) {
     addressee: "Sample Mini-Grid Ltd",
     recipientCategoryId: await list("PARTY_CATEGORY", "Registrant / licensee"),
     originatingUnitId: await unit("Licensing unit"),
-    signedById: ids.users.secretary,
+    // SPEC-v2 C7: the signatory list's default (the Secretary).
+    signatoryId: (
+      await db.signatory.findFirstOrThrow({ where: { isDefault: true } })
+    ).id,
     signatoryDesignation: "",
     dispatchModeId: await list("RECEIPT_MODE", "Email"),
     dateDispatched: "",
@@ -360,6 +363,66 @@ describe("New Outward and outward handling", () => {
       signatoryDesignation: "Secretary to the Commission",
       statusCache: "NOT_YET_DISPATCHED",
     });
+  });
+
+  it("V11: a signatory from the list fills in the designation (C7)", async () => {
+    const chairman = await db.signatory.findFirstOrThrow({
+      where: { name: "Jide Onakoya" },
+    });
+    const r = await logOutward(
+      db,
+      officer,
+      await newOutwardRaw({ signatoryId: chairman.id }),
+    );
+    expect(r.item).toMatchObject({
+      signatoryId: chairman.id,
+      signedByText: null,
+      signatoryDesignation: "Chairman",
+    });
+  });
+
+  it("someone not on the list is typed, with a designation (C7)", async () => {
+    const typed = await logOutward(
+      db,
+      officer,
+      await newOutwardRaw({
+        signatoryId: "",
+        signedByText: "Ag. Director, Legal",
+        signatoryDesignation: "For the Commission",
+      }),
+    );
+    expect(typed.item).toMatchObject({
+      signatoryId: null,
+      signedByText: "Ag. Director, Legal",
+      signatoryDesignation: "For the Commission",
+    });
+    expect(
+      await problemsOf(
+        logOutward(
+          db,
+          officer,
+          await newOutwardRaw({ signatoryId: "", signedByText: "" }),
+        ),
+      ),
+    ).toEqual({
+      missing: ["Signed by", "Signatory's designation"],
+      problems: [],
+    });
+    const chairman = await db.signatory.update({
+      where: { name: "Jide Onakoya" },
+      data: { active: false },
+    });
+    expect(
+      (
+        await problemsOf(
+          logOutward(
+            db,
+            officer,
+            await newOutwardRaw({ signatoryId: chairman.id }),
+          ),
+        )
+      ).problems,
+    ).toEqual(["Signed by: choose a value from the list."]);
   });
 
   it("Dispatched today and Delivered today, in that order only", async () => {

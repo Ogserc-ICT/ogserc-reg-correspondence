@@ -24,15 +24,12 @@ export function newOutwardDefaults(
   user: Principal,
   now: Date,
 ): Record<string, string> {
-  // Default signatory: the Secretary to the Commission (SPEC §5.1, §9 R11).
-  const secretary =
-    options.signatories.find((s) =>
-      /secretary to the commission/i.test(s.designation),
-    ) ?? options.signatories[0];
+  // Default signatory: the Secretary to the Commission (SPEC-v2 C7).
+  const secretary = options.signatories.find((s) => s.isDefault) ?? null;
   const isRegistry = options.registryUsers.some((u) => u.id === user.id);
   return {
     documentDate: dateIn(now),
-    signedById: secretary?.id ?? "",
+    signatoryId: secretary?.id ?? "",
     signatoryDesignation:
       secretary?.designation || "Secretary to the Commission",
     dispatchedById: isRegistry ? user.id : "",

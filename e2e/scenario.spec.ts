@@ -266,7 +266,7 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
     typeId: "Letter to NERC / Federal agency",
     originatingUnitId: "Office of the General Counsel and Secretary (Registry)",
     recipientCategoryId: "NERC",
-    signedById: "Chairman (Chairman)",
+    signatoryId: "Jide Onakoya (Chairman)",
     dispatchModeId: "Courier",
   });
   await pick(page, "In reply to", "ACK/2026/00003", /OGSERC\/ACK\/2026\/00003/);

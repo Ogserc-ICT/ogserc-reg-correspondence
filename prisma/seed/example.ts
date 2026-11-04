@@ -69,6 +69,7 @@ async function lookups(tx: Tx) {
   const units = await tx.unit.findMany();
   const inTypes = await tx.incomingType.findMany();
   const outTypes = await tx.outgoingType.findMany();
+  const signatories = await tx.signatory.findMany();
   const find = <T>(xs: T[], p: (x: T) => boolean, what: string) => {
     const x = xs.find(p);
     if (!x) throw new Error(`Seed reference data first: missing ${what}`);
@@ -87,6 +88,13 @@ async function lookups(tx: Tx) {
       find(inTypes, (t) => t.name === name, `type ${name}`).id,
     outType: (name: string) =>
       find(outTypes, (t) => t.name === name, `type ${name}`).id,
+    /** From the signatory list, by designation (C7). */
+    signatory: (designation: string) =>
+      find(
+        signatories,
+        (s) => s.designation === designation,
+        `signatory ${designation}`,
+      ).id,
   };
 }
 
@@ -229,7 +237,7 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
           inReplyToInwardId: I1.id,
           fileId: F1,
           originatingUnitId: L.unit("Licensing unit"),
-          signedById: users.secretary,
+          signatoryId: L.signatory("Secretary to the Commission"),
           signatoryDesignation: "Secretary to the Commission",
           dispatchModeId: L.list("RECEIPT_MODE", "Email"),
           dateDispatched: "2026-11-25",
@@ -325,7 +333,8 @@ export async function seedExample(db: Db): Promise<ExampleIds | null> {
           originatingUnitId: L.unit(
             "Office of the General Counsel and Secretary (Registry)",
           ),
-          signedById: users.chairman,
+          // SPEC-v2 C13.1: signed by the Chairman (from the signatory list).
+          signatoryId: L.signatory("Chairman"),
           signatoryDesignation: "Chairman",
           dispatchModeId: L.list("RECEIPT_MODE", "Courier"),
           dateDispatched: "2026-12-08",

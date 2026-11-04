@@ -14,7 +14,7 @@ export default function NewFilePage() {
   return (
     <main className="mx-auto w-full max-w-[900px]">
       <PageHeader
-        back={{ href: "/files", label: "File Desk" }}
+        back={{ href: "/files", label: "Internal File Desk" }}
         title="New file"
         intro="Add a physical file to the File Index. Fields marked * are required."
       />

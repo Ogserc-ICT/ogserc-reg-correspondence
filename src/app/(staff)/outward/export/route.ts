@@ -1,4 +1,5 @@
 // CSV of the outward register with the on-screen filters (SPEC §8).
+import { signerName } from "@/domain/outward";
 import { readScope } from "@/domain/permissions";
 import type { NextRequest } from "next/server";
 import { formatDate, formatYesNo } from "@/domain/format";
@@ -30,7 +31,7 @@ const COLUMNS: Column<OutwardRegisterRow>[] = [
   { header: "File", value: (r) => r.file?.reference },
   { header: "Originating unit", value: (r) => r.originatingUnit.name },
   { header: "Prepared by", value: (r) => r.preparedBy },
-  { header: "Signed by", value: (r) => r.signedBy?.name ?? r.signedByText },
+  { header: "Signed by", value: (r) => signerName(r) },
   { header: "Designation", value: (r) => r.signatoryDesignation },
   { header: "Dispatch mode", value: (r) => r.dispatchMode.label },
   {

@@ -263,7 +263,8 @@ export type NewOutward = {
   addressee: string;
   recipientCategoryId: string;
   originatingUnitId: string;
-  signedById: string | null;
+  /** SPEC-v2 C7: from the signatory list, or typed in signedByText. */
+  signatoryId?: string | null;
   signatoryDesignation: string;
   dispatchModeId: string;
   recipientContact?: string | null;
@@ -319,7 +320,7 @@ export async function createOutward(
       fileId: input.fileId ?? null,
       originatingUnitId: input.originatingUnitId,
       preparedBy: text(input.preparedBy),
-      signedById: input.signedById,
+      signatoryId: input.signatoryId ?? null,
       signedByText: text(input.signedByText),
       signatoryDesignation: required(input.signatoryDesignation, "Designation"),
       dispatchModeId: input.dispatchModeId,

@@ -1,3 +1,4 @@
+import { signerName } from "@/domain/outward";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -89,7 +90,8 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
     fileIdLabel: d.file?.reference ?? "",
     originatingUnitId: row.originatingUnitId,
     preparedBy: row.preparedBy ?? "",
-    signedById: row.signedById ?? "",
+    signatoryId: row.signatoryId ?? "",
+    signedByText: row.signedByText ?? "",
     signatoryDesignation: row.signatoryDesignation,
     dispatchModeId: row.dispatchModeId,
     dateDispatched: fromDbDate(row.dateDispatched) ?? "",
@@ -182,7 +184,7 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
                 deliveryConfirmed: row.deliveryConfirmed,
                 dispatchMode: row.dispatchMode,
                 dispatchedBy: row.dispatchedBy,
-                signer: row.signedBy?.name ?? row.signedByText ?? BLANK,
+                signer: signerName(row) ?? BLANK,
                 voided,
               }}
               derived={derived}
@@ -247,10 +249,13 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
               <Detail label="Originating unit">
                 {row.originatingUnit.name}
               </Detail>
+              {/* SPEC-v2 C7: division from the originating unit. */}
+              <Detail label="Division">
+                {row.originatingUnit.division?.name ?? BLANK}
+              </Detail>
               <Detail label="Prepared by">{text(row.preparedBy)}</Detail>
               <Detail label="Signed by">
-                {row.signedBy?.name ?? row.signedByText ?? BLANK} —{" "}
-                {row.signatoryDesignation}
+                {signerName(row) ?? BLANK} — {row.signatoryDesignation}
               </Detail>
             </dl>
           </Panel>

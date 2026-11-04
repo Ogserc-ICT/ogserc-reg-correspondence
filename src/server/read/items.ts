@@ -137,10 +137,12 @@ export async function outwardDetail(
     include: {
       ...outwardFactsInclude,
       type: { select: { name: true } },
-      originatingUnit: { select: { name: true } },
+      originatingUnit: {
+        select: { name: true, division: { select: { name: true } } },
+      },
       recipientCategory: { select: { label: true } },
       dispatchMode: { select: { label: true } },
-      signedBy: { select: { name: true } },
+      signatory: { select: { name: true } },
       dispatchedBy: { select: { name: true } },
       file: { select: { id: true, reference: true, title: true } },
       inReplyToInward: {

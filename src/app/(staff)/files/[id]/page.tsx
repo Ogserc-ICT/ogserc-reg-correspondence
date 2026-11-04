@@ -30,7 +30,7 @@ export default function FilePage({ params }: PageProps<"/files/[id]">) {
               href="/files"
               className="text-accent rounded text-sm hover:underline"
             >
-              ← File Desk
+              ← Internal File Desk
             </Link>
             <p className="text-text-muted mt-4">Loading…</p>
           </>
@@ -63,7 +63,7 @@ async function FileView({ params }: { params: Promise<{ id: string }> }) {
     <>
       <header>
         <PageHeader
-          back={{ href: "/files", label: "File Desk" }}
+          back={{ href: "/files", label: "Internal File Desk" }}
           title={<span className="font-mono">{row.reference}</span>}
           intro={row.title}
         />

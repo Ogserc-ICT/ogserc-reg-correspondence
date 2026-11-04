@@ -304,6 +304,7 @@ async function lookups(tx: Tx) {
   const inTypes = await tx.incomingType.findMany();
   const outTypes = await tx.outgoingType.findMany();
   const users = await tx.user.findMany();
+  const signatories = await tx.signatory.findMany();
   const byLabel = (xs: { id: string; label: string }[]) =>
     new Map(xs.map((x) => [key(x.label), x.id]));
   return {
@@ -323,9 +324,8 @@ async function lookups(tx: Tx) {
         )
         .map((u) => [key(u.name), u.id]),
     ),
-    signatories: new Map(
-      users.filter((u) => u.isSignatory).map((u) => [key(u.name), u.id]),
-    ),
+    // SPEC-v2 C7: matched against the signatory list by name.
+    signatories: new Map(signatories.map((s) => [key(s.name), s.id])),
   };
 }
 
@@ -726,7 +726,7 @@ async function run(
 
     const notes: string[] = [];
     const signedByText = text(r.get(O.signedBy));
-    const signedById = signedByText
+    const signatoryId = signedByText
       ? (L.signatories.get(key(signedByText)) ?? null)
       : null;
     const dateDispatched = date(r.get(O.dateDispatched));
@@ -760,8 +760,8 @@ async function run(
         addressee,
         recipientCategoryId: recipientCategoryId!,
         originatingUnitId: originatingUnitId!,
-        signedById,
-        signedByText: signedById ? null : signedByText,
+        signatoryId,
+        signedByText: signatoryId ? null : signedByText,
         signatoryDesignation: text(r.get(O.designation)) ?? signedByText ?? "—",
         dispatchModeId: dispatchModeId!,
         recipientContact: text(r.get(O.contact)),

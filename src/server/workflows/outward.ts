@@ -1,6 +1,7 @@
 // Outward workflows: New Outward, Update Item, Dispatched today, Delivered
 // today (SPEC §5.1, §7).
 import type { IsoDate } from "@/domain/calendar";
+import { signatoryDesignation } from "@/domain/outward";
 import { missingFields, outwardDateProblems } from "@/domain/validation";
 import type { OutwardItem } from "@/generated/prisma/client";
 import { outwardWhere } from "../access";
@@ -36,7 +37,8 @@ export type OutwardFields = {
   fileId: string | null;
   originatingUnitId: string | null;
   preparedBy: string | null;
-  signedById: string | null;
+  signatoryId: string | null;
+  signedByText: string | null;
   signatoryDesignation: string | null;
   dispatchModeId: string | null;
   dateDispatched: IsoDate | null;
@@ -64,7 +66,8 @@ export const OUTWARD_LABELS: Record<Key, string> = {
   fileId: "File",
   originatingUnitId: "Originating unit",
   preparedBy: "Prepared by",
-  signedById: "Signed by",
+  signatoryId: "Signed by",
+  signedByText: "Signed by (not on the list)",
   signatoryDesignation: "Signatory's designation",
   dispatchModeId: "Dispatch mode",
   dateDispatched: "Date dispatched",
@@ -85,7 +88,7 @@ const REQUIRED: Key[] = [
   "addressee",
   "recipientCategoryId",
   "originatingUnitId",
-  "signedById",
+  // "Signed by": chosen or typed (checked below).
   "signatoryDesignation",
   "dispatchModeId",
 ];
@@ -128,6 +131,7 @@ export function readOutward(raw: Raw): {
     "recipientContact",
     "relatedOgsercNo",
     "preparedBy",
+    "signedByText",
     "signatoryDesignation",
     "trackingRef",
     "remarks",
@@ -140,7 +144,7 @@ export function readOutward(raw: Raw): {
     "inReplyToInwardId",
     "fileId",
     "originatingUnitId",
-    "signedById",
+    "signatoryId",
     "dispatchModeId",
     "dispatchedById",
   ] as Key[])
@@ -164,7 +168,8 @@ function fromRow(row: OutwardItem): OutwardFields {
     fileId: row.fileId,
     originatingUnitId: row.originatingUnitId,
     preparedBy: row.preparedBy,
-    signedById: row.signedById,
+    signatoryId: row.signatoryId,
+    signedByText: row.signedByText,
     signatoryDesignation: row.signatoryDesignation,
     dispatchModeId: row.dispatchModeId,
     dateDispatched: fromDbDate(row.dateDispatched),
@@ -185,10 +190,15 @@ function settleDispatcher(f: OutwardFields, actor: Actor) {
   else if (!f.dispatchedById) f.dispatchedById = actor.user.id;
 }
 
-async function defaultDesignation(tx: Tx, f: OutwardFields) {
-  if (f.signatoryDesignation || !f.signedById) return;
-  const signer = await tx.user.findUnique({ where: { id: f.signedById } });
-  f.signatoryDesignation = signer?.designation ?? null;
+/**
+ * C7: a signatory chosen from the list fills in the designation (typed text
+ * wins) and clears any typed name; someone not on the list is typed.
+ */
+async function settleSignatory(tx: Tx, f: OutwardFields) {
+  if (!f.signatoryId) return;
+  f.signedByText = null;
+  const s = await tx.signatory.findUnique({ where: { id: f.signatoryId } });
+  f.signatoryDesignation = signatoryDesignation(s, f.signatoryDesignation);
 }
 
 async function checkAll(
@@ -202,6 +212,11 @@ async function checkAll(
   const missing = missingFields(
     REQUIRED.map((k) => ({ label: OUTWARD_LABELS[k], value: f[k] })),
   );
+  if (!f.signatoryId && !f.signedByText) {
+    // In form order: before the designation.
+    const at = missing.indexOf(OUTWARD_LABELS.signatoryDesignation);
+    missing.splice(at < 0 ? missing.length : at, 0, OUTWARD_LABELS.signatoryId);
+  }
   const changed = (k: Key) => opts.create || opts.changed.has(k);
   const all = [...problems];
   all.push(
@@ -226,8 +241,8 @@ async function checkAll(
         },
         {
           kind: "signatory",
-          id: changed("signedById") ? f.signedById : null,
-          label: OUTWARD_LABELS.signedById,
+          id: changed("signatoryId") ? f.signatoryId : null,
+          label: OUTWARD_LABELS.signatoryId,
         },
         {
           kind: "list",
@@ -275,7 +290,7 @@ export async function logOutward(db: Db, actor: Actor, raw: Raw) {
     async (tx) => {
       const ctx = await loadRuleContext(tx, actor.now);
       settleDispatcher(f, actor);
-      await defaultDesignation(tx, f);
+      await settleSignatory(tx, f);
       await checkAll(
         tx,
         actor,
@@ -355,7 +370,7 @@ export async function updateOutward(
       for (const k of allowed)
         if (k in fields) (after as Record<string, unknown>)[k] = fields[k];
       settleDispatcher(after, actor);
-      await defaultDesignation(tx, after);
+      await settleSignatory(tx, after);
       const diff = changedFields(before, after);
       const changed = new Set(Object.keys(diff.after) as Key[]);
       if (!changed.size) return { item: row, message: "Nothing changed." };

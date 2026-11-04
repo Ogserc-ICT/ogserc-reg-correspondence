@@ -214,7 +214,7 @@ const outwardInclude = {
   originatingUnit: { select: { name: true } },
   recipientCategory: { select: { label: true } },
   dispatchMode: { select: { label: true } },
-  signedBy: { select: { name: true } },
+  signatory: { select: { name: true } },
   dispatchedBy: { select: { name: true } },
   inReplyToInward: { select: { id: true, number: true, sender: true } },
   file: { select: { reference: true } },

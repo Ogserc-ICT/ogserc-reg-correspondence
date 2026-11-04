@@ -36,10 +36,10 @@ export async function formOptions(db: Db) {
     orderBy: { name: "asc" },
     select: { id: true, name: true },
   });
-  const signatories = await db.user.findMany({
-    where: { active: true, isSignatory: true },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true, designation: true },
+  // SPEC-v2 C7: the signatory list (Admin-editable), default first.
+  const signatories = await db.signatory.findMany({
+    where: { active: true },
+    orderBy: [{ isDefault: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
   });
 
   const staff = await db.user.findMany({
@@ -73,10 +73,11 @@ export async function formOptions(db: Db) {
       responseExpected: t.responseExpected,
     })),
     registryUsers: registryUsers.map((u) => ({ id: u.id, label: u.name })),
-    signatories: signatories.map((u) => ({
-      id: u.id,
-      label: u.designation ? `${u.name} (${u.designation})` : u.name,
-      designation: u.designation ?? "",
+    signatories: signatories.map((s) => ({
+      id: s.id,
+      label: `${s.name} (${s.designation})`,
+      designation: s.designation,
+      isDefault: s.isDefault,
     })),
   };
 }

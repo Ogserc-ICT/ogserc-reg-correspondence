@@ -1,5 +1,10 @@
 // File Desk workflows: ADD TO FILE INDEX, update, ISSUE FILE, RECORD RETURN
 // (SPEC §6, §7). Messages as in TEMPLATES §4.
+import {
+  fileAlreadyInIndex,
+  missingFileClassCode,
+  nextFileReference,
+} from "@/domain/file-refs";
 import { compareDates, type IsoDate } from "@/domain/calendar";
 import { dateIn } from "@/domain/clock";
 import {
@@ -176,10 +181,47 @@ async function checkFile(
   throwIfProblems(missing, all);
 }
 
+/**
+ * Next reference for a file class code, under a per-code lock held until the
+ * transaction ends, so two new files never get the same serial (C8).
+ */
+async function generateReference(tx: Tx, code: string): Promise<string> {
+  const settings = await tx.registrySettings.findUniqueOrThrow({
+    where: { id: 1 },
+  });
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`file-ref:${code}`}))`;
+  const stem = `${settings.filePrefix}/${code}/`;
+  const existing = await tx.registryFile.findMany({
+    where: { reference: { startsWith: stem, mode: "insensitive" } },
+    select: { reference: true },
+  });
+  return nextFileReference(
+    settings.filePrefix,
+    code,
+    existing.map((f) => f.reference),
+    settings.fileRefSerialDigits,
+  );
+}
+
+/** The reference a new file of this class would get (New file preview). */
+export async function previewFileReference(
+  db: Db,
+  fileClassId: string,
+): Promise<{ reference: string } | { problem: string }> {
+  const cls = await db.listItem.findFirst({
+    where: { id: fileClassId, list: "FILE_CLASS" },
+  });
+  if (!cls) return { problem: "" };
+  if (!cls.code?.trim()) return { problem: missingFileClassCode(cls.label) };
+  return db.$transaction(async (tx) => ({
+    reference: await generateReference(tx, cls.code!.trim().toUpperCase()),
+  }));
+}
+
 /** ADD TO FILE INDEX. */
 export async function createFile(db: Db, actor: Actor, raw: Raw) {
   assertCan(actor.user, "files.write");
-  const reference = normaliseReference(raw.reference ?? "");
+  const typed = normaliseReference(raw.reference ?? "");
   const { f, problems } = readFile(raw);
   return db.$transaction(async (tx) => {
     const ctx = await loadRuleContext(tx, actor.now);
@@ -197,13 +239,27 @@ export async function createFile(db: Db, actor: Actor, raw: Raw) {
       dateClosedOrArchived: f.dateClosedOrArchived ?? null,
       remarks: f.remarks ?? null,
     };
-    if (!reference) throwIfProblems([L.reference], problems);
-    if (await tx.registryFile.findUnique({ where: { reference } }))
-      throw new ValidationError([`${reference} is already in the File Index.`]);
     await checkFile(tx, fields, problems, ctx.today, true);
+    // SPEC-v2 C8: blank → generated from the file class; typed → unique
+    // ignoring case (a unique index backs this up).
+    let reference = typed;
+    if (!reference) {
+      const cls = fields.fileClassId
+        ? await tx.listItem.findUnique({ where: { id: fields.fileClassId } })
+        : null;
+      if (!cls) throwIfProblems([L.reference], []);
+      if (!cls!.code?.trim())
+        throw new ValidationError([missingFileClassCode(cls!.label)]);
+      reference = await generateReference(tx, cls!.code!.trim().toUpperCase());
+    } else if (
+      await tx.registryFile.findFirst({
+        where: { reference: { equals: reference, mode: "insensitive" } },
+      })
+    )
+      throw new ValidationError([fileAlreadyInIndex(reference)]);
     const file = await tx.registryFile.create({
       data: {
-        reference,
+        reference: reference,
         ...fields,
         title: fields.title!,
         securityId: fields.securityId!,
@@ -306,7 +362,11 @@ export async function issueFile(
       issuedTo =
         (await tx.user.findUnique({ where: { id: issuedToUserId } }))?.name ??
         null;
-    const missing = missingFields([{ label: L.issuedTo, value: issuedTo }]);
+    // Internal File Desk (C8): issued to an OGSERC unit from the list.
+    const missing = missingFields([
+      { label: L.issuedTo, value: issuedTo },
+      { label: L.unitId, value: unitId },
+    ]);
     const problems = [...r.problems];
     problems.push(
       ...(await refProblems(

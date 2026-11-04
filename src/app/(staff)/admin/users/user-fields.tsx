@@ -85,14 +85,12 @@ export function UserFields({
           className={inputClass}
         />
       </Field>
-      <label className="flex items-center gap-2 self-end pb-2 text-sm">
-        <input
-          type="checkbox"
-          name="isSignatory"
-          defaultChecked={values.isSignatory}
-        />
-        Signs outgoing letters
-      </label>
+      {/* Signatories are their own list now (SPEC-v2 C7); kept as it was. */}
+      <input
+        type="hidden"
+        name="isSignatory"
+        value={values.isSignatory ? "on" : ""}
+      />
       <label className="flex items-start gap-2 self-end pb-2 text-sm">
         <input
           type="checkbox"

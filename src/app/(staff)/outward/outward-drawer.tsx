@@ -1,6 +1,7 @@
 // Outward Register side panel: the letter's key facts, its progress and the
 // one-click actions. Everything comes from outwardDetail (same access checks
 // as the item page); the full record stays one click away.
+import { signerName } from "@/domain/outward";
 import Link from "next/link";
 import { BLANK, formatDate } from "@/domain/format";
 import { can, type Principal } from "@/domain/permissions";
@@ -139,7 +140,7 @@ export async function OutwardDrawer({
             deliveryConfirmed: row.deliveryConfirmed,
             dispatchMode: row.dispatchMode,
             dispatchedBy: row.dispatchedBy,
-            signer: row.signedBy?.name ?? row.signedByText ?? BLANK,
+            signer: signerName(row) ?? BLANK,
             voided,
           }}
           derived={derived}

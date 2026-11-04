@@ -74,7 +74,7 @@ async function AppSidebar() {
         registers && { href: "/outward", label: "Outward", icon: "send" },
         can(user, "files.read") && {
           href: "/files",
-          label: "File Desk",
+          label: "Internal File Desk",
           icon: "folder",
         },
         can(user, "ackEmail.send") && {

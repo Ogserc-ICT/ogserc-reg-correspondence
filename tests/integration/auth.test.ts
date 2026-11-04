@@ -147,7 +147,7 @@ describe("unit officer: own unit only, read-only", () => {
             addressee: "X",
             recipientCategoryId: o1.recipientCategoryId,
             originatingUnitId: regUnitId,
-            signedById: null,
+            signedByText: "X",
             signatoryDesignation: "X",
             dispatchModeId: o1.dispatchModeId,
           },
