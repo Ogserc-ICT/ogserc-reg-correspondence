@@ -190,8 +190,8 @@ async function Loaded({
             {row("Division", item.division ?? "—")}
             {row(
               "Routed by",
-              item.routedBy && item.routedAt
-                ? `${item.routedBy}, ${formatDateTime(item.routedAt)}`
+              item.routedAt
+                ? `${item.routedBy ?? "Imported from the workbook"}, ${formatDateTime(item.routedAt)}`
                 : "Not routed yet",
             )}
           </dl>

@@ -129,6 +129,51 @@ describe("workbook import", () => {
     expect(await db.inwardItem.count()).toBe(3);
   });
 
+  it("imports the v2 workbook: routing columns read, Front Desk Log never (SPEC-v2, E10)", async () => {
+    const r = await importWorkbook(db, {
+      file: "reference/OGSERC_Registry_Correspondence_Workbook_New.xlsm",
+      as: head,
+      now: NOW,
+      commit: true,
+      includeExamples: true,
+    });
+    expect(r).toMatchObject({
+      committed: true,
+      errors: [],
+      inward: { created: 3 },
+      outward: { created: 2 },
+    });
+    // E10: the real front desk entry (Verge Power Limited) is never imported.
+    expect(await db.frontDeskIntake.count()).toBe(0);
+    expect(JSON.stringify(r)).not.toContain("Verge Power");
+    // The v2 example rows were not routed: I2 waits for the Routing Desk.
+    const i2 = await db.inwardItem.findUniqueOrThrow({
+      where: { number: "OGSERC/ACK/2026/00002" },
+    });
+    expect(i2).toMatchObject({
+      routedAt: null,
+      statusCache: "AWAITING_ROUTING",
+    });
+    // No "routed at registration" note: this workbook has a Routing Desk.
+    expect(r.warnings.some((w) => w.includes("without a Routing Desk"))).toBe(
+      false,
+    );
+  });
+
+  it("marks v1 items with an action as routed when received", async () => {
+    const r = await run(true);
+    expect(
+      r.warnings.some((w) =>
+        w.startsWith("3 inward item(s) from a workbook without a Routing Desk"),
+      ),
+    ).toBe(true);
+    const i2 = await db.inwardItem.findUniqueOrThrow({
+      where: { number: "OGSERC/ACK/2026/00002" },
+    });
+    expect(i2.routedAt).toEqual(i2.receivedAt);
+    expect(i2.routedById).toBeNull();
+  });
+
   it("refuses anyone but the Head of Registry", async () => {
     const u = await db.user.create({
       data: {

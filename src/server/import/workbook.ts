@@ -138,6 +138,18 @@ export const COLS = {
   },
 } as const;
 
+/**
+ * Columns only the v2 workbook has (SPEC-v2 C5, C6, C3). Optional, so a v1
+ * workbook still imports. The Front Desk Log sheet is never read (E10).
+ */
+export const V2_INWARD = {
+  routedBy: "Routed by (Secretary / Head of Admin)",
+  routedOn: "Routed on",
+  ackEmailedTo: "Ack. emailed to",
+  ackEmailedOn: "Ack. emailed on",
+  intakeNo: "Front Desk Intake No.",
+} as const;
+
 export const SHEETS = {
   inward: "Inward Register",
   outward: "Outward Register",
@@ -145,7 +157,12 @@ export const SHEETS = {
   movements: "File Movement",
 } as const;
 
-export type Row = { n: number; get: (header: string) => unknown };
+export type Row = {
+  n: number;
+  get: (header: string) => unknown;
+  /** False for an optional column the sheet doesn't have. */
+  has: (header: string) => boolean;
+};
 
 /** A formula cell's cached result, rich text as plain text, otherwise the value. */
 function plain(v: ExcelJS.CellValue): unknown {
@@ -165,6 +182,7 @@ export function readSheet(
   wb: ExcelJS.Workbook,
   sheet: string,
   headers: readonly string[],
+  optional: readonly string[] = [],
 ): Row[] {
   const ws = wb.getWorksheet(sheet);
   if (!ws) throw new ValidationError([`The workbook has no "${sheet}" sheet.`]);
@@ -184,8 +202,10 @@ export function readSheet(
   const rows: Row[] = [];
   for (let n = FIRST_ROW; n <= ws.rowCount; n++) {
     const r = ws.getRow(n);
-    const get = (h: string) => plain(r.getCell(col.get(h)!).value);
-    rows.push({ n, get });
+    const has = (h: string) => col.has(h);
+    const get = (h: string) =>
+      col.has(h) ? plain(r.getCell(col.get(h)!).value) : null;
+    rows.push({ n, get, has });
   }
   return rows;
 }
@@ -252,7 +272,12 @@ export async function importWorkbook(
 
   const sheets = {
     files: readSheet(wb, SHEETS.files, Object.values(COLS.files)),
-    inward: readSheet(wb, SHEETS.inward, Object.values(COLS.inward)),
+    inward: readSheet(
+      wb,
+      SHEETS.inward,
+      Object.values(COLS.inward),
+      Object.values(V2_INWARD),
+    ),
     outward: readSheet(wb, SHEETS.outward, Object.values(COLS.outward)),
     movements: readSheet(wb, SHEETS.movements, Object.values(COLS.movements)),
   };
@@ -324,6 +349,8 @@ async function lookups(tx: Tx) {
         )
         .map((u) => [key(u.name), u.id]),
     ),
+    // SPEC-v2 C5: the router named in "Routed by", any active user.
+    users: new Map(users.map((u) => [key(u.name), u.id])),
     // SPEC-v2 C7: matched against the signatory list by name.
     signatories: new Map(signatories.map((s) => [key(s.name), s.id])),
   };
@@ -497,6 +524,72 @@ async function run(
     return id ?? null;
   };
 
+  /**
+   * SPEC-v2 routing on import. v2 workbook: "Routed on" (and the router, if
+   * they are a user here). v1 workbook: routing happened at registration, so
+   * a row with an action counts as routed when received. The workbook's
+   * "Ack. emailed" columns are not imported: it marks an email as sent even
+   * when it was only displayed (E1). Front desk intakes are never imported
+   * (E10).
+   */
+  let v1RoutedRows = 0;
+  const importRouting = async (
+    tx: Tx,
+    r: Row,
+    itemId: string,
+    receivedAt: Date,
+    actionRequiredId: string | null,
+    S: string,
+  ) => {
+    let routedAt: Date | null = null;
+    let routedById: string | null = null;
+    if (r.has(V2_INWARD.routedOn)) {
+      routedAt = instant(r.get(V2_INWARD.routedOn));
+      const by = text(r.get(V2_INWARD.routedBy));
+      if (routedAt && by) {
+        routedById = L.users.get(key(by)) ?? null;
+        if (!routedById)
+          warn(
+            S,
+            r.n,
+            `"${by}" (Routed by) is not a user in the app; the routing is kept without a name.`,
+          );
+      }
+    } else if (actionRequiredId) {
+      routedAt = receivedAt;
+      v1RoutedRows++;
+    }
+    if (text(r.get(V2_INWARD.ackEmailedTo)))
+      warn(
+        S,
+        r.n,
+        `"Ack. emailed to" is not imported: the workbook records an email as sent even when it was only displayed (E1). Use Resend if the unit needs it.`,
+      );
+    const intakeNo = text(r.get(V2_INWARD.intakeNo));
+    if (intakeNo)
+      warn(
+        S,
+        r.n,
+        `Front desk intake ${intakeNo} is not imported (the Front Desk Log is never imported).`,
+      );
+    if (!routedAt) return;
+    await tx.inwardItem.update({
+      where: { id: itemId },
+      data: { routedAt, routedById },
+    });
+    if (routedById)
+      await tx.routingEvent.create({
+        data: {
+          inwardItemId: itemId,
+          routedById,
+          routedAt,
+          before: {},
+          after: { source: "Imported from the workbook" },
+        },
+      });
+    await refreshInward(tx, itemId, ctx);
+  };
+
   // ---- Inward Register, first pass ------------------------------------------
   const I = COLS.inward;
   const imported: { inward: string[]; outward: string[] } = {
@@ -563,12 +656,14 @@ async function run(
       S,
       r.n,
     );
+    // Set on the Routing Desk in v2 (C4): blank until routed.
     const actionRequiredId = need(
       L.list("ACTION_REQUIRED"),
       r.get(I.action),
       "Action Required",
       S,
       r.n,
+      false,
     );
     const priorityId = need(
       L.list("PRIORITY"),
@@ -630,7 +725,7 @@ async function run(
         subject: subject!,
         receivedById,
         ackIssuedViaId: ackIssuedViaId!,
-        actionRequiredId: actionRequiredId!,
+        actionRequiredId,
         priorityId,
         senderRef: text(r.get(I.senderRef)),
         documentDate: date(r.get(I.documentDate)),
@@ -662,12 +757,18 @@ async function run(
       actor,
       { preset: { number: no, year: parsed.year, serial: parsed.serial } },
     );
+    await importRouting(tx, r, item.id, receivedAt!, actionRequiredId, S);
     imported.inward.push(item.id);
     report.inward.created++;
     const outNo = text(r.get(I.inResponseTo));
     if (outNo)
       pendingResponseLinks.push({ id: item.id, outwardNo: outNo, n: r.n });
   }
+
+  if (v1RoutedRows)
+    report.warnings.push(
+      `${v1RoutedRows} inward item(s) from a workbook without a Routing Desk are marked routed when received (they were routed at registration).`,
+    );
 
   // ---- Outward Register --------------------------------------------------------
   const O = COLS.outward;

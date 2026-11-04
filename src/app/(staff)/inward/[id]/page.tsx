@@ -310,8 +310,8 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
             <dl>
               <Detail label="Forward to">{row.routedUnit.name}</Detail>
               <Detail label="Routed by">
-                {row.routedBy && row.routedAt
-                  ? `${row.routedBy.name}, ${formatDateTime(row.routedAt)}`
+                {row.routedAt
+                  ? `${row.routedBy?.name ?? "Imported from the workbook"}, ${formatDateTime(row.routedAt)}`
                   : "Not routed yet"}
                 {can(user, "registry.route") && !voided && (
                   <>
