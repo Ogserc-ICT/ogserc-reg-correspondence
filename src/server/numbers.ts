@@ -13,7 +13,7 @@ export async function nextNumber(
 ): Promise<AssignedNumber> {
   const settings = await tx.registrySettings.findUniqueOrThrow({
     where: { id: 1 },
-    select: { ackPrefix: true, outPrefix: true },
+    select: { ackPrefix: true, outPrefix: true, frontDeskPrefix: true },
   });
   const [{ lastValue }] = await tx.$queryRaw<{ lastValue: number }[]>`
     INSERT INTO "NumberCounter" ("series", "year", "lastValue")
@@ -21,9 +21,13 @@ export async function nextNumber(
     ON CONFLICT ("series", "year")
     DO UPDATE SET "lastValue" = "NumberCounter"."lastValue" + 1
     RETURNING "lastValue"`;
-  const prefix = series === "ACK" ? settings.ackPrefix : settings.outPrefix;
+  const prefix: Record<Series, string> = {
+    ACK: settings.ackPrefix,
+    OUT: settings.outPrefix,
+    FD: settings.frontDeskPrefix,
+  };
   return {
-    number: formatNumber(prefix, year, lastValue),
+    number: formatNumber(prefix[series], year, lastValue),
     year,
     serial: lastValue,
   };

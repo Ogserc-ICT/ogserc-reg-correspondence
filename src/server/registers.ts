@@ -124,6 +124,8 @@ export type NewInward = {
   receivedByUnitOfficer?: string | null;
   dateClosedManual?: IsoDate | null;
   closingNote?: string | null;
+  /** The front desk intake this registers (SPEC-v2 C3.2); unique. */
+  frontDeskIntakeId?: string | null;
 };
 
 export async function createInward(
@@ -188,6 +190,7 @@ export async function createInward(
       receivedByUnitOfficer: text(input.receivedByUnitOfficer),
       dateClosedManual: toDbDate(input.dateClosedManual),
       closingNote: text(input.closingNote),
+      frontDeskIntakeId: input.frontDeskIntakeId ?? null,
       snapTypeName: type.name,
       snapCategory: type.category,
       snapOrderRef: type.orderRef,

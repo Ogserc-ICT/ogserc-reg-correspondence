@@ -96,12 +96,31 @@ beforeEach(async () => {
 
 describe("New Inward", () => {
   it("saves with the next number and the TEMPLATES message", async () => {
-    const r = await logInward(db, officer, await newInwardRaw());
+    const raw = await newInwardRaw({
+      // Routing fields are not on New Inward any more (SPEC-v2 C4): ignored.
+      priorityId: await list("PRIORITY", "High"),
+      actionOfficer: "Someone",
+      responseDueOverride: "2026-12-31",
+    });
+    const r = await logInward(db, officer, raw);
     expect(r.message).toBe(
-      "Saved as OGSERC/ACK/2026/00004. Forward to: Customer Complaints.",
+      [
+        "Saved as OGSERC/ACK/2026/00004.",
+        "Suggested unit: Customer Complaints",
+        "Routing, file reference and handling will be set by the Secretary / Head of Admin on the Routing Desk.",
+      ].join("\n"),
     );
     // Waits for the Routing Desk (SPEC-v2 C5.3).
     expect(r.item.statusCache).toBe("AWAITING_ROUTING");
+    expect(r.item).toMatchObject({
+      actionRequiredId: null,
+      priorityId: null,
+      actionOfficer: null,
+      responseDueOverride: null,
+      unitOverrideId: null,
+      fileId: null,
+      frontDeskIntakeId: null,
+    });
   });
 
   it("lists every missing field in form order, and other problems too", async () => {

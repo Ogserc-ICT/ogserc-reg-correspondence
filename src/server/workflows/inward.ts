@@ -10,12 +10,18 @@ import {
   isPhone,
   missingFields,
 } from "@/domain/validation";
-import type { InwardItem } from "@/generated/prisma/client";
+import {
+  intakeAlreadyRegistered,
+  receiptChangedFromIntake,
+} from "@/domain/front-desk";
+import { savedInwardMessage } from "@/domain/inward";
+import { can } from "@/domain/permissions";
+import { Prisma, type InwardItem } from "@/generated/prisma/client";
 import { inwardWhere } from "../access";
 import { audit, changedFields } from "../audit";
 import { fromDbDate, toDbDate } from "../dates";
 import type { Db, Tx } from "../db";
-import { assertCan, ValidationError } from "../errors";
+import { assertCan, ForbiddenError, ValidationError } from "../errors";
 import {
   createInward,
   refreshInward,
@@ -32,6 +38,7 @@ import {
   throwIfProblems,
   type Raw,
 } from "./common";
+import { lockIntakeForRegistration } from "./front-desk";
 
 export type InwardFields = {
   receivedAt: Date | null;
@@ -378,7 +385,25 @@ async function checkAll(
   throwIfProblems(missing, all);
 }
 
-/** SAVE TO REGISTER. Returns the item and the TEMPLATES §4 message. */
+/** Set only on the Routing Desk (SPEC-v2 C4, C5.2); never on New Inward. */
+const ROUTING_KEYS = [
+  "fileId",
+  "unitOverrideId",
+  "actionRequiredId",
+  "priorityId",
+  "actionOfficer",
+  "responseDueOverride",
+] as const satisfies readonly Key[];
+
+export const RECEIPT_CHANGE_REASON =
+  "Reason for changing the front desk receipt time or mode";
+
+/**
+ * SAVE TO REGISTER (SPEC-v2 C4). With a front desk intake chosen, the item is
+ * created, linked and the intake marked registered in one transaction (C3.2);
+ * a receipt time or mode that differs from the intake needs a reason and is
+ * audited (E7). Returns the item and the C4 message.
+ */
 export async function logInward(db: Db, actor: Actor, raw: Raw) {
   assertCan(actor.user, "registers.write");
   const { fields, problems } = readInward(raw);
@@ -390,46 +415,127 @@ export async function logInward(db: Db, actor: Actor, raw: Raw) {
     "receivedByUnitOfficer",
     "dateClosedManual",
     "closingNote",
+    ...ROUTING_KEYS,
   ] as const)
     f[k] = null;
+  const intakeId = new Reader(raw).id("frontDeskIntakeId", "Front desk intake");
+  if (raw.frontDeskIntakeId?.trim() && !intakeId)
+    problems.push("Front desk intake: choose one from the list.");
+  const reason = raw.receiptChangeReason?.trim() || null;
+  if (intakeId && !can(actor.user, "frontdesk.read"))
+    throw new ForbiddenError("You don't have permission to do that.");
 
-  return db.$transaction(
-    async (tx) => {
-      const ctx = await loadRuleContext(tx, actor.now);
-      await checkAll(
-        tx,
-        actor,
-        f,
-        problems,
-        { create: true, changed: new Set() },
-        ctx.today,
-      );
-      const item = await createInward(
-        tx,
-        {
-          ...f,
-          receivedAt: f.receivedAt!,
-          modeId: f.modeId!,
-          typeId: f.typeId!,
-          sender: f.sender!,
-          senderCategoryId: f.senderCategoryId!,
-          subject: f.subject!,
-          receivedById: f.receivedById!,
-          ackIssuedViaId: f.ackIssuedViaId!,
-          actionRequiredId: f.actionRequiredId!,
-        },
-        actor,
-      );
-      const unit = await tx.unit.findUniqueOrThrow({
-        where: { id: item.routedUnitId },
+  try {
+    return await db.$transaction(
+      async (tx) => {
+        const ctx = await loadRuleContext(tx, actor.now);
+        const intake = intakeId
+          ? await lockIntakeForRegistration(tx, intakeId)
+          : null;
+        const changed =
+          intake && f.receivedAt
+            ? receiptChangedFromIntake(intake, {
+                receivedAt: f.receivedAt,
+                modeId: f.modeId,
+              })
+            : [];
+        const all = [...problems];
+        if (changed.length && !reason)
+          all.push(
+            `${RECEIPT_CHANGE_REASON}: the ${changed
+              .map((k) => (k === "receivedAt" ? "receipt time" : "mode"))
+              .join(
+                " and ",
+              )} differ${changed.length > 1 ? "" : "s"} from ${intake!.intakeNo}, so give a reason.`,
+          );
+        await checkAll(
+          tx,
+          actor,
+          f,
+          all,
+          { create: true, changed: new Set() },
+          ctx.today,
+        );
+        const item = await createInward(
+          tx,
+          {
+            ...f,
+            receivedAt: f.receivedAt!,
+            modeId: f.modeId!,
+            typeId: f.typeId!,
+            sender: f.sender!,
+            senderCategoryId: f.senderCategoryId!,
+            subject: f.subject!,
+            receivedById: f.receivedById!,
+            ackIssuedViaId: f.ackIssuedViaId!,
+            frontDeskIntakeId: intake?.id ?? null,
+          },
+          actor,
+        );
+        if (intake) {
+          await tx.frontDeskIntake.update({
+            where: { id: intake.id },
+            data: { registeredAt: actor.now },
+          });
+          await audit(
+            tx,
+            {
+              userId: actor.user.id,
+              action: "register",
+              entityType: "FrontDeskIntake",
+              entityId: intake.id,
+              before: { registeredAt: null, inwardItem: null },
+              after: { registeredAt: actor.now, inwardItem: item.number },
+            },
+            actor.now,
+          );
+          if (changed.length) {
+            const pick = (o: { receivedAt: Date; modeId: string | null }) =>
+              Object.fromEntries(changed.map((k) => [k, o[k]]));
+            await audit(
+              tx,
+              {
+                userId: actor.user.id,
+                action: "receipt-changed-from-intake",
+                entityType: "InwardItem",
+                entityId: item.id,
+                before: { intakeNo: intake.intakeNo, ...pick(intake) },
+                after: pick({ receivedAt: f.receivedAt!, modeId: f.modeId }),
+                note: reason!,
+              },
+              actor.now,
+            );
+          }
+        }
+        const unit = await tx.unit.findUniqueOrThrow({
+          where: { id: item.routedUnitId },
+        });
+        return {
+          item,
+          // The email line (C6) is added in V6; Off mode has none.
+          message: savedInwardMessage(item.number, unit.name),
+        };
+      },
+      { timeout: 20_000 },
+    );
+  } catch (err) {
+    // A second registration of one intake that slipped past the lock (E8).
+    if (
+      intakeId &&
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
+    ) {
+      const intake = await db.frontDeskIntake.findUnique({
+        where: { id: intakeId },
+        include: { inwardItem: { select: { number: true } } },
       });
-      return {
-        item,
-        message: `Saved as ${item.number}. Forward to: ${unit.name}.`,
-      };
-    },
-    { timeout: 20_000 },
-  );
+      if (intake?.inwardItem)
+        throw new ValidationError([
+          intakeAlreadyRegistered(intake.intakeNo, intake.inwardItem.number),
+        ]);
+    }
+    throw err;
+  }
 }
 
 async function loadForWrite(tx: Tx, actor: Actor, id: string) {
