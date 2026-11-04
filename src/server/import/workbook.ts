@@ -182,7 +182,6 @@ export function readSheet(
   wb: ExcelJS.Workbook,
   sheet: string,
   headers: readonly string[],
-  optional: readonly string[] = [],
 ): Row[] {
   const ws = wb.getWorksheet(sheet);
   if (!ws) throw new ValidationError([`The workbook has no "${sheet}" sheet.`]);
@@ -272,12 +271,8 @@ export async function importWorkbook(
 
   const sheets = {
     files: readSheet(wb, SHEETS.files, Object.values(COLS.files)),
-    inward: readSheet(
-      wb,
-      SHEETS.inward,
-      Object.values(COLS.inward),
-      Object.values(V2_INWARD),
-    ),
+    // The V2_INWARD columns are optional: missing ones read as blank.
+    inward: readSheet(wb, SHEETS.inward, Object.values(COLS.inward)),
     outward: readSheet(wb, SHEETS.outward, Object.values(COLS.outward)),
     movements: readSheet(wb, SHEETS.movements, Object.values(COLS.movements)),
   };

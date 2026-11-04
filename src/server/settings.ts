@@ -82,6 +82,7 @@ export const settingsSchema = z.object({
   headMayVoidOwnItems: z.boolean(),
   // SPEC-v2 C11: Q-V2-3 and Q-V2-5 (workbook behaviour by default).
   routingRequiresPassword: z.boolean(),
+  notifyPreviousUnitOnReroute: z.boolean(),
   frontDeskAnyMode: z.boolean(),
   // SPEC-v2 C6.3: Off (default) | Review | Send; CC for every ack email.
   ackEmailMode: z.enum(["OFF", "REVIEW", "SEND"], {
@@ -120,6 +121,7 @@ function toInput(s: RegistrySettings): SettingsInput {
     secretaryName: s.secretaryName,
     headMayVoidOwnItems: s.headMayVoidOwnItems,
     routingRequiresPassword: s.routingRequiresPassword,
+    notifyPreviousUnitOnReroute: s.notifyPreviousUnitOnReroute,
     frontDeskAnyMode: s.frontDeskAnyMode,
     ackEmailMode: s.ackEmailMode,
     ackEmailCc: s.ackEmailCc,

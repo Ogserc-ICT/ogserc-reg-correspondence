@@ -31,10 +31,10 @@ Started in Phase V0 and finished in V8. Tick each item before the app replaces t
 - [ ] Switch the acknowledgement email from **Off** to Review or Send (Admin › Settings). In Review, check the Emails page (or the Registry Desk notice) daily.
 
 ## Decisions to record (C11)
-- [ ] Q-V2-2: notify the previous unit when routing moves an item away. Not built: stays "no" (workbook) until the wording of that email is agreed.
+- [ ] Q-V2-2: notify the previous unit when routing moves an item away. Built with the agreed wording; only addresses that actually received the acknowledgement are told, with no slip. Off by default (workbook): the Commission switches it on in Admin › Settings.
 - [ ] Q-V2-3: routers re-enter their password to save routing (Admin › Settings; default no).
 - [ ] Q-V2-5: the front desk may log any mode of receipt, not only hand deliveries (Admin › Settings; default yes).
-- [ ] C13.1: whether an unrouted item (I2 in the example) can carry a file reference. Today a file reference is set only on the Routing Desk.
+- [x] C13.1 (decided): file references are set only on the Routing Desk, so an unrouted item (I2) has none. When an item answers one of our letters, the Routing Desk suggests that letter's file. Through the screens, the example's RL/001 shows 1 inward item and last correspondence 25 Nov (the seeded data keeps the workbook's 2 and 1 Dec).
 
 ## People and roles
 - [ ] Create accounts for the front desk officers (role: Front desk officer).

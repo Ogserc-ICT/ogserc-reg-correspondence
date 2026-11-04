@@ -155,8 +155,8 @@ async function Loaded({
   const f = item.fields;
   const values: Record<string, string> = {
     unitOverrideId: f.unitOverrideId ?? "",
-    fileId: f.fileId ?? "",
-    fileIdLabel: f.fileReference ?? "",
+    fileId: f.fileId ?? item.suggestedFile?.id ?? "",
+    fileIdLabel: f.fileReference ?? item.suggestedFile?.reference ?? "",
     actionRequiredId: f.actionRequiredId ?? "",
     priorityId: f.priorityId && f.priorityId !== normal?.id ? f.priorityId : "",
     actionOfficer: f.actionOfficer ?? "",
@@ -212,6 +212,11 @@ async function Loaded({
                   (p) => p.key !== "NORMAL",
                 )}
                 askPassword={settings.routingRequiresPassword}
+                fileHint={
+                  item.suggestedFile
+                    ? `Suggested: the file of ${item.suggestedFile.from}, which this answers. Saving keeps it.`
+                    : undefined
+                }
               />
             )}
           </div>

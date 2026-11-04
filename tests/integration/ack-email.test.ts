@@ -277,6 +277,79 @@ describe("routing emails (V2, V3)", () => {
   });
 });
 
+describe("re-routing notice to the previous unit (Q-V2-2)", () => {
+  async function loggedAndRouted() {
+    await setUnitEmails("Customer Complaints", ["complaints@ogserc.org.ng"]);
+    const { item } = await logInward(db, officer, await newInwardRaw());
+    const r = await route(secretary, item.id, {
+      unitOverrideId: await unitId("ICT unit"),
+    });
+    return { item, r };
+  }
+  const notify = (on: boolean) =>
+    db.registrySettings.update({
+      where: { id: 1 },
+      data: { notifyPreviousUnitOnReroute: on },
+    });
+
+  it("tells the unit that had the acknowledgement, without a slip", async () => {
+    await setMode("SEND");
+    await notify(true);
+    const { item, r } = await loggedAndRouted();
+    expect(r.message.split("\n\n").slice(1)).toEqual([
+      emailedLine("ICT unit", ["it@ogserc.org.ng"]),
+      "Customer Complaints told the item has moved (complaints@ogserc.org.ng).",
+    ]);
+    const notice = sent.find((m) => m.subject.startsWith("Re-routed:"))!;
+    expect(notice).toMatchObject({
+      to: ["complaints@ogserc.org.ng"],
+      subject:
+        "Re-routed: OGSERC/ACK/2026/00004 - Mrs A. Customer is now with ICT unit",
+      attachments: [],
+    });
+    expect((await logsFor(item.id)).map((l) => [l.kind, l.status])).toEqual([
+      ["ACK", "SENT"],
+      ["ROUTING", "SENT"],
+      ["REROUTE", "SENT"],
+    ]);
+    // A notice is not an acknowledgement.
+    const after = await db.inwardItem.findUniqueOrThrow({
+      where: { id: item.id },
+    });
+    expect(after.ackEmailedTo).toEqual([
+      "complaints@ogserc.org.ng",
+      "it@ogserc.org.ng",
+    ]);
+  });
+
+  it("sends nothing with the setting off (default)", async () => {
+    await setMode("SEND");
+    const { item, r } = await loggedAndRouted();
+    expect(r.message).not.toContain("told the item has moved");
+    expect((await logsFor(item.id)).map((l) => l.kind)).toEqual([
+      "ACK",
+      "ROUTING",
+    ]);
+  });
+
+  it("holds it for review in Review mode, and skips a unit never emailed", async () => {
+    await setMode("REVIEW");
+    await notify(true);
+    const { item, r } = await loggedAndRouted();
+    // Review: the acknowledgement was never sent, so nobody to tell.
+    expect(r.message).not.toContain("has moved");
+    const [held] = await emailsToReview(db, officer.user);
+    await sendReviewedEmail(db, officer, held.id);
+    await route(secretary, item.id); // back to the type's unit
+    const notices = (await logsFor(item.id)).filter(
+      (l) => l.kind === "REROUTE",
+    );
+    expect(notices.map((n) => [n.status, n.to])).toEqual([
+      ["PENDING_REVIEW", ["it@ogserc.org.ng"]],
+    ]);
+  });
+});
+
 describe("failures, retry and no double send (C6.5)", () => {
   it("no provider: recorded as not sent, retried by the job once one is set up", async () => {
     setMailTransportForTests(null);

@@ -12,6 +12,7 @@ const BOOLEANS = [
   "deadlineRollsToNextWorkingDay",
   "headMayVoidOwnItems",
   "routingRequiresPassword",
+  "notifyPreviousUnitOnReroute",
   "frontDeskAnyMode",
 ] as const;
 

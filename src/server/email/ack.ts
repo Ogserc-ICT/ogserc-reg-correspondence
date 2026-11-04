@@ -5,13 +5,16 @@
 import {
   ACK_EMAIL_OFF,
   composeAckEmail,
+  composeRerouteNotice,
   emailedLine,
   mergeAddresses,
   notEmailedLine,
   planAckEmail,
+  planRerouteNotice,
   resendPrompt,
   resolveRecipients,
   reviewLine,
+  rerouteNoticeLine,
   type AckEmailKind,
 } from "@/domain/ack-email";
 import { slipFileName } from "@/domain/numbering";
@@ -205,20 +208,23 @@ export async function deliverEmail(
   if (!transport) reason = NO_TRANSPORT;
   else
     try {
-      const slip = await slipForEmail(db, email.inwardItemId);
-      if (!slip) throw new Error("the item has no slip");
+      // The re-routing notice (Q-V2-2) carries no slip.
+      const attachments = [];
+      if (email.kind !== "REROUTE") {
+        const slip = await slipForEmail(db, email.inwardItemId);
+        if (!slip) throw new Error("the item has no slip");
+        attachments.push({
+          filename: slipFileName(slip.number),
+          contentType: "application/pdf",
+          content: await slipPdf(slip),
+        });
+      }
       await transport.send({
         to: email.to,
         cc: email.cc,
         subject: email.subject,
         body: email.body,
-        attachments: [
-          {
-            filename: slipFileName(slip.number),
-            contentType: "application/pdf",
-            content: await slipPdf(slip),
-          },
-        ],
+        attachments,
       });
     } catch (err) {
       reason = `the email provider refused it (${err instanceof Error ? err.message : String(err)})`;
@@ -259,6 +265,20 @@ export async function deliverEmail(
       where: { id: emailId },
       data: { status: "SENT", sentAt: now, error: null, nextAttemptAt: null },
     });
+    if (email.kind === "REROUTE") {
+      await audit(
+        tx,
+        {
+          userId,
+          action: "email-sent",
+          entityType: "EmailLog",
+          entityId: emailId,
+          after: { kind: email.kind, to: email.to, sentAt: now },
+        },
+        now,
+      );
+      return;
+    }
     const item = await tx.inwardItem.findUniqueOrThrow({
       where: { id: email.inwardItemId },
       select: { ackEmailedTo: true, ackEmailedAt: true },
@@ -439,7 +459,9 @@ export async function sendReviewedEmail(db: Db, actor: Actor, emailId: string) {
     message:
       `${email.inwardItem.number}: ` +
       (d.ok
-        ? emailedLine(unit, d.to)
+        ? email.kind === "REROUTE"
+          ? `re-routing notice sent (${d.to.join("; ")}).`
+          : emailedLine(unit, d.to)
         : d.ok === false
           ? notEmailedLine(d.reason)
           : "the email is already being sent."),
@@ -501,4 +523,106 @@ export async function retryEmails(db: Db, now: Date) {
       : "No emails waiting to be sent.",
     result: { due: due.length, sent, failed, waiting },
   };
+}
+
+// ------------------------------------------------ re-routing notice (Q-V2-2)
+
+export type QueuedNotice =
+  | { action: "none" }
+  | { action: "send" | "review"; emailId: string; unit: string };
+
+/**
+ * Inside the routing transaction, after the item is refreshed: tells the
+ * previous unit the item has moved, if the setting is on and that unit's
+ * addresses actually had the acknowledgement.
+ */
+export async function queueRerouteNotice(
+  tx: Tx,
+  actor: Actor,
+  itemId: string,
+  previousUnitId: string,
+  ctx: RuleContext,
+): Promise<QueuedNotice> {
+  const settings = await tx.registrySettings.findUniqueOrThrow({
+    where: { id: 1 },
+  });
+  const item = await tx.inwardItem.findUniqueOrThrow({
+    where: { id: itemId },
+    include: {
+      routedUnit: { include: { division: true } },
+      routedBy: { select: { name: true } },
+    },
+  });
+  const previous = await tx.unit.findUniqueOrThrow({
+    where: { id: previousUnitId },
+    include: { division: true },
+  });
+  const recipients = (u: typeof previous) =>
+    resolveRecipients({
+      unitEmails: u.emails,
+      divisionEmails: u.division?.emails ?? [],
+      cc: "",
+    }).to;
+  const plan = planRerouteNotice({
+    mode: settings.ackEmailMode,
+    enabled: settings.notifyPreviousUnitOnReroute,
+    unitChanged: previous.id !== item.routedUnitId,
+    previousTo: recipients(previous),
+    emailedTo: item.ackEmailedTo,
+    newTo: recipients(item.routedUnit),
+  });
+  if (plan.action === "none") return plan;
+  const content = composeRerouteNotice(
+    {
+      no: item.number,
+      type: item.snapTypeName,
+      sender: item.sender,
+      subject: item.subject,
+      previousUnit: previous.name,
+      newUnit: item.routedUnit.name,
+      acknowledgedAt: item.ackEmailedAt ?? item.createdAt,
+      routedAt: actor.now,
+      routedBy: item.routedBy?.name ?? "",
+    },
+    ctx.rules.timezone,
+  );
+  const status = plan.action === "send" ? "QUEUED" : "PENDING_REVIEW";
+  const email = await tx.emailLog.create({
+    data: {
+      inwardItemId: itemId,
+      kind: "REROUTE",
+      status,
+      to: plan.to,
+      cc: [],
+      subject: content.subject,
+      body: content.body,
+      createdById: actor.user.id,
+    },
+  });
+  await audit(
+    tx,
+    {
+      userId: actor.user.id,
+      action: plan.action === "send" ? "email-queued" : "email-held",
+      entityType: "EmailLog",
+      entityId: email.id,
+      after: { inwardItem: item.number, kind: "REROUTE", status, to: plan.to },
+    },
+    actor.now,
+  );
+  return { action: plan.action, emailId: email.id, unit: previous.name };
+}
+
+/** Sends a queued notice after commit; the line for the routing message. */
+export async function sendRerouteNotice(
+  db: Db,
+  actor: Actor,
+  q: QueuedNotice,
+): Promise<string | null> {
+  if (q.action === "none") return null;
+  if (q.action === "review") return rerouteNoticeLine(q.unit, { review: true });
+  const d = await deliverEmail(db, q.emailId, actor.now, actor.user.id);
+  if (d.ok) return rerouteNoticeLine(q.unit, { sent: d.to });
+  if (d.ok === false) return rerouteNoticeLine(q.unit, { failed: d.reason });
+  return null;
 }

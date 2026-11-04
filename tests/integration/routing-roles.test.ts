@@ -405,6 +405,45 @@ describe("Routing Desk searches and file choice (C5.2, C12)", () => {
   });
 });
 
+describe("Routing Desk file suggestion (agreed on review, C13.1)", () => {
+  it("offers the file of the letter an unfiled item answers", async () => {
+    await db.inwardItem.update({
+      where: { id: ids.I2 },
+      data: { fileId: null },
+    });
+    const secretary = await actorFor(db, ids.users.secretary);
+    const desk = await loadForRouting(db, secretary, ids.I2);
+    expect(desk.fields.fileId).toBeNull();
+    expect(desk.suggestedFile).toMatchObject({
+      reference: "OGSERC/RL/001",
+      from: "OGSERC/OUT/2026/00001",
+    });
+    // Nothing to suggest once the item has a file.
+    await db.inwardItem.update({
+      where: { id: ids.I2 },
+      data: { fileId: desk.suggestedFile!.id },
+    });
+    expect(
+      (await loadForRouting(db, secretary, ids.I2)).suggestedFile,
+    ).toBeNull();
+  });
+
+  it("never suggests a file the router may not see", async () => {
+    const conf = await db.registryFile.update({
+      where: { reference: "OGSERC/RL/001" },
+      data: { securityId: await listId("FILE_SECURITY", "Confidential") },
+    });
+    await db.inwardItem.update({
+      where: { id: ids.I2 },
+      data: { fileId: null },
+    });
+    const u = await makeUser("REGISTRY_OFFICER", { canRoute: true });
+    const desk = await loadForRouting(db, await actorFor(db, u.id), ids.I2);
+    expect(desk.suggestedFile).toBeNull();
+    expect(conf.reference).toBe("OGSERC/RL/001");
+  });
+});
+
 describe("Front desk officer (C12)", () => {
   it("reads no inward or outward items", async () => {
     const fd = await actorFor(db, (await makeUser("FRONT_DESK_OFFICER")).id);

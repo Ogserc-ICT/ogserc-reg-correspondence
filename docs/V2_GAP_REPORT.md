@@ -1,10 +1,8 @@
 # Registry v2: gap report (Phase V0)
 
-> **Status (V8):** every C-section is built (phases V1–V8). Still open:
-> - Q-V2-2: notifying the previous unit on re-routing. The setting exists and stays at the workbook default (no); the email itself isn't built until its wording is agreed.
-> - C13.1: whether an unrouted item (I2) may carry a file reference. Through the screens it can't: file references are set only on the Routing Desk.
->
-> Both are listed in `docs/GO_LIVE_CHECKLIST.md`.
+> **Status:** every C-section is built (phases V1–V8), and both open points are decided:
+> - Q-V2-2: the re-routing notice is built with the agreed wording, behind its setting (default off, as the workbook). It goes only to addresses that actually received the acknowledgement, and not to those the new unit's email reaches anyway.
+> - C13.1: file references stay on the Routing Desk (C4, C5.2). An unrouted item has none; the desk suggests the file of the letter an item answers. The example's RL/001 shows 1 inward item through the screens.
 
 What the app does today compared with `docs/SPEC-v2-CHANGES.md` (C1–C13), and what each phase V1–V8 will change. No code changed in V0.
 

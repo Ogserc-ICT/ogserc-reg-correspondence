@@ -97,6 +97,7 @@ Overdue rows shaded red, Awaiting routing and Awaiting forwarding amber. Order b
 - Front desk saved (C3.2): `Logged as {intakeNo}. No acknowledgement has been issued. Pass the document to the Registry - it stays on the 'Awaiting registry' list until the Registry registers it.`
 - Pulling over typed data: `Replace what is typed on this form with the front desk details?` · already registered: `{intakeNo} is already registered as {ackNo}.`
 - Routed (C5.2): `{no} routed to {unit} by {name}.` / `Status: {status}`, then the email line if any.
+- Re-routing notice (Q-V2-2, agreed): subject `Re-routed: {no} - {sender} is now with {new unit}`; body `{no} ({type} from {sender}: "{subject}") was acknowledged to {previous unit} on {date}.` / `On {date} it was routed to {new unit} by {name}.` / `No action is needed from {previous unit}. If you already hold the document or have started on it, please pass it to {new unit}.` / `OGSERC Registry`. Routing message line: `{previous unit} told the item has moved ({addresses}).`
 - Routing refused (C5.1): `Only the Secretary to the Commission and the Head of Administration can route items.`
 - Forwarding before routing (C5.4): `{no} has not been routed by the Secretary / Head of Admin yet. Forward it anyway?`
 - New file without a class code (C8): `Set a file class code for '{class}' in Admin, or type the file reference.`

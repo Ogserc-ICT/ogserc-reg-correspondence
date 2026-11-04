@@ -99,6 +99,10 @@ export function SettingsForm({ initial }: { initial: Values }) {
           "routingRequiresPassword",
           "Routers re-enter their password to save routing (Q-V2-3)",
         )}
+        {box(
+          "notifyPreviousUnitOnReroute",
+          "When routing moves an item to another unit, email the previous unit that it has moved (Q-V2-2)",
+        )}
       </Section>
       <Section title="Receipt (para 10(3))">
         {input(

@@ -9,7 +9,7 @@ import { inputClass } from "@/app/_components/ui/input";
 import { PageHeader } from "@/app/_components/ui/page-header";
 import { Panel } from "@/app/_components/ui/panel";
 import { formatDateTime } from "@/domain/format";
-import type { EmailStatus } from "@/generated/prisma/client";
+import type { EmailKind, EmailStatus } from "@/generated/prisma/client";
 import { requireCan } from "@/server/current-user";
 import { getDb } from "@/server/db";
 import { emailLog, emailsToReview } from "@/server/email/ack";
@@ -27,7 +27,12 @@ const STATUS: Record<EmailStatus, { label: string; tone: Tone }> = {
   DISCARDED: { label: "Discarded", tone: "void" },
   SUPERSEDED: { label: "Superseded", tone: "void" },
 };
-const KIND = { ACK: "Acknowledgement", ROUTING: "Routing", RESEND: "Resend" };
+const KIND: Record<EmailKind, string> = {
+  ACK: "Acknowledgement",
+  ROUTING: "Routing",
+  RESEND: "Resend",
+  REROUTE: "Re-routing notice",
+};
 
 const TH =
   "text-text-faint px-5 py-3 text-left text-xs font-semibold tracking-wider whitespace-nowrap uppercase";

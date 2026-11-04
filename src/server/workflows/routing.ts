@@ -14,7 +14,12 @@ import {
 import type { Prisma } from "@/generated/prisma/client";
 import { routingFileWhere } from "../access";
 import { audit } from "../audit";
-import { queueAckEmail, sendIfQueued } from "../email/ack";
+import {
+  queueAckEmail,
+  queueRerouteNotice,
+  sendIfQueued,
+  sendRerouteNotice,
+} from "../email/ack";
 import { verifyPassword } from "../auth";
 import { fromDbDate, toDbDate } from "../dates";
 import type { Db, Tx } from "../db";
@@ -121,6 +126,12 @@ export async function loadForRouting(db: Db, actor: Actor, id: string) {
       routedUnit: { include: { division: true } },
       routedBy: { select: { name: true } },
       file: { select: { id: true, reference: true } },
+      inResponseToOutward: {
+        select: {
+          number: true,
+          file: { select: { id: true, reference: true } },
+        },
+      },
       actionRequired: { select: { label: true } },
       priority: { select: { label: true } },
       routingEvents: {
@@ -135,6 +146,8 @@ export async function loadForRouting(db: Db, actor: Actor, id: string) {
   // File references the router may not see are masked, here and in history.
   const fileIds = new Set<string>();
   if (row.fileId) fileIds.add(row.fileId);
+  const answered = row.inResponseToOutward;
+  if (answered?.file) fileIds.add(answered.file.id);
   for (const e of row.routingEvents)
     for (const side of [e.before, e.after]) {
       const f = (side as Record<string, unknown> | null)?.fileId as
@@ -184,6 +197,18 @@ export async function loadForRouting(db: Db, actor: Actor, id: string) {
       actionOfficer: row.actionOfficer,
       responseDueOverride: fromDbDate(row.responseDueOverride),
     },
+    /**
+     * Agreed on review (C13.1): an item with no file that answers one of our
+     * letters is offered that letter's file; the router confirms it by saving.
+     */
+    suggestedFile:
+      !row.fileId && answered?.file && visible.has(answered.file.id)
+        ? {
+            id: answered.file.id,
+            reference: answered.file.reference,
+            from: answered.number,
+          }
+        : null,
     history: row.routingEvents.map((e) => ({
       at: e.routedAt,
       by: e.routedBy.name,
@@ -350,10 +375,19 @@ export async function routeInward(
       });
       // C6.1: the routing email, unless this unit's addresses already had it.
       const email = await queueAckEmail(tx, actor, id, "routing", ctx);
+      // Q-V2-2: tell the previous unit, if it had the acknowledgement.
+      const notice = await queueRerouteNotice(
+        tx,
+        actor,
+        id,
+        row.routedUnitId,
+        ctx,
+      );
       return {
         item,
         status: derived.status,
         email,
+        notice,
         message: routedMessage(
           row.number,
           unit.name,
@@ -364,10 +398,13 @@ export async function routeInward(
     },
     { timeout: 20_000 },
   );
-  const line = await sendIfQueued(db, actor, routed.email);
+  const lines = [
+    await sendIfQueued(db, actor, routed.email),
+    await sendRerouteNotice(db, actor, routed.notice),
+  ].filter((l): l is string => !!l);
   return {
     item: routed.item,
     status: routed.status,
-    message: line ? `${routed.message}\n\n${line}` : routed.message,
+    message: [routed.message, ...lines].join("\n\n"),
   };
 }

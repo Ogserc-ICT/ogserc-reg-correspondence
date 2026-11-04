@@ -58,6 +58,8 @@ enum EmailKind {
   ACK
   ROUTING
   RESEND
+  /// Q-V2-2: tells the previous unit an item was routed away (no slip).
+  REROUTE
 }
 
 /// SPEC-v2 C6.5, plus DISCARDED and SUPERSEDED (agreed on review).

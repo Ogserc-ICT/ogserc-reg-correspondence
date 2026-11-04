@@ -8,6 +8,7 @@
 // - Off sends and records nothing;
 // - ackEmailedTo/At change only on an actual send (E1).
 import type { IsoDate } from "./calendar";
+import { dateIn } from "./clock";
 import { formatDate, formatDateTime, BLANK } from "./format";
 import { slipFileName } from "./numbering";
 
@@ -214,5 +215,74 @@ export function composeAckEmail(
     subject,
     body: lines.join("\r\n"),
     attachmentName: slipFileName(c.no),
+  };
+}
+
+// ------------------------------------------------- re-routing notice (Q-V2-2)
+
+/**
+ * Q-V2-2 (agreed): when routing moves an item to another unit, tell the
+ * previous unit — but only the addresses that actually received the earlier
+ * email, and not those the new unit's email goes to anyway. Off, or the
+ * setting off: nothing.
+ */
+export function planRerouteNotice(input: {
+  mode: AckEmailMode;
+  enabled: boolean;
+  unitChanged: boolean;
+  /** The previous unit's addresses (unit ∪ division). */
+  previousTo: readonly string[];
+  /** InwardItem.ackEmailedTo: addresses actually sent to. */
+  emailedTo: readonly string[];
+  /** Addresses the new unit's email goes to. */
+  newTo: readonly string[];
+}): { action: "none" } | { action: "send" | "review"; to: string[] } {
+  if (input.mode === "OFF" || !input.enabled || !input.unitChanged)
+    return { action: "none" };
+  const sent = new Set(input.emailedTo.map(key));
+  const skip = new Set(input.newTo.map(key));
+  const to = input.previousTo.filter(
+    (a) => sent.has(key(a)) && !skip.has(key(a)),
+  );
+  if (!to.length) return { action: "none" };
+  return { action: input.mode === "SEND" ? "send" : "review", to };
+}
+
+export function rerouteNoticeLine(
+  unit: string,
+  outcome: { sent: readonly string[] } | { review: true } | { failed: string },
+): string {
+  if ("review" in outcome)
+    return `The notice to ${unit} that the item has moved is waiting under 'Emails to review'.`;
+  if ("failed" in outcome)
+    return `${unit} was not told the item has moved: ${outcome.failed}.`;
+  return `${unit} told the item has moved (${outcome.sent.join("; ")}).`;
+}
+
+/** Q-V2-2 notice wording (agreed with the Registry). */
+export function composeRerouteNotice(
+  c: {
+    no: string;
+    type: string;
+    sender: string;
+    subject: string;
+    previousUnit: string;
+    newUnit: string;
+    acknowledgedAt: Date;
+    routedAt: Date;
+    routedBy: string;
+  },
+  tz: string,
+): { subject: string; body: string } {
+  const on = (d: Date) => formatDate(dateIn(d, tz));
+  return {
+    subject: `Re-routed: ${c.no} - ${c.sender} is now with ${c.newUnit}`,
+    body: [
+      `${c.no} (${v(c.type)} from ${v(c.sender)}: "${v(c.subject)}") was acknowledged to ${c.previousUnit} on ${on(c.acknowledgedAt)}.`,
+      `On ${on(c.routedAt)} it was routed to ${c.newUnit} by ${v(c.routedBy)}.`,
+      `No action is needed from ${c.previousUnit}. If you already hold the document or have started on it, please pass it to ${c.newUnit}.`,
+      "",
+      "OGSERC Registry",
+    ].join("\r\n"),
   };
 }

@@ -51,7 +51,8 @@ You don't choose the unit, file, action, priority or deadline on this form any m
 
 - Open the **Routing Desk**, type part of the inward number, sender or subject, choose the item and press **Load**.
 - You see the sender, subject, type, status, current unit and division. Set the **unit** (only to override the type's unit), **file reference**, **action required**, **priority**, **action officer** and **response due** (only when the sender sets a deadline). Then press **Save routing**.
-- The message confirms it: *OGSERC/ACK/2026/00012 routed to Licensing unit by …*, with the new status. If the item moved to a unit that hasn't had the acknowledgement yet, that unit is emailed.
+- If the item answers one of our letters and has no file yet, that letter's file is already chosen for you, with a note saying so. Check it and change it if needed.
+- The message confirms it: *OGSERC/ACK/2026/00012 routed to Licensing unit by …*, with the new status. If the item moved to a unit that hasn't had the acknowledgement yet, that unit is emailed. If the Commission has switched it on, the unit that had the acknowledgement is told the item has moved, and that no action is needed from them.
 - You can route an item again. Every routing is kept in the **Routing history** beside the form. Closed and void items can't be routed.
 - Only people your administrator has marked **Can route** see the Routing Desk. Routing gives no other access: it doesn't open confidential or personnel files.
 

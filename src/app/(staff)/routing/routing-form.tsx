@@ -21,6 +21,7 @@ export function RoutingForm({
   actions,
   priorities,
   askPassword,
+  fileHint,
 }: {
   id: string;
   values: Record<string, string>;
@@ -30,6 +31,8 @@ export function RoutingForm({
   priorities: Option[];
   /** Q-V2-3: re-enter the password to save. */
   askPassword: boolean;
+  /** Why a file is already chosen (suggested from the letter it answers). */
+  fileHint?: string;
 }) {
   const [state, action] = useActionState<FormState, FormData>(
     routeInwardAction.bind(null, id),
@@ -57,6 +60,7 @@ export function RoutingForm({
         <Picker
           name="fileId"
           label="File reference"
+          hint={fileHint}
           search={searchRoutingFilesAction}
           defaultId={v.fileId || undefined}
           defaultLabel={v.fileIdLabel}

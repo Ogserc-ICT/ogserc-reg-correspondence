@@ -523,8 +523,8 @@ test("F1 and F2 through the File Desk, with 'issue anyway?'", async ({
       "Currently with: Registry",
     );
     // Through the UI, I2 has no file: a file reference is set only on the
-    // Routing Desk, and I2 is not routed yet (SPEC-v2 C4, C13.1). The seeded
-    // example keeps the workbook row (2 inward items, last on 1 Dec).
+    // Routing Desk, and I2 is not routed yet (SPEC-v2 C4; C13.1 decided on
+    // review). The seeded example keeps the workbook row (2, last on 1 Dec).
     await expect(detail(page, "Inward items")).toHaveText("1");
     await expect(detail(page, "Outward items")).toHaveText("1");
     await expect(detail(page, "Last correspondence")).toHaveText("25-Nov-2026");
