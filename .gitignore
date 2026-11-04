@@ -60,3 +60,6 @@ next-env.d.ts
 
 # dev email transport output (EMAIL_DEV_DIR default)
 /.data/
+
+# database backups (production data): never commit
+*.dump
