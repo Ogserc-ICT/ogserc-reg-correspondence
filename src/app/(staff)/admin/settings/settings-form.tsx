@@ -141,6 +141,27 @@ export function SettingsForm({ initial }: { initial: Values }) {
         {area("slipFooterPara103", "Footer: other para 10(3) types")}
         {area("slipFooterGeneral", "Footer: all other correspondence")}
       </Section>
+      <Section title="Acknowledgement email">
+        <Field
+          label="Acknowledgement email"
+          hint="Off: nothing is emailed. Review: emails wait under 'Emails to review'. Send: emailed on save and on routing."
+        >
+          <select
+            name="ackEmailMode"
+            defaultValue={text("ackEmailMode")}
+            className={inputClass}
+          >
+            <option value="OFF">Off</option>
+            <option value="REVIEW">Review before sending</option>
+            <option value="SEND">Send</option>
+          </select>
+        </Field>
+        {input(
+          "ackEmailCc",
+          "Copy (CC) every acknowledgement to",
+          "Optional. Separate addresses with ; or ,",
+        )}
+      </Section>
       <Section title="Dashboard and controls">
         {input(
           "dashboardFirstMonth",

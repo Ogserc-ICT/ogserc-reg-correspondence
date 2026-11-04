@@ -4,6 +4,7 @@ import { isAwaitingRoutingOrForwarding } from "@/domain/inward";
 import { addDays, compareDates, type IsoDate } from "@/domain/calendar";
 import { instantIn, todayIn } from "@/domain/clock";
 import type { Principal } from "@/domain/permissions";
+import type { Prisma } from "@/generated/prisma/client";
 import { slipContent, type SlipContent } from "@/domain/slip";
 import { inwardWhere, outwardWhere } from "../access";
 import { fromDbDate, toDbDate } from "../dates";
@@ -23,8 +24,26 @@ export async function slipFor(
 ): Promise<SlipContent | null> {
   assertCan(user, "reports.print");
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  return slipContentWhere(db, { AND: [{ id }, inwardWhere(user)] });
+}
+
+/**
+ * The slip for the acknowledgement email (SPEC-v2 C6.4). No user: the email
+ * is sent by the system to the unit's addresses.
+ */
+export async function slipForEmail(
+  db: Db,
+  id: string,
+): Promise<SlipContent | null> {
+  return slipContentWhere(db, { id });
+}
+
+async function slipContentWhere(
+  db: Db,
+  where: Prisma.InwardItemWhereInput,
+): Promise<SlipContent | null> {
   const row = await db.inwardItem.findFirst({
-    where: { AND: [{ id }, inwardWhere(user)] },
+    where,
     include: {
       mode: { select: { label: true } },
       receivedBy: { select: { name: true } },

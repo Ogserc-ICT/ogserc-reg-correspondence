@@ -3,6 +3,7 @@
   "regions": ["lhr1"],
   "crons": [
     { "path": "/api/jobs/refresh-status", "schedule": "30 23 * * *" },
-    { "path": "/api/jobs/holiday-check", "schedule": "0 6 * * *" }
+    { "path": "/api/jobs/holiday-check", "schedule": "0 6 * * *" },
+    { "path": "/api/jobs/email-retry", "schedule": "0 7 * * *" }
   ]
 }

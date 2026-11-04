@@ -42,6 +42,7 @@ import {
   throwIfProblems,
   type Raw,
 } from "./common";
+import { queueAckEmail, sendIfQueued } from "../email/ack";
 import { lockIntakeForRegistration } from "./front-desk";
 
 export type InwardFields = {
@@ -429,7 +430,7 @@ export async function logInward(db: Db, actor: Actor, raw: Raw) {
     throw new ForbiddenError("You don't have permission to do that.");
 
   try {
-    return await db.$transaction(
+    const saved = await db.$transaction(
       async (tx) => {
         const ctx = await loadRuleContext(tx, actor.now);
         const intake = intakeId
@@ -513,14 +514,18 @@ export async function logInward(db: Db, actor: Actor, raw: Raw) {
         const unit = await tx.unit.findUniqueOrThrow({
           where: { id: item.routedUnitId },
         });
-        return {
-          item,
-          // The email line (C6) is added in V6; Off mode has none.
-          message: savedInwardMessage(item.number, unit.name),
-        };
+        // C6.1: the acknowledgement email to the suggested unit.
+        const email = await queueAckEmail(tx, actor, item.id, "ack", ctx);
+        return { item, unit: unit.name, email };
       },
       { timeout: 20_000 },
     );
+    // Sent after the save commits; the message says what happened.
+    const line = await sendIfQueued(db, actor, saved.email);
+    return {
+      item: saved.item,
+      message: savedInwardMessage(saved.item.number, saved.unit, line),
+    };
   } catch (err) {
     // A second registration of one intake that slipped past the lock (E8).
     if (

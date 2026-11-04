@@ -14,6 +14,7 @@ import {
 import type { Prisma } from "@/generated/prisma/client";
 import { routingFileWhere } from "../access";
 import { audit } from "../audit";
+import { queueAckEmail, sendIfQueued } from "../email/ack";
 import { verifyPassword } from "../auth";
 import { fromDbDate, toDbDate } from "../dates";
 import type { Db, Tx } from "../db";
@@ -213,7 +214,7 @@ export async function routeInward(
     ),
   );
 
-  return db.$transaction(
+  const routed = await db.$transaction(
     async (tx) => {
       const settings = await tx.registrySettings.findUniqueOrThrow({
         where: { id: 1 },
@@ -347,9 +348,12 @@ export async function routeInward(
       const unit = await tx.unit.findUniqueOrThrow({
         where: { id: derived.routedUnitId ?? row.snapDefaultUnitId },
       });
+      // C6.1: the routing email, unless this unit's addresses already had it.
+      const email = await queueAckEmail(tx, actor, id, "routing", ctx);
       return {
         item,
         status: derived.status,
+        email,
         message: routedMessage(
           row.number,
           unit.name,
@@ -360,4 +364,10 @@ export async function routeInward(
     },
     { timeout: 20_000 },
   );
+  const line = await sendIfQueued(db, actor, routed.email);
+  return {
+    item: routed.item,
+    status: routed.status,
+    message: line ? `${routed.message}\n\n${line}` : routed.message,
+  };
 }

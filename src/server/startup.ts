@@ -1,5 +1,7 @@
 // Production start-up checks (CLAUDE.md Phase 8: dev seed data must never
 // reach production). The server refuses to start if any check fails.
+import { transportProblem } from "./email/transport";
+
 export type StartupDb = {
   /** Accounts made by the dev seed (all use @example.invalid). */
   countDevUsers(): Promise<number>;
@@ -20,6 +22,8 @@ export async function productionProblems(
   if (!env.DATABASE_URL?.trim()) problems.push("DATABASE_URL is not set.");
   if (env.DEV_SEED_PASSWORD?.trim())
     problems.push("DEV_SEED_PASSWORD is set. Remove it.");
+  const mail = transportProblem(env);
+  if (mail) problems.push(mail);
   if (!problems.some((p) => p.startsWith("DATABASE_URL"))) {
     const dev = await db.countDevUsers();
     if (dev > 0)

@@ -8,6 +8,8 @@ import type { RegistrySettings } from "@/generated/prisma/client";
 import { audit, changedFields } from "./audit";
 import { fromDbDate, toDbDate } from "./dates";
 import type { Db } from "./db";
+import { normaliseEmails } from "@/domain/emails";
+import { mailTransport } from "./email/transport";
 import { assertCan, ValidationError } from "./errors";
 
 const days = (label: string, max = 365) =>
@@ -70,6 +72,11 @@ export const settingsSchema = z.object({
   slipFooterGeneral: text("General slip footer"),
   secretaryName: z.string().trim().max(200),
   headMayVoidOwnItems: z.boolean(),
+  // SPEC-v2 C6.3: Off (default) | Review | Send; CC for every ack email.
+  ackEmailMode: z.enum(["OFF", "REVIEW", "SEND"], {
+    error: "Acknowledgement email: choose Off, Review or Send.",
+  }),
+  ackEmailCc: z.string().trim().max(1000, "Email CC is too long."),
 });
 
 export type SettingsInput = z.infer<typeof settingsSchema>;
@@ -98,6 +105,8 @@ function toInput(s: RegistrySettings): SettingsInput {
     slipFooterGeneral: s.slipFooterGeneral,
     secretaryName: s.secretaryName,
     headMayVoidOwnItems: s.headMayVoidOwnItems,
+    ackEmailMode: s.ackEmailMode,
+    ackEmailCc: s.ackEmailCc,
   };
 }
 
@@ -126,11 +135,26 @@ export async function updateSettings(
     throw new ValidationError([
       "Schedule 2 documents (multi-State) can't be fewer than the standard number.",
     ]);
+  const cc = normaliseEmails(next.ackEmailCc);
+  if (cc.invalid.length)
+    throw new ValidationError([
+      `Email CC: not an email address: ${cc.invalid.join(", ")}.`,
+    ]);
+  next.ackEmailCc = cc.emails.join("; ");
 
   return db.$transaction(async (tx) => {
     const before = toInput(
       await tx.registrySettings.findUniqueOrThrow({ where: { id: 1 } }),
     );
+    // Q-V2-1: no switching the email on until a provider is set up.
+    if (
+      next.ackEmailMode !== "OFF" &&
+      next.ackEmailMode !== before.ackEmailMode &&
+      !mailTransport()
+    )
+      throw new ValidationError([
+        "Acknowledgement email: no email provider is set up (EMAIL_TRANSPORT), so it stays Off.",
+      ]);
     const saved = await tx.registrySettings.update({
       where: { id: 1 },
       data: {

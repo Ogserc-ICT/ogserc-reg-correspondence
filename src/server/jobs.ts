@@ -5,6 +5,7 @@ import path from "node:path";
 import { addDays, type IsoDate } from "@/domain/calendar";
 import type { JobRun, Prisma } from "@/generated/prisma/client";
 import { fromDbDate, toDbDate } from "./dates";
+import { retryEmails } from "./email/ack";
 import type { Db } from "./db";
 import { refreshInward, refreshOutward } from "./registers";
 import { loadRuleContext } from "./rules";
@@ -157,6 +158,12 @@ export const JOBS = {
     title: "Backup check",
     description: `Checks the newest database backup in BACKUP_DIR is less than ${BACKUP_MAX_AGE_HOURS} hours old and not empty. Run each morning, after the nightly backup.`,
     run: (db: Db, now: Date) => backupCheck(db, now),
+  },
+  "email-retry": {
+    title: "Send queued emails",
+    description:
+      "Sends acknowledgement emails that could not be sent when the item was saved or routed (up to 5 tries each). Runs daily; use Run now after fixing the email provider.",
+    run: retryEmails,
   },
   "holiday-check": {
     title: "Holiday check",

@@ -57,3 +57,6 @@ next-env.d.ts
 /blob-report/
 /playwright/.cache/
 /.e2e-clock
+
+# dev email transport output (EMAIL_DEV_DIR default)
+/.data/

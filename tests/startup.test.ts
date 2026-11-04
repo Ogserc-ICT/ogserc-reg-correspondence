@@ -39,4 +39,11 @@ describe("production start-up checks", () => {
       "The database has 6 dev account(s) (@example.invalid): this looks like a dev or test database. Use a fresh database for production.",
     ]);
   });
+
+  it("refuses the dev email transport (SPEC-v2 C6, Q-V2-1)", async () => {
+    const env = { ...good, EMAIL_TRANSPORT: "dev" } as NodeJS.ProcessEnv;
+    expect(await productionProblems(env, db(0))).toEqual([
+      "EMAIL_TRANSPORT=dev writes emails to files and must not be used in production.",
+    ]);
+  });
 });
