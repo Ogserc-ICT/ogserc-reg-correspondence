@@ -136,160 +136,165 @@ export async function seedReference(
   /** Notes for the operator (the seed CLI prints them). */
   log: (line: string) => void = () => {},
 ): Promise<SeedCounts> {
-  return db.$transaction(async (tx) => {
-    const added: SeedCounts = {};
-    const bump = (k: string, n: number) => (added[k] = (added[k] ?? 0) + n);
+  return db.$transaction(
+    async (tx) => {
+      const added: SeedCounts = {};
+      const bump = (k: string, n: number) => (added[k] = (added[k] ?? 0) + n);
 
-    // A table (or one list) is seeded only while it is empty. Matching rows by
-    // name would bring back a value an admin has since renamed or removed.
-    if ((await tx.division.count()) === 0)
-      bump(
-        "divisions",
-        (
-          await tx.division.createMany({
-            data: seed.divisions.map((d, i) => ({
-              name: d.name,
-              emails: emailsOf(d.emails),
-              sortOrder: i,
-            })),
-          })
-        ).count,
-      );
-
-    if ((await tx.unit.count()) === 0) {
-      const divisions = new Map(
-        (await tx.division.findMany()).map((d) => [d.name, d.id]),
-      );
-      bump(
-        "units",
-        (
-          await tx.unit.createMany({
-            data: seed.units.map((u, i) => {
-              const divisionId = divisions.get(u.division);
-              if (!divisionId)
-                throw new Error(
-                  `Unit '${u.name}': unknown division '${u.division}'`,
-                );
-              return {
-                name: u.name,
-                divisionId,
-                unitGroup: u.unitGroup,
-                emails: emailsOf(u.emails),
+      // A table (or one list) is seeded only while it is empty. Matching rows by
+      // name would bring back a value an admin has since renamed or removed.
+      if ((await tx.division.count()) === 0)
+        bump(
+          "divisions",
+          (
+            await tx.division.createMany({
+              data: seed.divisions.map((d, i) => ({
+                name: d.name,
+                emails: emailsOf(d.emails),
                 sortOrder: i,
-              };
-            }),
-          })
-        ).count,
-      );
-    }
-
-    for (const [list, labels] of LISTS) {
-      if ((await tx.listItem.count({ where: { list } })) > 0) continue;
-      const keys = SYSTEM_KEYS[list] ?? {};
-      const { count } = await tx.listItem.createMany({
-        data: labels.map((label, i) => ({
-          list,
-          label,
-          sortOrder: i,
-          systemKey: keys[label] ?? null,
-          afterHoursCutoff:
-            list === "RECEIPT_MODE" &&
-            seed.settings.afterHoursModes.includes(label),
-          noDeliveryConfirmation:
-            list === "RECEIPT_MODE" &&
-            seed.settings.noDeliveryConfirmationModes.includes(label),
-          code:
-            list === "FILE_CLASS"
-              ? (seed.fileClasses.find((c) => c.name === label)?.code ?? null)
-              : null,
-        })),
-      });
-      bump("listItems", count);
-    }
-
-    if ((await tx.incomingType.count()) === 0) {
-      const units = new Map(
-        (await tx.unit.findMany()).map((u) => [u.name, u.id]),
-      );
-      // C2/E2: never create a unit for a type; use a confirmed replacement or stop.
-      const resolved = resolveTypeDefaultUnits(
-        seed.incomingTypes,
-        units.keys(),
-        CONFIRMED_DEFAULT_UNITS,
-      );
-      if (resolved.missing.length > 0)
-        throw new Error(
-          "Incoming types point at units that do not exist: " +
-            resolved.missing
-              .map((m) => `'${m.type}' → '${m.defaultUnit}'`)
-              .join("; "),
+              })),
+            })
+          ).count,
         );
-      for (const r of resolved.replaced)
-        log(
-          `'${r.type}' names '${r.from}', which is not a unit; using '${r.to}' (confirm on Admin › Types).`,
+
+      if ((await tx.unit.count()) === 0) {
+        const divisions = new Map(
+          (await tx.division.findMany()).map((d) => [d.name, d.id]),
         );
-      const { count } = await tx.incomingType.createMany({
-        data: seed.incomingTypes.map((t, i) =>
-          incomingTypeRow(t, units.get(resolved.unitByType.get(t.name)!)!, i),
-        ),
-      });
-      bump("incomingTypes", count);
-    }
+        bump(
+          "units",
+          (
+            await tx.unit.createMany({
+              data: seed.units.map((u, i) => {
+                const divisionId = divisions.get(u.division);
+                if (!divisionId)
+                  throw new Error(
+                    `Unit '${u.name}': unknown division '${u.division}'`,
+                  );
+                return {
+                  name: u.name,
+                  divisionId,
+                  unitGroup: u.unitGroup,
+                  emails: emailsOf(u.emails),
+                  sortOrder: i,
+                };
+              }),
+            })
+          ).count,
+        );
+      }
 
-    if ((await tx.outgoingType.count()) === 0)
-      bump(
-        "outgoingTypes",
-        (
-          await tx.outgoingType.createMany({
-            data: seed.outgoingTypes.map((t, i) => ({ ...t, sortOrder: i })),
-          })
-        ).count,
+      for (const [list, labels] of LISTS) {
+        if ((await tx.listItem.count({ where: { list } })) > 0) continue;
+        const keys = SYSTEM_KEYS[list] ?? {};
+        const { count } = await tx.listItem.createMany({
+          data: labels.map((label, i) => ({
+            list,
+            label,
+            sortOrder: i,
+            systemKey: keys[label] ?? null,
+            afterHoursCutoff:
+              list === "RECEIPT_MODE" &&
+              seed.settings.afterHoursModes.includes(label),
+            noDeliveryConfirmation:
+              list === "RECEIPT_MODE" &&
+              seed.settings.noDeliveryConfirmationModes.includes(label),
+            code:
+              list === "FILE_CLASS"
+                ? (seed.fileClasses.find((c) => c.name === label)?.code ?? null)
+                : null,
+          })),
+        });
+        bump("listItems", count);
+      }
+
+      if ((await tx.incomingType.count()) === 0) {
+        const units = new Map(
+          (await tx.unit.findMany()).map((u) => [u.name, u.id]),
+        );
+        // C2/E2: never create a unit for a type; use a confirmed replacement or stop.
+        const resolved = resolveTypeDefaultUnits(
+          seed.incomingTypes,
+          units.keys(),
+          CONFIRMED_DEFAULT_UNITS,
+        );
+        if (resolved.missing.length > 0)
+          throw new Error(
+            "Incoming types point at units that do not exist: " +
+              resolved.missing
+                .map((m) => `'${m.type}' → '${m.defaultUnit}'`)
+                .join("; "),
+          );
+        for (const r of resolved.replaced)
+          log(
+            `'${r.type}' names '${r.from}', which is not a unit; using '${r.to}' (confirm on Admin › Types).`,
+          );
+        const { count } = await tx.incomingType.createMany({
+          data: seed.incomingTypes.map((t, i) =>
+            incomingTypeRow(t, units.get(resolved.unitByType.get(t.name)!)!, i),
+          ),
+        });
+        bump("incomingTypes", count);
+      }
+
+      if ((await tx.outgoingType.count()) === 0)
+        bump(
+          "outgoingTypes",
+          (
+            await tx.outgoingType.createMany({
+              data: seed.outgoingTypes.map((t, i) => ({ ...t, sortOrder: i })),
+            })
+          ).count,
+        );
+
+      if ((await tx.publicHoliday.count()) === 0)
+        bump(
+          "publicHolidays",
+          (
+            await tx.publicHoliday.createMany({
+              data: seed.publicHolidays.map((h) => ({
+                date: toDbDate(h.date),
+                name: h.name,
+                ...parseHolidayStatus(h.status),
+              })),
+            })
+          ).count,
+        );
+
+      if ((await tx.signatory.count()) === 0)
+        bump(
+          "signatories",
+          (
+            await tx.signatory.createMany({
+              data: seed.staffFromWorkbook.signatories.map((p, i) => ({
+                name: p.name,
+                designation: p.designation,
+                isDefault: p.designation === "Secretary to the Commission",
+                sortOrder: i,
+              })),
+            })
+          ).count,
+        );
+
+      bump("settings", await seedSettings(tx));
+
+      await audit(
+        tx,
+        {
+          userId: null,
+          action: "seed-reference",
+          entityType: "Seed",
+          entityId: "seed-data.json",
+          after: added,
+        },
+        now,
       );
-
-    if ((await tx.publicHoliday.count()) === 0)
-      bump(
-        "publicHolidays",
-        (
-          await tx.publicHoliday.createMany({
-            data: seed.publicHolidays.map((h) => ({
-              date: toDbDate(h.date),
-              name: h.name,
-              ...parseHolidayStatus(h.status),
-            })),
-          })
-        ).count,
-      );
-
-    if ((await tx.signatory.count()) === 0)
-      bump(
-        "signatories",
-        (
-          await tx.signatory.createMany({
-            data: seed.staffFromWorkbook.signatories.map((p, i) => ({
-              name: p.name,
-              designation: p.designation,
-              isDefault: p.designation === "Secretary to the Commission",
-              sortOrder: i,
-            })),
-          })
-        ).count,
-      );
-
-    bump("settings", await seedSettings(tx));
-
-    await audit(
-      tx,
-      {
-        userId: null,
-        action: "seed-reference",
-        entityType: "Seed",
-        entityId: "seed-data.json",
-        after: added,
-      },
-      now,
-    );
-    return added;
-  });
+      return added;
+    },
+    // Run from an operator's machine against a distant database, each of the
+    // many inserts is a round trip: Prisma's 5 s default is far too short.
+    { timeout: 120_000, maxWait: 30_000 },
+  );
 }
 
 async function seedSettings(tx: Tx): Promise<number> {

@@ -46,37 +46,40 @@ async function main() {
 
     const password = temporaryPassword();
     const hash = await hashPassword(password);
-    await db.$transaction(async (tx) => {
-      const user = await tx.user.create({
-        data: {
-          name: values.name!.trim(),
-          email,
-          role: "ADMIN",
-          emailVerified: true,
-          mustChangePassword: true,
-        },
-      });
-      await tx.account.create({
-        data: {
-          userId: user.id,
-          accountId: user.id,
-          providerId: "credential",
-          password: hash,
-        },
-      });
-      await audit(
-        tx,
-        {
-          userId: null,
-          action: "user-create",
-          entityType: "User",
-          entityId: user.id,
-          after: { name: user.name, email, role: "ADMIN" },
-          note: "scripts/create-admin.ts",
-        },
-        appNow(),
-      );
-    });
+    await db.$transaction(
+      async (tx) => {
+        const user = await tx.user.create({
+          data: {
+            name: values.name!.trim(),
+            email,
+            role: "ADMIN",
+            emailVerified: true,
+            mustChangePassword: true,
+          },
+        });
+        await tx.account.create({
+          data: {
+            userId: user.id,
+            accountId: user.id,
+            providerId: "credential",
+            password: hash,
+          },
+        });
+        await audit(
+          tx,
+          {
+            userId: null,
+            action: "user-create",
+            entityType: "User",
+            entityId: user.id,
+            after: { name: user.name, email, role: "ADMIN" },
+            note: "scripts/create-admin.ts",
+          },
+          appNow(),
+        );
+      },
+      { timeout: 60_000, maxWait: 30_000 },
+    );
     console.log(`Admin ${email} created.`);
     console.log(`Temporary password (shown once): ${password}`);
   } finally {
