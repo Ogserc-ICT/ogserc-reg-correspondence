@@ -165,6 +165,12 @@ async function Dashboard() {
           href={`/inward${q("Pending")}`}
         />
         <Stat
+          label="Awaiting routing / forwarding"
+          tone="awaiting"
+          value={i.awaitingRoutingOrForwarding}
+          href="/pending"
+        />
+        <Stat
           label="Not yet routed"
           tone="awaiting"
           value={i.awaitingRouting}
@@ -180,6 +186,12 @@ async function Dashboard() {
           label="Forwarding overdue"
           tone="overdue"
           value={i.forwardingOverdue}
+        />
+        <Stat
+          label="At front desk, awaiting registry"
+          tone="awaiting"
+          value={i.atFrontDesk}
+          href="/front-desk"
         />
         <Stat label="Open" value={i.open} href={`/inward${q("Open")}`} />
         <Stat
@@ -299,6 +311,17 @@ async function Dashboard() {
       </div>
 
       <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-2">
+        <Table
+          title="By division"
+          rows={b.byDivision}
+          columns={[
+            { header: "Inward routed", value: (r) => r.inwardRouted },
+            { header: "Pending", value: (r) => r.pending },
+            { header: "Overdue", value: (r) => r.overdue },
+            { header: "Closed", value: (r) => r.closed },
+            { header: "Outward originated", value: (r) => r.outwardOriginated },
+          ]}
+        />
         <Table
           title="By unit"
           rows={b.byUnit}

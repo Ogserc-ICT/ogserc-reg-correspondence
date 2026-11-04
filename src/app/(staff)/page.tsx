@@ -245,6 +245,27 @@ async function DeskContent() {
               Issue file
             </Link>
           )}
+          {/* SPEC-v2 C9: new Desk buttons, each for those who may use it. */}
+          {(can(user, "frontdesk.read") || can(user, "frontdesk.write")) && (
+            <>
+              <Link href="/front-desk" className={buttonClass("secondary")}>
+                Front Desk
+              </Link>
+              <Link href="/front-desk/log" className={buttonClass("secondary")}>
+                Front Desk Log
+              </Link>
+            </>
+          )}
+          {can(user, "registry.route") && (
+            <Link href="/routing" className={buttonClass("secondary")}>
+              Route an item
+            </Link>
+          )}
+          {can(user, "ackEmail.send") && (
+            <Link href="/emails#resend" className={buttonClass("secondary")}>
+              Resend ack email
+            </Link>
+          )}
         </div>
       </div>
 
@@ -287,7 +308,7 @@ async function DeskContent() {
         </div>
       )}
 
-      <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7">
+      <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
         <StatTile
           label="Received today"
           value={s.incoming.receivedToday}
@@ -337,6 +358,26 @@ async function DeskContent() {
           }
           sub={`${s.files.overdue} past return date`}
         />
+        <StatTile
+          label="Awaiting routing"
+          value={s.incoming.awaitingRouting}
+          href={
+            can(user, "registry.route")
+              ? "/routing"
+              : `/inward${q("Awaiting routing")}`
+          }
+          tone={when(s.incoming.awaitingRouting, "awaiting")}
+          sub="Not yet routed by the Secretary / Head of Admin"
+        />
+        {can(user, "frontdesk.read") && (
+          <StatTile
+            label="Awaiting registry (front desk)"
+            value={s.incoming.atFrontDesk}
+            href="/front-desk"
+            tone={when(s.incoming.atFrontDesk, "awaiting")}
+            sub="Logged at the front desk, not yet registered"
+          />
+        )}
       </div>
 
       <div className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">

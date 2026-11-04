@@ -11,9 +11,11 @@ import {
 } from "react";
 import { Messages, SubmitButton, type FormState } from "@/app/_components/form";
 import { buttonClass } from "@/app/_components/ui/button";
+import { inputClass } from "@/app/_components/ui/input";
 import {
   discardReviewedAction,
   resendAckEmailAction,
+  resendByNumberAction,
   sendReviewedAction,
 } from "./actions";
 
@@ -103,5 +105,58 @@ export function ResendButton({ itemId }: { itemId: string }) {
         <SubmitButton variant="secondary">Resend ack email</SubmitButton>
       </form>
     </div>
+  );
+}
+
+/** Resend by inward number (Registry Desk button, C9). */
+export function ResendByNumber({ latest }: { latest: string | null }) {
+  const [state, action] = useActionState<FormState, FormData>(
+    resendByNumberAction,
+    {},
+  );
+  if (state.confirm)
+    return (
+      <form
+        action={action}
+        role="alertdialog"
+        aria-label="Confirm resend"
+        className="rounded-card border-awaiting/40 bg-status-awaiting border p-4 text-sm"
+      >
+        <input type="hidden" name="number" value={state.values?.number ?? ""} />
+        <input type="hidden" name="confirmResend" value="1" />
+        <p className="font-medium">{state.confirm}</p>
+        <div className="mt-3 flex flex-wrap gap-3">
+          <SubmitButton>Send again</SubmitButton>
+          <a
+            href="/emails"
+            className="text-accent self-center text-sm hover:underline"
+          >
+            Cancel
+          </a>
+        </div>
+      </form>
+    );
+  return (
+    <form
+      key={state.attempt ?? state.message ?? "resend"}
+      action={action}
+      className="space-y-3"
+    >
+      <Messages state={state} />
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="min-w-64 flex-1 text-sm">
+          <span className="text-text-muted block pb-1.5 text-xs">
+            Inward / Ack. No.
+          </span>
+          <input
+            name="number"
+            defaultValue={state.values?.number ?? ""}
+            placeholder={latest ?? "OGSERC/ACK/2026/00001"}
+            className={inputClass}
+          />
+        </label>
+        <SubmitButton variant="secondary">Resend ack email</SubmitButton>
+      </div>
+    </form>
   );
 }

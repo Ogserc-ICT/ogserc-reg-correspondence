@@ -14,7 +14,8 @@ import { requireCan } from "@/server/current-user";
 import { getDb } from "@/server/db";
 import { emailLog, emailsToReview } from "@/server/email/ack";
 import { flatParams } from "../register-ui";
-import { ReviewArea, ReviewButtons } from "./email-buttons";
+import { latestInwardNumber } from "@/server/read/reports";
+import { ResendByNumber, ReviewArea, ReviewButtons } from "./email-buttons";
 
 export const metadata: Metadata = { title: "Emails · OGSERC Registry" };
 
@@ -60,10 +61,11 @@ async function Emails({
   const status = (Object.keys(STATUS) as EmailStatus[]).find(
     (s) => s === params.status,
   );
-  const [held, log, settings] = await Promise.all([
+  const [held, log, settings, latest] = await Promise.all([
     emailsToReview(db, user),
     emailLog(db, user, { status }),
     db.registrySettings.findUniqueOrThrow({ where: { id: 1 } }),
+    latestInwardNumber(db, user),
   ]);
   const mode = { OFF: "Off", REVIEW: "Review", SEND: "Send" }[
     settings.ackEmailMode
@@ -129,6 +131,12 @@ async function Emails({
             </ul>
           )}
         </ReviewArea>
+      </Panel>
+
+      <Panel title="Resend an acknowledgement" className="mt-6">
+        <div id="resend" className="px-[22px] pb-[22px]">
+          <ResendByNumber latest={latest} />
+        </div>
       </Panel>
 
       <h2 className="mt-8 text-lg font-semibold">Email log</h2>

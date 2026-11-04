@@ -5,6 +5,7 @@ import type { FormState } from "@/app/_components/form";
 import { formError } from "@/server/action-errors";
 import { actorWith, rawOf } from "@/server/actor";
 import { getDb } from "@/server/db";
+import { inwardIdByNumber } from "@/server/read/reports";
 import {
   discardReviewedEmail,
   resendAckEmail,
@@ -56,5 +57,35 @@ export async function resendAckEmailAction(
     if (err instanceof ResendNeedsConfirm)
       return { confirm: err.message, values: {} };
     return formError(err);
+  }
+}
+
+/** RESEND ACK EMAIL from the Registry Desk: an inward number (C6.1, C9). */
+export async function resendByNumberAction(
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
+  const actor = await actorWith("ackEmail.send");
+  const raw = rawOf(form);
+  const no = (raw.number ?? "").trim();
+  const id = no ? await inwardIdByNumber(getDb(), actor.user, no) : null;
+  if (!id)
+    return {
+      errors: [
+        no
+          ? `${no.toUpperCase()} is not in the Inward Register.`
+          : "Enter an inward number.",
+      ],
+      values: raw,
+    };
+  try {
+    const { message } = await resendAckEmail(getDb(), actor, id, {
+      confirm: raw.confirmResend === "1",
+    });
+    return { ...done(message, id), values: {} };
+  } catch (err) {
+    if (err instanceof ResendNeedsConfirm)
+      return { confirm: err.message, values: { number: no } };
+    return formError(err, raw);
   }
 }
