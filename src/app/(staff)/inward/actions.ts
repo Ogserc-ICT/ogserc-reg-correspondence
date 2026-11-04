@@ -15,6 +15,7 @@ import {
   closeToday,
   forwardToday,
   logInward,
+  NotRoutedYet,
   updateInward,
 } from "@/server/workflows/inward";
 
@@ -58,6 +59,7 @@ export async function logInwardAction(
 async function run(
   id: string,
   fn: () => Promise<{ message: string }>,
+  values?: Record<string, string>,
 ): Promise<FormState> {
   try {
     const { message } = await fn();
@@ -66,9 +68,15 @@ async function run(
     revalidatePath("/");
     return { ok: true, message };
   } catch (err) {
+    // Not routed yet: ask first, then resend with the officer's yes (C5.4).
+    if (err instanceof NotRoutedYet)
+      return { confirm: err.message, values: values ?? {} };
     return formError(err);
   }
 }
+
+const CONFIRM = "confirmForwardBeforeRouting";
+const confirmed = (raw: Record<string, string>) => raw[CONFIRM] === "1";
 
 export async function updateInwardAction(
   id: string,
@@ -77,7 +85,14 @@ export async function updateInwardAction(
 ) {
   const actor = await actorWith("registers.write");
   const raw = rawOf(form);
-  const result = await run(id, () => updateInward(getDb(), actor, id, raw));
+  const result = await run(
+    id,
+    () =>
+      updateInward(getDb(), actor, id, raw, {
+        confirmForwardBeforeRouting: confirmed(raw),
+      }),
+    raw,
+  );
   return result.ok ? result : { ...result, values: raw };
 }
 
@@ -94,9 +109,21 @@ export async function editInwardAction(
   return result.ok ? result : { ...result, values: raw };
 }
 
-export async function forwardTodayAction(id: string): Promise<FormState> {
+export async function forwardTodayAction(
+  id: string,
+  _prev: FormState,
+  form: FormData,
+): Promise<FormState> {
   const actor = await actorWith("registers.write");
-  return run(id, () => forwardToday(getDb(), actor, id));
+  const raw = rawOf(form);
+  return run(
+    id,
+    () =>
+      forwardToday(getDb(), actor, id, {
+        confirmForwardBeforeRouting: confirmed(raw),
+      }),
+    raw,
+  );
 }
 
 export async function closeTodayAction(
@@ -105,8 +132,14 @@ export async function closeTodayAction(
   form: FormData,
 ): Promise<FormState> {
   const actor = await actorWith("registers.write");
-  return run(id, () =>
-    closeToday(getDb(), actor, id, String(form.get("closingNote") ?? "")),
+  const raw = rawOf(form);
+  return run(
+    id,
+    () =>
+      closeToday(getDb(), actor, id, raw.closingNote ?? "", {
+        confirmForwardBeforeRouting: confirmed(raw),
+      }),
+    raw,
   );
 }
 

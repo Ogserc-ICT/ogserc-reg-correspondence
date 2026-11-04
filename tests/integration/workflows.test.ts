@@ -6,12 +6,15 @@ import { seedExample, type ExampleIds } from "../../prisma/seed/example";
 import { ForbiddenError } from "@/server/errors";
 import { voidItem, type Actor } from "@/server/registers";
 import { FormProblems } from "@/server/workflows/common";
+import { inwardDetail } from "@/server/read/items";
 import {
   closeToday,
   forwardToday,
   logInward,
+  NotRoutedYet,
   updateInward,
 } from "@/server/workflows/inward";
+import { routeInward } from "@/server/workflows/routing";
 import {
   deliverToday,
   dispatchToday,
@@ -37,6 +40,11 @@ const inType = async (name: string) =>
   (await db.incomingType.findUniqueOrThrow({ where: { name } })).id;
 const outType = async (name: string) =>
   (await db.outgoingType.findUniqueOrThrow({ where: { name } })).id;
+
+async function flagsOf(id: string): Promise<string[]> {
+  const d = await inwardDetail(db, officer.user, id, officer.now);
+  return d!.derived.flags as string[];
+}
 
 async function problemsOf(p: Promise<unknown>) {
   try {
@@ -172,12 +180,40 @@ describe("New Inward", () => {
 
 describe("inward handling", () => {
   it("Forwarded today, then Close today with a note", async () => {
-    expect((await forwardToday(db, officer, ids.I2)).message).toBe(
-      "OGSERC/ACK/2026/00002 forwarded today.",
+    // I2 is not routed yet: the officer is asked first (SPEC-v2 C5.4, V4).
+    await expect(forwardToday(db, officer, ids.I2)).rejects.toThrow(
+      new NotRoutedYet(
+        "OGSERC/ACK/2026/00002 has not been routed by the Secretary / Head of Admin yet. Forward it anyway?",
+      ),
     );
     let i2 = await db.inwardItem.findUniqueOrThrow({ where: { id: ids.I2 } });
+    expect(i2.dateForwarded).toBeNull();
+
+    expect(
+      (
+        await forwardToday(db, officer, ids.I2, {
+          confirmForwardBeforeRouting: true,
+        })
+      ).message,
+    ).toBe("OGSERC/ACK/2026/00002 forwarded today.");
+    i2 = await db.inwardItem.findUniqueOrThrow({ where: { id: ids.I2 } });
     expect(i2.dateForwarded?.toISOString().slice(0, 10)).toBe("2026-12-10");
+    expect(i2.forwardedBeforeRouting).toBe(true);
     expect(i2.statusCache).toBe("OPEN");
+    expect((await flagsOf(ids.I2)).includes("Forwarded before routing")).toBe(
+      true,
+    );
+    const fwd = await db.auditLog.findFirstOrThrow({
+      where: { entityId: ids.I2, action: "forward" },
+    });
+    expect(fwd.before).toEqual({
+      dateForwarded: null,
+      forwardedBeforeRouting: false,
+    });
+    expect(fwd.after).toEqual({
+      dateForwarded: "2026-12-10",
+      forwardedBeforeRouting: true,
+    });
 
     await expect(closeToday(db, officer, ids.I2, " ")).rejects.toThrow(
       "closing note",
@@ -201,9 +237,40 @@ describe("inward handling", () => {
     expect(actions).toEqual(["create", "forward", "close"]);
   });
 
+  it("Close today on an item neither routed nor forwarded asks first", async () => {
+    await expect(
+      closeToday(db, officer, ids.I2, "Answered by phone"),
+    ).rejects.toBeInstanceOf(NotRoutedYet);
+    await closeToday(db, officer, ids.I2, "Answered by phone", {
+      confirmForwardBeforeRouting: true,
+    });
+    const i2 = await db.inwardItem.findUniqueOrThrow({ where: { id: ids.I2 } });
+    expect(i2).toMatchObject({
+      statusCache: "CLOSED",
+      forwardedBeforeRouting: true,
+    });
+  });
+
+  it("forwarding a routed item needs no confirmation and sets no flag", async () => {
+    const secretary = await actorFor(db, ids.users.secretary);
+    await routeInward(db, secretary, ids.I2, {
+      actionRequiredId: await list("ACTION_REQUIRED", "Action required"),
+    });
+    await forwardToday(db, officer, ids.I2);
+    const i2 = await db.inwardItem.findUniqueOrThrow({ where: { id: ids.I2 } });
+    expect(i2.forwardedBeforeRouting).toBe(false);
+    expect(await flagsOf(ids.I2)).not.toContain("Forwarded before routing");
+  });
+
   it("lets officers change handling fields only, with date-order checks", async () => {
     const r = await updateInward(db, officer, ids.I2, {
       sender: "Someone else",
+      // Routing fields are on the Routing Desk only (SPEC-v2 C5.4).
+      unitOverrideId: await unit("ICT unit"),
+      priorityId: await list("PRIORITY", "High"),
+      actionOfficer: "Someone",
+      responseDueOverride: "2026-12-31",
+      actionRequiredId: await list("ACTION_REQUIRED", "Reply required"),
     });
     expect(r.message).toBe("Nothing changed.");
 
@@ -221,20 +288,32 @@ describe("inward handling", () => {
       ),
     ).toEqual({ missing: ["Closing note"], problems: [] });
 
-    await updateInward(db, officer, ids.I2, {
-      dateForwarded: "2026-12-02",
-      unitOverrideId: await unit("Compliance/Legal Services unit: Legal"),
-    });
-    const i2 = await db.inwardItem.findUniqueOrThrow({
-      where: { id: ids.I2 },
-      include: { routedUnit: true },
-    });
-    expect(i2.routedUnit.name).toBe("Compliance/Legal Services unit: Legal");
+    // Setting the date forwarded on an unrouted item asks first (C5.4).
+    await expect(
+      updateInward(db, officer, ids.I2, { dateForwarded: "2026-12-02" }),
+    ).rejects.toBeInstanceOf(NotRoutedYet);
+    await updateInward(
+      db,
+      officer,
+      ids.I2,
+      { dateForwarded: "2026-12-02", receivedByUnitOfficer: "Reg. Officer" },
+      { confirmForwardBeforeRouting: true },
+    );
+    const i2 = await db.inwardItem.findUniqueOrThrow({ where: { id: ids.I2 } });
+    expect(i2.forwardedBeforeRouting).toBe(true);
     const log = await db.auditLog.findFirstOrThrow({
       where: { entityId: ids.I2, action: "update" },
     });
-    expect(log.before).toMatchObject({ dateForwarded: null });
-    expect(log.after).toMatchObject({ dateForwarded: "2026-12-02" });
+    expect(log.before).toEqual({
+      dateForwarded: null,
+      receivedByUnitOfficer: null,
+      forwardedBeforeRouting: false,
+    });
+    expect(log.after).toEqual({
+      dateForwarded: "2026-12-02",
+      receivedByUnitOfficer: "Reg. Officer",
+      forwardedBeforeRouting: true,
+    });
   });
 
   it("lets only the Head of Registry edit registered details, with a reason", async () => {
@@ -257,6 +336,16 @@ describe("inward handling", () => {
       where: { entityId: ids.I2, action: "edit" },
     });
     expect(log.note).toBe("Wrong time typed");
+
+    // Not even the full edit changes the routing (C5.4).
+    const r = await updateInward(
+      db,
+      head,
+      ids.I2,
+      { unitOverrideId: await unit("ICT unit") },
+      { full: true, reason: "Should be ignored" },
+    );
+    expect(r.message).toBe("Nothing changed.");
   });
 });
 

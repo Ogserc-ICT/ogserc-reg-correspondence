@@ -2,9 +2,8 @@
 import { useActionState } from "react";
 import { Messages, SubmitButton, type FormState } from "@/app/_components/form";
 import { Select, TextArea, TextInput } from "@/app/_components/inputs";
-import { Picker } from "@/app/_components/picker";
+import { buttonClass } from "@/app/_components/ui/button";
 import type { FormOptions } from "@/server/read/options";
-import { searchFilesAction } from "../../search-actions";
 import {
   closeTodayAction,
   editInwardAction,
@@ -13,6 +12,44 @@ import {
   voidInwardAction,
 } from "../actions";
 import { InwardFields, type Values } from "../inward-fields";
+
+/**
+ * Forwarding an item that has not been routed (SPEC-v2 C5.4): the server
+ * asks first; "Forward anyway" resends exactly what it was given, plus the
+ * officer's yes. The item is then flagged "Forwarded before routing".
+ */
+function ConfirmForward({
+  id,
+  state,
+  action,
+}: {
+  id: string;
+  state: FormState;
+  action: (fd: FormData) => void;
+}) {
+  return (
+    <form
+      action={action}
+      role="alertdialog"
+      aria-label="Confirm forwarding"
+      className="rounded-card border-awaiting/40 bg-status-awaiting border p-4 text-sm"
+    >
+      {Object.entries(state.values ?? {})
+        .filter(([k]) => k !== "confirmForwardBeforeRouting")
+        .map(([k, value]) => (
+          <input key={k} type="hidden" name={k} value={value} />
+        ))}
+      <input type="hidden" name="confirmForwardBeforeRouting" value="1" />
+      <p className="font-medium">{state.confirm}</p>
+      <div className="mt-3 flex flex-wrap gap-3">
+        <SubmitButton>Forward anyway</SubmitButton>
+        <a href={`/inward/${id}`} className={buttonClass()}>
+          Cancel
+        </a>
+      </div>
+    </form>
+  );
+}
 
 export function InwardActions({
   id,
@@ -28,7 +65,7 @@ export function InwardActions({
   canVoid: boolean;
 }) {
   const [fwd, forward] = useActionState<FormState, FormData>(
-    () => forwardTodayAction(id),
+    forwardTodayAction.bind(null, id),
     {},
   );
   const [cls, close] = useActionState<FormState, FormData>(
@@ -39,6 +76,9 @@ export function InwardActions({
     voidInwardAction.bind(null, id),
     {},
   );
+  if (fwd.confirm)
+    return <ConfirmForward id={id} state={fwd} action={forward} />;
+  if (cls.confirm) return <ConfirmForward id={id} state={cls} action={close} />;
   return (
     <div className="space-y-3">
       <Messages state={fwd} />
@@ -104,7 +144,10 @@ export function InwardActions({
   );
 }
 
-/** Update Item: the handling fields (SPEC §4.1). */
+/**
+ * Update Item: the handling fields, reduced by SPEC-v2 C5.4. Unit, file,
+ * action, priority, action officer and due override are on the Routing Desk.
+ */
 export function UpdateInwardForm({
   id,
   options,
@@ -118,6 +161,8 @@ export function UpdateInwardForm({
     updateInwardAction.bind(null, id),
     {},
   );
+  if (state.confirm)
+    return <ConfirmForward id={id} state={state} action={action} />;
   const v = state.values ?? values;
   const val = (k: string) => v[k] ?? "";
   return (
@@ -140,44 +185,11 @@ export function UpdateInwardForm({
           defaultValue={val("receivedByUnitOfficer")}
         />
         <Select
-          name="unitOverrideId"
-          label="Forward to (override)"
-          hint="Only to override the type's unit."
-          options={options.units}
-          defaultValue={val("unitOverrideId")}
-        />
-        <TextInput
-          name="actionOfficer"
-          label="Action officer"
-          defaultValue={val("actionOfficer")}
-        />
-        <Select
-          name="priorityId"
-          label="Priority"
-          blank="Normal"
-          options={options.priorities.filter((p) => p.key !== "NORMAL")}
-          defaultValue={val("priorityId")}
-        />
-        <TextInput
-          name="responseDueOverride"
-          type="date"
-          label="Response due (override)"
-          hint="Use when the sender sets a deadline."
-          defaultValue={val("responseDueOverride")}
-        />
-        <Select
           name="ackIssuedViaId"
           label="Acknowledgement issued via"
           required
           options={options.ackVia}
           defaultValue={val("ackIssuedViaId")}
-        />
-        <Picker
-          name="fileId"
-          label="File"
-          search={searchFilesAction}
-          defaultId={v.fileId || undefined}
-          defaultLabel={v.fileIdLabel}
         />
         <TextInput
           name="dateClosedManual"
@@ -229,6 +241,7 @@ export function EditInwardForm({
       <p className="text-text-muted text-sm">
         The number never changes. A new receipt time or mode recalculates the
         deemed receipt date; a new type takes that type&apos;s current rules.
+        Routing is changed on the Routing Desk.
       </p>
       <InwardFields options={options} values={state.values ?? values} />
       <TextArea name="reason" label="Reason for the change" required />

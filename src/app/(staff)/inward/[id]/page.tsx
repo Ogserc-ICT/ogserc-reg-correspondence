@@ -303,6 +303,22 @@ async function Item({ params }: { params: Promise<{ id: string }> }) {
           <Panel title="Handling and status">
             <dl>
               <Detail label="Forward to">{row.routedUnit.name}</Detail>
+              <Detail label="Routed by">
+                {row.routedBy && row.routedAt
+                  ? `${row.routedBy.name}, ${formatDateTime(row.routedAt)}`
+                  : "Not routed yet"}
+                {can(user, "registry.route") && !voided && (
+                  <>
+                    {" "}
+                    <Link
+                      href={`/routing?item=${row.id}`}
+                      className="text-accent font-semibold hover:underline"
+                    >
+                      Route this item
+                    </Link>
+                  </>
+                )}
+              </Detail>
               <Detail label="Acknowledgement issued via">
                 {row.ackIssuedVia.label}
               </Detail>

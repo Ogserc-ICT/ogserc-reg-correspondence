@@ -65,6 +65,12 @@ async function AppSidebar() {
           icon: "desk",
         },
         registers && { href: "/inward", label: "Inward", icon: "inbox" },
+        // Only users with "Can route" (SPEC-v2 C5.1).
+        can(user, "registry.route") && {
+          href: "/routing",
+          label: "Routing Desk",
+          icon: "route",
+        },
         registers && { href: "/outward", label: "Outward", icon: "send" },
         can(user, "files.read") && {
           href: "/files",

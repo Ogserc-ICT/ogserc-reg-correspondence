@@ -15,6 +15,10 @@ import {
   receiptChangedFromIntake,
 } from "@/domain/front-desk";
 import { savedInwardMessage } from "@/domain/inward";
+import {
+  forwardBeforeRoutingPrompt,
+  needsForwardBeforeRoutingConfirm,
+} from "@/domain/routing";
 import { can } from "@/domain/permissions";
 import { Prisma, type InwardItem } from "@/generated/prisma/client";
 import { inwardWhere } from "../access";
@@ -133,18 +137,17 @@ const REQUIRED: Key[] = [
   // Action required is set on the Routing Desk (SPEC-v2 C4).
 ];
 
-/** Fields set later by the Registry (SPEC §4.1 "Update Item"). */
+/**
+ * Fields set later by the Registry: Update Item, reduced by SPEC-v2 C5.4.
+ * The unit, file, action, priority, action officer and due override are set
+ * only on the Routing Desk.
+ */
 export const INWARD_HANDLING_KEYS: Key[] = [
   "dateForwarded",
   "receivedByUnitOfficer",
+  "ackIssuedViaId",
   "dateClosedManual",
   "closingNote",
-  "unitOverrideId",
-  "actionOfficer",
-  "priorityId",
-  "responseDueOverride",
-  "ackIssuedViaId",
-  "fileId",
   "remarks",
 ];
 
@@ -560,7 +563,11 @@ export async function updateInward(
   actor: Actor,
   id: string,
   raw: Raw,
-  opts: { full?: boolean; reason?: string } = {},
+  opts: {
+    full?: boolean;
+    reason?: string;
+    confirmForwardBeforeRouting?: boolean;
+  } = {},
 ) {
   assertCan(actor.user, "registers.write");
   if (opts.full) assertCan(actor.user, "items.editAny");
@@ -570,7 +577,10 @@ export async function updateInward(
       "Give a reason for changing the registered details.",
     ]);
   const { fields, problems } = readInward(raw);
-  const allowed = opts.full ? ALL_KEYS : INWARD_HANDLING_KEYS;
+  // Not even the Head of Registry's full edit changes the routing (C5.4).
+  const allowed = opts.full
+    ? ALL_KEYS.filter((k) => !(ROUTING_KEYS as readonly Key[]).includes(k))
+    : INWARD_HANDLING_KEYS;
 
   return db.$transaction(
     async (tx) => {
@@ -597,6 +607,18 @@ export async function updateInward(
       const data = toData(
         Object.fromEntries([...changed].map((k) => [k, after[k]])),
       );
+      if (
+        changed.has("dateForwarded") &&
+        forwardingBeforeRouting(
+          row,
+          after.dateForwarded,
+          opts.confirmForwardBeforeRouting,
+        )
+      ) {
+        data.forwardedBeforeRouting = true;
+        diff.before.forwardedBeforeRouting = false;
+        diff.after.forwardedBeforeRouting = true;
+      }
       if (changed.has("receivedAt") || changed.has("modeId")) {
         data.deemedReceiptDate = toDbDate(
           deemedReceiptDate(
@@ -653,17 +675,59 @@ export async function updateInward(
   );
 }
 
+/** The question the form asks before going ahead (C5.4). */
+export class NotRoutedYet extends Error {
+  constructor(prompt: string) {
+    super(prompt);
+    this.name = "NotRoutedYet";
+  }
+}
+
+/**
+ * Forwarding an item the Secretary / Head of Admin has not routed yet needs
+ * the officer's confirmation (SPEC-v2 C5.4, E6). Returns true when the
+ * "Forwarded before routing" fact must be set; throws NotRoutedYet when the
+ * officer has not confirmed.
+ */
+function forwardingBeforeRouting(
+  row: InwardItem,
+  settingForwarded: IsoDate | null,
+  confirmed: boolean | undefined,
+): boolean {
+  const needed = needsForwardBeforeRoutingConfirm({
+    routed: row.routedAt !== null,
+    dateForwarded: fromDbDate(row.dateForwarded),
+    settingForwarded,
+  });
+  if (needed && !confirmed)
+    throw new NotRoutedYet(forwardBeforeRoutingPrompt(row.number));
+  return needed;
+}
+
 /** FORWARDED TODAY: dateForwarded = today, if empty. */
-export async function forwardToday(db: Db, actor: Actor, id: string) {
+export async function forwardToday(
+  db: Db,
+  actor: Actor,
+  id: string,
+  opts: { confirmForwardBeforeRouting?: boolean } = {},
+) {
   assertCan(actor.user, "registers.write");
   return db.$transaction(async (tx) => {
     const ctx = await loadRuleContext(tx, actor.now);
     const row = await loadForWrite(tx, actor, id);
     if (row.dateForwarded)
       return { item: row, message: `${row.number} was already forwarded.` };
+    const early = forwardingBeforeRouting(
+      row,
+      ctx.today,
+      opts.confirmForwardBeforeRouting,
+    );
     const item = await tx.inwardItem.update({
       where: { id },
-      data: { dateForwarded: toDbDate(ctx.today) },
+      data: {
+        dateForwarded: toDbDate(ctx.today),
+        ...(early && { forwardedBeforeRouting: true }),
+      },
     });
     await audit(
       tx,
@@ -672,8 +736,14 @@ export async function forwardToday(db: Db, actor: Actor, id: string) {
         action: "forward",
         entityType: "InwardItem",
         entityId: id,
-        before: { dateForwarded: null },
-        after: { dateForwarded: ctx.today },
+        before: {
+          dateForwarded: null,
+          ...(early && { forwardedBeforeRouting: false }),
+        },
+        after: {
+          dateForwarded: ctx.today,
+          ...(early && { forwardedBeforeRouting: true }),
+        },
       },
       actor.now,
     );
@@ -691,6 +761,7 @@ export async function closeToday(
   actor: Actor,
   id: string,
   note: string,
+  opts: { confirmForwardBeforeRouting?: boolean } = {},
 ) {
   assertCan(actor.user, "registers.write");
   const closingNote = note.trim();
@@ -704,10 +775,17 @@ export async function closeToday(
     const d = await refreshInward(tx, id, ctx);
     if (d.status === "Closed")
       throw new ValidationError([`${row.number} is already closed.`]);
+    // Closing marks it forwarded today too, so the same confirm applies.
+    const early = forwardingBeforeRouting(
+      row,
+      ctx.today,
+      opts.confirmForwardBeforeRouting,
+    );
     const data = {
       dateClosedManual: ctx.today,
       closingNote,
       dateForwarded: fromDbDate(row.dateForwarded) ?? ctx.today,
+      ...(early && { forwardedBeforeRouting: true }),
     };
     const item = await tx.inwardItem.update({
       where: { id },
@@ -728,6 +806,7 @@ export async function closeToday(
           dateClosedManual: fromDbDate(row.dateClosedManual),
           closingNote: row.closingNote,
           dateForwarded: fromDbDate(row.dateForwarded),
+          ...(early && { forwardedBeforeRouting: false }),
         },
         after: data,
       },

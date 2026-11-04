@@ -2,8 +2,13 @@
 // linked items (SPEC §9 R3) and the audit history.
 import { deriveInward, reg01CacDuplicates } from "@/domain/inward";
 import { deriveOutward } from "@/domain/outward";
-import type { Principal } from "@/domain/permissions";
-import { fileWhere, inwardWhere, outwardWhere } from "../access";
+import { canReadForRouting, type Principal } from "@/domain/permissions";
+import {
+  fileWhere,
+  inwardWhere,
+  outwardWhere,
+  routingFileWhere,
+} from "../access";
 import type { Db } from "../db";
 import {
   inwardFactsInclude,
@@ -41,6 +46,7 @@ export async function inwardDetail(
       mode: { select: { label: true } },
       type: { select: { name: true } },
       routedUnit: { select: { name: true } },
+      routedBy: { select: { name: true } },
       unitOverride: { select: { name: true } },
       senderCategory: { select: { label: true } },
       ackIssuedVia: { select: { label: true, systemKey: true } },
@@ -242,6 +248,55 @@ export async function searchFiles(db: Db, user: Principal, q: string) {
     where: {
       AND: [
         fileWhere(user),
+        {
+          OR: [
+            { reference: { contains: t, mode: "insensitive" } },
+            { title: { contains: t, mode: "insensitive" } },
+          ],
+        },
+      ],
+    },
+    select: { id: true, reference: true, title: true },
+    orderBy: { reference: "asc" },
+    take: 10,
+  });
+}
+
+/** Routing Desk item picker: every non-void inward item, routers only (C5.2). */
+export async function searchInwardForRouting(
+  db: Db,
+  user: Principal,
+  q: string,
+) {
+  const t = q.trim();
+  if (!canReadForRouting(user) || t.length < 2) return [];
+  return db.inwardItem.findMany({
+    where: {
+      voidedAt: null,
+      OR: [
+        { number: { contains: t, mode: "insensitive" } },
+        { sender: { contains: t, mode: "insensitive" } },
+        { subject: { contains: t, mode: "insensitive" } },
+      ],
+    },
+    select: { id: true, number: true, sender: true, subject: true },
+    orderBy: [{ numberYear: "desc" }, { serial: "desc" }],
+    take: 10,
+  });
+}
+
+/** Routing Desk file picker: never Confidential or Personnel by routing alone. */
+export async function searchFilesForRouting(
+  db: Db,
+  user: Principal,
+  q: string,
+) {
+  const t = q.trim();
+  if (!canReadForRouting(user) || t.length < 2) return [];
+  return db.registryFile.findMany({
+    where: {
+      AND: [
+        routingFileWhere(user),
         {
           OR: [
             { reference: { contains: t, mode: "insensitive" } },

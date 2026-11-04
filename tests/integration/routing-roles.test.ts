@@ -14,7 +14,15 @@ import { fileDetail, fileIndex } from "@/server/read/files";
 import { inwardRegister } from "@/server/read/registers";
 import { loadPrincipal } from "@/server/session";
 import { updateUser } from "@/server/users";
-import { loadForRouting, routeInward } from "@/server/workflows/routing";
+import {
+  searchFilesForRouting,
+  searchInwardForRouting,
+} from "@/server/read/items";
+import {
+  loadForRouting,
+  RESTRICTED_FILE,
+  routeInward,
+} from "@/server/workflows/routing";
 import { actorFor, connectTestDb, DEC_10, resetDb } from "./helpers";
 
 const db = connectTestDb();
@@ -313,6 +321,87 @@ describe("routeInward (C5.2, C13.2)", () => {
       password: process.env.DEV_SEED_PASSWORD || "Dev only pass 2026!",
     });
     expect(r.status).toBe("Awaiting forwarding");
+  });
+});
+
+describe("Routing Desk searches and file choice (C5.2, C12)", () => {
+  async function confidentialFile() {
+    return db.registryFile.create({
+      data: {
+        reference: "OGSERC/GEN/009",
+        title: "Confidential matter",
+        dateOpened: new Date("2026-11-02"),
+        securityId: await listId("FILE_SECURITY", "Confidential"),
+        fileStatusId: await listId("FILE_STATUS", "Open"),
+        createdById: ids.users.officer,
+      },
+    });
+  }
+
+  it("finds any inward item for a router, nothing for anyone else", async () => {
+    const hoa = await makeUser("UNIT_OFFICER", {
+      canRoute: true,
+      unit: "Administration",
+    });
+    const found = await searchInwardForRouting(
+      db,
+      await loadPrincipal(db, hoa.id),
+      "deficiency",
+    );
+    expect(found.map((r) => r.number)).toEqual(["OGSERC/ACK/2026/00002"]);
+    const officer = await loadPrincipal(db, ids.users.officer);
+    expect(await searchInwardForRouting(db, officer, "deficiency")).toEqual([]);
+    expect(await searchFilesForRouting(db, officer, "RL")).toEqual([]);
+  });
+
+  it("a router without confidential access can't choose a Confidential file, keeps one already linked, and sees it masked", async () => {
+    const conf = await confidentialFile();
+    const u = await makeUser("REGISTRY_OFFICER", { canRoute: true });
+    const router = await actorFor(db, u.id);
+
+    expect(
+      (await searchFilesForRouting(db, router.user, "OGSERC")).map(
+        (f) => f.reference,
+      ),
+    ).not.toContain("OGSERC/GEN/009");
+    await expect(
+      routeInward(db, router, ids.I2, await routingForm({ fileId: conf.id })),
+    ).rejects.toThrow("File: choose a file from the search.");
+
+    // The Secretary reads confidential files and links it.
+    const secretary = await actorFor(db, ids.users.secretary);
+    expect(
+      (await searchFilesForRouting(db, secretary.user, "GEN/009")).map(
+        (f) => f.reference,
+      ),
+    ).toEqual(["OGSERC/GEN/009"]);
+    await routeInward(
+      db,
+      secretary,
+      ids.I2,
+      await routingForm({ fileId: conf.id }),
+    );
+
+    // The other router sees neither its reference nor its history label...
+    const desk = await loadForRouting(db, router, ids.I2);
+    expect(desk.fields.fileId).toBe(conf.id);
+    expect(desk.fields.fileReference).toBe(RESTRICTED_FILE);
+    expect(JSON.stringify(desk.history)).not.toContain("OGSERC/GEN/009");
+    // ...but can re-route and keep it.
+    await routeInward(
+      db,
+      router,
+      ids.I2,
+      await routingForm({
+        fileId: conf.id,
+        priorityId: await listId("PRIORITY", "High"),
+      }),
+    );
+    const i2 = await db.inwardItem.findUniqueOrThrow({ where: { id: ids.I2 } });
+    expect(i2.fileId).toBe(conf.id);
+    // The Secretary still sees it.
+    const own = await loadForRouting(db, secretary, ids.I2);
+    expect(own.fields.fileReference).toBe("OGSERC/GEN/009");
   });
 });
 

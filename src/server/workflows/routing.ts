@@ -12,6 +12,7 @@ import {
   type RoutingFields,
 } from "@/domain/routing";
 import type { Prisma } from "@/generated/prisma/client";
+import { routingFileWhere } from "../access";
 import { audit } from "../audit";
 import { verifyPassword } from "../auth";
 import { fromDbDate, toDbDate } from "../dates";
@@ -21,6 +22,9 @@ import { refreshInward, type Actor } from "../registers";
 import { loadRuleContext } from "../rules";
 import { lockInward, refProblems, throwIfProblems, type Raw } from "./common";
 import { INWARD_LABELS, readInward } from "./inward";
+
+/** Shown instead of a file reference the router's role can't see. */
+export const RESTRICTED_FILE = "A restricted file (kept unless you change it)";
 
 /** The stored routing fields (ids are foreign keys). */
 type StoredRouting = {
@@ -115,7 +119,7 @@ export async function loadForRouting(db: Db, actor: Actor, id: string) {
     include: {
       routedUnit: { include: { division: true } },
       routedBy: { select: { name: true } },
-      file: { select: { reference: true } },
+      file: { select: { id: true, reference: true } },
       actionRequired: { select: { label: true } },
       priority: { select: { label: true } },
       routingEvents: {
@@ -126,6 +130,34 @@ export async function loadForRouting(db: Db, actor: Actor, id: string) {
   });
   if (!row) throw new ValidationError(["That inward item doesn't exist."]);
   const derived = await db.$transaction((tx) => refreshInward(tx, id, ctx));
+
+  // File references the router may not see are masked, here and in history.
+  const fileIds = new Set<string>();
+  if (row.fileId) fileIds.add(row.fileId);
+  for (const e of row.routingEvents)
+    for (const side of [e.before, e.after]) {
+      const f = (side as Record<string, unknown> | null)?.fileId as
+        { id?: string } | null | undefined;
+      if (f?.id) fileIds.add(f.id);
+    }
+  const visible = new Set(
+    (
+      await db.registryFile.findMany({
+        where: {
+          AND: [{ id: { in: [...fileIds] } }, routingFileWhere(actor.user)],
+        },
+        select: { id: true },
+      })
+    ).map((f) => f.id),
+  );
+  const mask = (side: unknown) => {
+    const o = { ...(side as Record<string, unknown>) };
+    const f = o.fileId as { id?: string; label?: string } | null | undefined;
+    if (f?.id && !visible.has(f.id))
+      o.fileId = { id: f.id, label: RESTRICTED_FILE };
+    return o;
+  };
+
   return {
     id: row.id,
     number: row.number,
@@ -141,7 +173,11 @@ export async function loadForRouting(db: Db, actor: Actor, id: string) {
     fields: {
       unitOverrideId: row.unitOverrideId,
       fileId: row.fileId,
-      fileReference: row.file?.reference ?? null,
+      fileReference: row.file
+        ? visible.has(row.file.id)
+          ? row.file.reference
+          : RESTRICTED_FILE
+        : null,
       actionRequiredId: row.actionRequiredId,
       priorityId: row.priorityId,
       actionOfficer: row.actionOfficer,
@@ -150,8 +186,8 @@ export async function loadForRouting(db: Db, actor: Actor, id: string) {
     history: row.routingEvents.map((e) => ({
       at: e.routedAt,
       by: e.routedBy.name,
-      before: e.before,
-      after: e.after,
+      before: mask(e.before),
+      after: mask(e.after),
     })),
   };
 }
@@ -258,11 +294,14 @@ export async function routeInward(
           true,
         )),
       );
-      if (after.fileId) {
-        const file = await tx.registryFile.findUnique({
-          where: { id: after.fileId },
+      // A new file must be one the router may see; routing grants no access
+      // to Confidential or Personnel files (C12). A file already linked is
+      // kept as it is.
+      if (after.fileId && after.fileId !== before.fileId) {
+        const ok = await tx.registryFile.count({
+          where: { AND: [{ id: after.fileId }, routingFileWhere(actor.user)] },
         });
-        if (!file) all.push("File: choose a file from the search.");
+        if (!ok) all.push("File: choose a file from the search.");
       }
       throwIfProblems(missing, all);
 

@@ -44,3 +44,14 @@ export function fileWhere(user: Principal): Prisma.RegistryFileWhereInput {
   if (can(user, "files.readConfidential")) return {};
   return NON_CONFIDENTIAL_FILE;
 }
+
+/**
+ * Files a router may choose on the Routing Desk (SPEC-v2 C5.2). Routing grants
+ * no file access of its own: Confidential and Personnel files only for users
+ * whose role reads them (C12).
+ */
+export function routingFileWhere(
+  user: Principal,
+): Prisma.RegistryFileWhereInput {
+  return can(user, "files.readConfidential") ? {} : NON_CONFIDENTIAL_FILE;
+}
