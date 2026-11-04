@@ -2,7 +2,14 @@
 
 Started in Phase V0 and finished in V8. Tick each item before the app replaces the workbook.
 
-## Database upgrade
+## Fresh start (chosen for go-live, 2026-11-04)
+The live database held test data only, so it is emptied and rebuilt instead of upgraded. The "Database upgrade" steps below then don't apply.
+- [ ] Empty the production database: Neon SQL Editor, on the app's database: `DROP SCHEMA public CASCADE; CREATE SCHEMA public;`
+- [ ] Deploy (push `main`): the build applies every migration to the empty database.
+- [ ] Load the v2 reference data and create the first admin (OPERATIONS §3 on Vercel, step 4): `prisma/seed.ts` without `--example` or `--logins`, then `scripts/create-admin.ts`.
+- [ ] The admin signs in, changes the temporary password, then works through "Email" and "People and roles" below.
+
+## Database upgrade (only when keeping existing data)
 - [ ] **Upgrade production to the v2 reference data:**
   - [ ] Back up the production database and test the restore before running `upgrade-reference-v2`.
   - [ ] Apply the migrations (a production deploy runs `prisma migrate deploy`).
