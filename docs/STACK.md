@@ -1,6 +1,6 @@
 # Stack: OGSERC Registry System
 
-Internal, staff-only web app that replaces the **OGSERC Registry Correspondence Workbook** (`reference/OGSERC_Registry_Correspondence_Workbook.xlsm`). It logs inward and outward correspondence, issues para 10(3) acknowledgement slips, routes items to units, chases responses both ways, and tracks physical files. Built with Claude Code in phases (see `CLAUDE.md`).
+Internal, staff-only web app that replaces the **OGSERC Registry Correspondence Workbook** (`reference/OGSERC_Registry_Correspondence_Workbook.xlsm`; the reworked v2 workbook is `reference/OGSERC_Registry_Correspondence_Workbook_New.xlsm`, see `docs/SPEC-v2-CHANGES.md`). It logs inward and outward correspondence, issues para 10(3) acknowledgement slips, routes items to units, chases responses both ways, and tracks physical files. Built with Claude Code in phases (see `CLAUDE.md`).
 
 What the workbook does, and therefore what this stack has to handle well:
 
@@ -11,7 +11,8 @@ What the workbook does, and therefore what this stack has to handle well:
 - **Links between items**: replies to inward items, responses to outward letters, and the file each item sits on.
 - **Printable outputs**: a two-copy acknowledgement slip, the Daily Register for sign-off, and the Pending Actions list.
 - **A dashboard**, plus breakdowns by unit, category, month, correspondent and LGA.
-- **No payments and no multi-step approvals.** The workflow is registry-centric: log, forward, reply, close.
+- **A front desk intake log**, a **routing step** by the Secretary / Head of Administration, and an **acknowledgement email** to the unit (SPEC-v2 C3, C5, C6).
+- **No payments and no multi-step approvals.** The workflow is registry-centric: front desk, register, route, forward, reply, close.
 
 ---
 
@@ -132,7 +133,7 @@ These matter more than the libraries. Rules marked **(Registry)** come from how 
 
 14. **Workflow gates list every blocking reason on screen, and the server re-checks them.** For example, "Delivered today" is blocked until dispatch is recorded, and issuing a file that's still out needs explicit confirmation.
 
-15. **Reference data is seeded from `seed-data.json`.** This covers 31 incoming types, 23 outgoing types, units, LGAs, lists, settings and holidays. The seed only adds missing rows, so re-running it never overwrites admin edits. The workbook's example rows are seeded in dev and test only.
+15. **Reference data is seeded from `seed-data.json`.** This covers 32 incoming types, 23 outgoing types, 30 units in 5 divisions (with their email addresses), signatories, file class codes, LGAs, lists, settings and holidays (seed-data v2). The seed only adds missing rows, so re-running it never overwrites admin edits. The workbook's example rows are seeded in dev and test only.
 
 16. **Dev-only test clock.** Setting `APP_NOW=2026-12-10T09:00` (Lagos time) drives every "now" and "today" calculation, so cut-offs and overdue rules can be tested without waiting. The app refuses to start in production if it's set.
 

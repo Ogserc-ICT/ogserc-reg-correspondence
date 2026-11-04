@@ -81,17 +81,25 @@ Received = actual receipt date (not deemed). Order by receivedAt; dispatched ord
 
 ```
 OGSERC Registry — Pending Actions        Unit: {All units | unit}      Printed: {dd-MMM-yyyy HH:mm}
-Pending: {n}     Overdue: {o}     Awaiting forwarding: {a}
+Pending: {n}     Overdue: {o}     Awaiting routing / fwd: {a}
 
 # | Inward No. | Deemed receipt | Sender | Subject | Type | Unit | Action officer | Action | Priority | Response due | Working days open | Status
 ```
-Overdue rows shaded red, Awaiting forwarding amber. Order by deemed receipt, then number.
+Overdue rows shaded red, Awaiting routing and Awaiting forwarding amber. Order by deemed receipt, then number. (SPEC-v2 C5.3: "Awaiting routing / fwd" = Awaiting routing + Awaiting forwarding.)
 
 ---
 
 ## 4. On-screen messages (keep this wording; it is what registry staff already know)
 
-- After saving inward: `Saved as {no}. Forward to: {unit}.`
+- After saving inward (SPEC-v2 C4; replaces "Forward to: {unit}"): `Saved as {no}.` / `Suggested unit: {unit}` / `Routing, file reference and handling will be set by the Secretary / Head of Admin on the Routing Desk.` followed by the email line below.
+- Acknowledgement email lines (C6): `Acknowledgement emailed to {unit} ({addresses}).` · `Acknowledgement email to {unit} is waiting under 'Emails to review' on the Registry Desk.` · `Acknowledgement not emailed: no email address is set for '{unit}' or its division. Add one in Admin › Units.` · `Acknowledgement not emailed: {reason}. Use RESEND ACK EMAIL on the Registry Desk.` · Off: no line (Resend: `Acknowledgement email is switched off (Admin › Settings, 'Acknowledgement email').`).
+- Resend an item already emailed: `{no} was emailed on {dd-MMM-yyyy HH:mm} to {addresses}. Send it again?`
+- Front desk saved (C3.2): `Logged as {intakeNo}. No acknowledgement has been issued. Pass the document to the Registry - it stays on the 'Awaiting registry' list until the Registry registers it.`
+- Pulling over typed data: `Replace what is typed on this form with the front desk details?` · already registered: `{intakeNo} is already registered as {ackNo}.`
+- Routed (C5.2): `{no} routed to {unit} by {name}.` / `Status: {status}`, then the email line if any.
+- Routing refused (C5.1): `Only the Secretary to the Commission and the Head of Administration can route items.`
+- Forwarding before routing (C5.4): `{no} has not been routed by the Secretary / Head of Admin yet. Forward it anyway?`
+- New file without a class code (C8): `Set a file class code for '{class}' in Admin, or type the file reference.`
 - After saving outward: `Outward number: {no}. Quote it on the document.`
 - Missing fields: `Please complete:` followed by each missing field label.
 - Close without letter: `Close {no} today without an outgoing letter?`

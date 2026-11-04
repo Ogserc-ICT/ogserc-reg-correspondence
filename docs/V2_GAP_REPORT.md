@@ -1,5 +1,11 @@
 # Registry v2: gap report (Phase V0)
 
+> **Status (V8):** every C-section is built (phases V1–V8). Still open:
+> - Q-V2-2: notifying the previous unit on re-routing. The setting exists and stays at the workbook default (no); the email itself isn't built until its wording is agreed.
+> - C13.1: whether an unrouted item (I2) may carry a file reference. Through the screens it can't: file references are set only on the Routing Desk.
+>
+> Both are listed in `docs/GO_LIVE_CHECKLIST.md`.
+
 What the app does today compared with `docs/SPEC-v2-CHANGES.md` (C1–C13), and what each phase V1–V8 will change. No code changed in V0.
 
 Sources read: `CLAUDE.md`, `docs/STACK.md`, `docs/SPEC.md`, `docs/SPEC-v2-CHANGES.md`, `seed-data.json` (v2), and `reference/vba/RegistryDesk.v2.bas` where the delta was unclear (email, routing, front desk pull, file reference generator).

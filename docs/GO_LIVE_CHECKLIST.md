@@ -10,16 +10,18 @@ Started in Phase V0 and finished in V8. Tick each item before the app replaces t
   - [ ] Run `npx tsx scripts/upgrade-reference-v2.ts --commit --confirm <fingerprint>`, using the fingerprint the dry run printed. It runs in one transaction, so it applies all of its changes or none, and it saves nothing if the data changed since the dry run.
   - [ ] Run the dry run once more. It should say "No changes".
   - [ ] Check that unit officers' units were remapped by the confirmed C1.1 map.
+  - [ ] Run **Refresh statuses** (Admin › Jobs › Run now). The v2 status "Awaiting routing" is stored only after this first refresh; the nightly job keeps it current afterwards.
 
 ## Reference data to confirm
 - [ ] Default unit for "Licensee returns / performance report": **Performance Monitoring unit** (Admin › Types).
 - [ ] Default unit for "Incident / outage report": **Occupational Health, Safety and Performance Analysis unit** (Admin › Types).
 - [ ] No warning on Admin › Types about a type whose default unit does not exist.
-- [ ] Signatory list and designations (Admin › Signatories).
-- [ ] File class codes (Admin › Lists).
+- [ ] Signatory list and designations, and the default signatory (Admin › Organisation).
+- [ ] File class codes (Admin › Organisation) and the file reference prefix and digits (Admin › Settings).
+- [ ] Every unit has its division (Admin › Organisation).
 
 ## Email
-- [ ] Enter the unit and division email addresses (Admin › Units). Only ICT unit, Engineering Services and Electricity Market, Planning and Research have one so far.
+- [ ] Enter the unit and division email addresses (Admin › Organisation). Only ICT unit, Engineering Services and Electricity Market, Planning and Research have one so far.
 - [ ] Choose the email provider and sender mailbox (Q-V2-1). Configure it and send a test.
   - Until then, email stays **Off**. Retries currently run from the daily `email-retry` job, plus "Run now" (Admin › Jobs) and Resend on the Registry Desk.
   - When the provider is chosen, revisit hosting and how often retries run. A cron more frequent than daily needs Vercel Pro.
@@ -28,13 +30,21 @@ Started in Phase V0 and finished in V8. Tick each item before the app replaces t
 - [ ] Set the CC (Admin › Settings, "Copy (CC) every acknowledgement to") if a copy should go to the Registry.
 - [ ] Switch the acknowledgement email from **Off** to Review or Send (Admin › Settings). In Review, check the Emails page (or the Registry Desk notice) daily.
 
+## Decisions to record (C11)
+- [ ] Q-V2-2: notify the previous unit when routing moves an item away. Not built: stays "no" (workbook) until the wording of that email is agreed.
+- [ ] Q-V2-3: routers re-enter their password to save routing (Admin › Settings; default no).
+- [ ] Q-V2-5: the front desk may log any mode of receipt, not only hand deliveries (Admin › Settings; default yes).
+- [ ] C13.1: whether an unrouted item (I2 in the example) can carry a file reference. Today a file reference is set only on the Routing Desk.
+
 ## People and roles
 - [ ] Create accounts for the front desk officers (role: Front desk officer).
 - [ ] Tick "Can route" on the accounts of the Secretary to the Commission (role: Secretary / management) and the Head of Administration (their own role). Nobody else.
 - [ ] Review registry officer, Head of Registry and unit officer accounts against the new units.
+- [ ] Give registry staff, front desk officers and the two routers the updated guide (`docs/USER_GUIDE.md`).
 
 ## Carried over from Phase 8
 - [ ] Restore drill on the production database.
 - [ ] NDPA sign-off for data held outside Nigeria.
 - [ ] Parallel week with the v2 workbook; daily counts match (`docs/PARALLEL_RUN.md`).
-- [ ] Never import the workbook's Front Desk Log test entry (OGSERC/FD/2026/00001).
+- [ ] When importing the v2 workbook, read the warnings: "Ack. emailed" columns are not imported (E1), and a router who isn't a user in the app is kept without a name.
+- [ ] The workbook's Front Desk Log test entry (OGSERC/FD/2026/00001, Verge Power Limited) is never imported: the importer doesn't read that sheet (tested).
