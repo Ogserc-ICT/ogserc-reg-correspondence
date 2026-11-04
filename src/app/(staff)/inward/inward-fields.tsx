@@ -1,12 +1,11 @@
 "use client";
-// The New Inward fields (SPEC §4.1): Receipt, Sender and Handling as on the
-// reference design, with the less-used fields in fold-out groups. Also used
-// by the Head of Registry's "edit registered details".
+// The New Inward fields (SPEC §4.1, slimmed by SPEC-v2 C4): Receipt, Sender
+// and Acknowledgement, with the less-used fields in fold-out groups. Also
+// used by the Head of Registry's "edit registered details".
 import { useState } from "react";
 import { Field } from "@/app/_components/form";
 import {
   DateTimeInput,
-  Segmented,
   Select,
   TextArea,
   TextInput,
@@ -19,7 +18,7 @@ import {
   Wide,
 } from "@/app/_components/ui/form-section";
 import type { FormOptions } from "@/server/read/options";
-import { searchFilesAction, searchOutwardAction } from "../search-actions";
+import { searchOutwardAction } from "../search-actions";
 
 export type Values = Record<string, string | undefined>;
 
@@ -47,7 +46,6 @@ export function InwardFields({
   const type = options.incomingTypes.find((t) => t.id === typeId);
   const v = (k: string) => values[k] ?? "";
   const has = (keys: string[]) => keys.some((k) => v(k));
-  const normal = options.priorities.find((p) => p.key === "NORMAL");
 
   return (
     <div className="space-y-5">
@@ -79,7 +77,7 @@ export function InwardFields({
             onChange={setTypeId}
             hint={
               type
-                ? `${type.category}. Goes to ${type.defaultUnit}.`
+                ? `${type.category}. Suggested unit: ${type.defaultUnit} (the Secretary / Head of Admin routes it).`
                 : undefined
             }
           />
@@ -232,87 +230,25 @@ export function InwardFields({
       </FoldSection>
 
       {handling && (
-        <>
-          <FormSection title="Handling">
-            <Select
-              name="actionRequiredId"
-              label="Action required"
-              required
-              options={options.actionRequired}
-              defaultValue={v("actionRequiredId")}
+        // Routing, file reference and handling are set on the Routing Desk
+        // (SPEC-v2 C4).
+        <FormSection title="Acknowledgement">
+          <Select
+            name="ackIssuedViaId"
+            label="Acknowledgement via"
+            required
+            options={options.ackVia}
+            defaultValue={v("ackIssuedViaId")}
+          />
+          <Wide>
+            <TextArea
+              name="remarks"
+              label="Remarks"
+              rows={3}
+              defaultValue={v("remarks")}
             />
-            <Select
-              name="ackIssuedViaId"
-              label="Acknowledgement via"
-              required
-              options={options.ackVia}
-              defaultValue={v("ackIssuedViaId")}
-            />
-            <Wide>
-              <Segmented
-                name="priorityId"
-                label="Priority"
-                // Blank means Normal; keep a stored Normal id as it is.
-                defaultValue={v("priorityId")}
-                options={[
-                  {
-                    value: v("priorityId") === normal?.id ? normal.id : "",
-                    label: normal?.label ?? "Normal",
-                  },
-                  ...options.priorities
-                    .filter((p) => p.key !== "NORMAL")
-                    .map((p) => ({ value: p.id, label: p.label })),
-                ]}
-              />
-            </Wide>
-            <Wide>
-              <TextArea
-                name="remarks"
-                label="Remarks"
-                rows={3}
-                defaultValue={v("remarks")}
-              />
-            </Wide>
-          </FormSection>
-
-          <FoldSection
-            title="Routing and file"
-            summary="File, unit override, action officer, sender's deadline"
-            open={has([
-              "fileId",
-              "unitOverrideId",
-              "actionOfficer",
-              "responseDueOverride",
-            ])}
-          >
-            <Picker
-              name="fileId"
-              label="File"
-              search={searchFilesAction}
-              defaultId={values.fileId || undefined}
-              defaultLabel={values.fileIdLabel}
-            />
-            <Select
-              name="unitOverrideId"
-              label="Forward to (override)"
-              hint="Only to override the type's unit."
-              options={options.units}
-              defaultValue={v("unitOverrideId")}
-            />
-            <TextInput
-              name="actionOfficer"
-              label="Action officer"
-              defaultValue={v("actionOfficer")}
-            />
-            <TextInput
-              name="responseDueOverride"
-              type="date"
-              label="Response due (override)"
-              hint="Use when the sender sets a deadline."
-              defaultValue={v("responseDueOverride")}
-            />
-          </FoldSection>
-        </>
+          </Wide>
+        </FormSection>
       )}
     </div>
   );

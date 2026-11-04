@@ -52,11 +52,18 @@ async function AppSidebar() {
   const user = await requireUser({ allowTemporaryPassword: true });
   // Admin and Front desk officer read no items (C12).
   const registers = readScope(user).kind !== "none";
+  const frontDeskOnly = can(user, "frontdesk.write") && !registers;
   const groups: NavGroup[] = [
     {
       title: "Workspace",
       links: [
-        { href: "/", label: "Registry Desk", icon: "grid" },
+        // Front desk officers start at the Front Desk (C12).
+        !frontDeskOnly && { href: "/", label: "Registry Desk", icon: "grid" },
+        (can(user, "frontdesk.write") || can(user, "frontdesk.read")) && {
+          href: "/front-desk",
+          label: "Front Desk",
+          icon: "desk",
+        },
         registers && { href: "/inward", label: "Inward", icon: "inbox" },
         registers && { href: "/outward", label: "Outward", icon: "send" },
         can(user, "files.read") && {

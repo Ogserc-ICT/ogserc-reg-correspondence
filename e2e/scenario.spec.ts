@@ -98,7 +98,6 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
     schedule2DocsAttached: "12",
     paymentRef: "OGSERC-PAY-0001",
     amountShown: "250,000",
-    actionOfficer: "Head, Registration",
   });
   await choose(page, {
     modeId: "Hand delivery",
@@ -106,18 +105,22 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
     senderCategoryId: "Registrant / licensee",
     principalLgaId: "Sagamu",
     feeEvidenceAttached: "Yes",
-    actionRequiredId: "Action required",
   });
-  await pick(page, "File", "RL/001", /OGSERC\/RL\/001/);
   await page.getByRole("button", { name: "Save to register" }).click();
   await expect(status(page)).toContainText(
-    "Saved as OGSERC/ACK/2026/00001. Forward to: Licensing unit.",
+    [
+      "Saved as OGSERC/ACK/2026/00001.",
+      "Suggested unit: Licensing unit",
+      "Routing, file reference and handling will be set by the Secretary / Head of Admin on the Routing Desk.",
+    ].join("\n"),
   );
   await openSaved(page);
   await fill(page, {
     dateForwarded: "2026-11-20",
     receivedByUnitOfficer: "Reg. Officer",
+    actionOfficer: "Head, Registration",
   });
+  await pick(page, "File", "RL/001", /OGSERC\/RL\/001/);
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(status(page)).toContainText("OGSERC/ACK/2026/00001 updated.");
 
@@ -162,7 +165,6 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
     typeId: "Deficiency response",
     senderCategoryId: "Registrant / licensee",
     ackIssuedViaId: "Email",
-    actionRequiredId: "Action required",
   });
   await pick(
     page,
@@ -170,11 +172,13 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
     "OUT/2026/00001",
     /OGSERC\/OUT\/2026\/00001/,
   );
-  await pick(page, "File", "RL/001", /OGSERC\/RL\/001/);
   await page.getByRole("button", { name: "Save to register" }).click();
-  await expect(status(page)).toContainText(
-    "Saved as OGSERC/ACK/2026/00002. Forward to: Licensing unit.",
-  );
+  await expect(status(page)).toContainText("Saved as OGSERC/ACK/2026/00002.");
+  await expect(status(page)).toContainText("Suggested unit: Licensing unit");
+  await openSaved(page);
+  await pick(page, "File", "RL/001", /OGSERC\/RL\/001/);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(status(page)).toContainText("OGSERC/ACK/2026/00002 updated.");
 
   // ---- I3: NERC letter by hand, 2 Dec 11:05, to the Chairman ----------------
   await page.goto("/inward/new");
@@ -188,17 +192,17 @@ test("SPEC §12.2 entered through the UI matches the fixtures", async ({
     modeId: "Hand delivery",
     typeId: "Letter from NERC / Federal agency",
     senderCategoryId: "NERC",
-    unitOverrideId: "Office of the General Counsel and Secretary (Registry)",
     ackIssuedViaId: "Not required",
-    actionRequiredId: "Reply required",
+  });
+  await page.getByRole("button", { name: "Save to register" }).click();
+  await expect(status(page)).toContainText("Saved as OGSERC/ACK/2026/00003.");
+  await openSaved(page);
+  // The unit override, priority and file move to the Routing Desk in V5.
+  await choose(page, {
+    unitOverrideId: "Office of the General Counsel and Secretary (Registry)",
     priorityId: "High",
   });
   await pick(page, "File", "GOV/001", /OGSERC\/GOV\/001/);
-  await page.getByRole("button", { name: "Save to register" }).click();
-  await expect(status(page)).toContainText(
-    "Saved as OGSERC/ACK/2026/00003. Forward to: Office of the General Counsel and Secretary (Registry).",
-  );
-  await openSaved(page);
   await fill(page, {
     dateForwarded: "2026-12-02",
     receivedByUnitOfficer: "PA to Chairman",
@@ -566,7 +570,6 @@ test("Save + PDF slip downloads the new item's slip", async ({ page }) => {
     modeId: "Hand delivery",
     typeId: "Other correspondence",
     senderCategoryId: "Consumer / member of public",
-    actionRequiredId: "For information",
   });
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Save + PDF slip" }).click();

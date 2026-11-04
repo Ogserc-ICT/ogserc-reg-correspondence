@@ -48,3 +48,12 @@ export async function requireCan(cap: Capability): Promise<SessionUser> {
   if (!can(user, cap)) forbidden();
   return user;
 }
+
+/** 403 page unless the user has at least one of the capabilities. */
+export async function requireAnyCan(
+  ...caps: Capability[]
+): Promise<SessionUser> {
+  const user = await requireUser();
+  if (!caps.some((c) => can(user, c))) forbidden();
+  return user;
+}

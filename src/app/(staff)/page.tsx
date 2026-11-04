@@ -3,6 +3,7 @@
 // what the registers already derive (statuses, flags, due dates).
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
 import type { IsoDate } from "@/domain/calendar";
 import { todayIn } from "@/domain/clock";
@@ -10,7 +11,7 @@ import { FILE_FLAGS } from "@/domain/files";
 import { formatDate } from "@/domain/format";
 import { INWARD_FLAGS } from "@/domain/inward";
 import { OUTWARD_FLAGS } from "@/domain/outward";
-import { can } from "@/domain/permissions";
+import { can, readScope } from "@/domain/permissions";
 import { appNow } from "@/server/clock";
 import { requireUser } from "@/server/current-user";
 import { loadFullDashboard } from "@/server/dashboard";
@@ -74,6 +75,9 @@ const TONE_ORDER: Tone[] = ["overdue", "awaiting", "flagged"];
 
 async function DeskContent() {
   const user = await requireUser();
+  // Front desk officers work from the Front Desk only (SPEC-v2 C12).
+  if (can(user, "frontdesk.write") && readScope(user).kind === "none")
+    redirect("/front-desk");
   const now = appNow();
   const today = todayIn(now);
   const db = getDb();

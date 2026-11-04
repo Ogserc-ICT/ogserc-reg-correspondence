@@ -60,7 +60,7 @@ export function Messages({ state }: { state: FormState }) {
     return (
       <p
         role="status"
-        className="rounded-card border-closed/40 bg-status-closed text-text mb-4 border p-4 text-sm"
+        className="rounded-card border-closed/40 bg-status-closed text-text mb-4 border p-4 text-sm whitespace-pre-line"
       >
         {state.message}
         {state.link && (
